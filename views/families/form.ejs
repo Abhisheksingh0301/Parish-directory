@@ -1,0 +1,217 @@
+<%- include('../partials/header') %>
+
+<%
+  // One markup definition for a member row, reused for the saved members and
+  // for the <template> the "Add member" button clones.
+  function memberRow(index, m) {
+%>
+  <div class="member-row" data-member-row>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="members[<%= index %>][name]" value="<%= m.name %>"
+             placeholder="Mr. John Dsouza">
+    </div>
+
+    <div class="field">
+      <label>Reltn</label>
+      <input type="text" name="members[<%= index %>][relation]" value="<%= m.relation %>"
+             list="relation-codes" placeholder="HF">
+    </div>
+
+    <div class="field">
+      <label>Date of birth</label>
+      <div class="daymonth">
+        <input type="number" name="members[<%= index %>][dob_day]" min="1" max="31"
+               value="<%= m.dob_day || '' %>" placeholder="Day" aria-label="Day of birth">
+        <select name="members[<%= index %>][dob_month]" aria-label="Month of birth">
+          <option value="">Month</option>
+          <% months.forEach(function (mo) { %>
+            <option value="<%= mo.value %>" <%= Number(m.dob_month) === mo.value ? 'selected' : '' %>>
+              <%= mo.name %>
+            </option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Mobile</label>
+      <input type="text" name="members[<%= index %>][mobile]" value="<%= m.mobile %>"
+             placeholder="9876543210">
+    </div>
+
+    <div class="field">
+      <label>Links</label>
+      <input type="text" name="members[<%= index %>][links]" value="<%= m.links %>">
+    </div>
+
+    <div class="drop">
+      <button type="button" class="btn ghost small" data-remove-member>Remove</button>
+    </div>
+  </div>
+<% } %>
+
+<div class="page-head">
+  <h1><%= isNew ? 'Add a family' : 'Edit family' %></h1>
+  <p class="sub">
+    Dates of birth and the date of marriage are recorded as day and month only —
+    there is no year, in the form or in the printed directory.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<datalist id="relation-codes">
+  <% relationOptions.forEach(function (code) { %><option value="<%= code %>"><% }); %>
+</datalist>
+
+<form method="post"
+      action="<%= isNew ? '/families' : '/families/' + family.id %>"
+      enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="card">
+    <h2>The family</h2>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="family_id">Family ID</label>
+        <input type="text" id="family_id" name="family_id" value="<%= family.family_id %>" required>
+        <p class="help">Prints in the corner of the entry. Any format your parish already uses.</p>
+      </div>
+
+      <div class="field">
+        <label for="head_name">Family head name</label>
+        <input type="text" id="head_name" name="head_name" value="<%= family.head_name %>" required>
+        <p class="help">Prints in the large band at the top of the entry.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="address">Address</label>
+      <textarea id="address" name="address"
+                placeholder="Flat no., Building name, Street,&#10;Locality, City — 000000"><%= family.address %></textarea>
+      <p class="help">Line breaks are preserved in the printed entry.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="hometown">Hometown address</label>
+        <input type="text" id="hometown" name="hometown" value="<%= family.hometown %>">
+      </div>
+
+      <div class="field">
+        <label for="home_parish">Home parish</label>
+        <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>">
+      </div>
+
+      <div class="field">
+        <label for="spouse_home">Spouse home</label>
+        <input type="text" id="spouse_home" name="spouse_home" value="<%= family.spouse_home %>">
+      </div>
+
+      <div class="field">
+        <label for="email">Email ID</label>
+        <input type="email" id="email" name="email" value="<%= family.email %>">
+      </div>
+
+      <div class="field">
+        <div class="label">Date of marriage (DOM)</div>
+        <div class="daymonth">
+          <input type="number" id="dom_day" name="dom_day" min="1" max="31"
+                 value="<%= family.dom_day || '' %>" placeholder="Day" aria-label="Day of marriage">
+          <select name="dom_month" aria-label="Month of marriage">
+            <option value="">Month</option>
+            <% months.forEach(function (mo) { %>
+              <option value="<%= mo.value %>" <%= Number(family.dom_month) === mo.value ? 'selected' : '' %>>
+                <%= mo.name %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+        <p class="help">Day and month only. Leave blank to hide the DOM column for this family.</p>
+      </div>
+
+      <div class="field">
+        <div class="label">In the printed directory</div>
+        <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0">
+          <input type="checkbox" name="is_published" value="1"
+                 <%= family.is_published ? 'checked' : '' %>>
+          Include this family when printing
+        </label>
+        <p class="help">Uncheck to keep it as a draft while details are still being collected.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Photograph <span class="hint">— optional, printed at 4:3</span></h2>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="photo">Upload a photo</label>
+        <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp,image/gif">
+        <p class="help">JPG, PNG, WebP or GIF, up to <%= maxPhotoMb %> MB.</p>
+      </div>
+
+      <% if (family.photo) { %>
+        <div class="field">
+          <div class="label">Current photo</div>
+          <div class="photo-box" style="max-width:220px">
+            <img src="/uploads/<%= family.photo %>" alt="Current photograph of the family">
+          </div>
+          <label class="checkline" style="margin-top:10px">
+            <input type="checkbox" name="remove_photo" value="1">
+            Remove this photo
+          </label>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Family members</h2>
+    <p class="help" style="margin:-8px 0 14px">
+      The first two rows share the DOM cell in the printed table, matching the
+      directory layout. Rows with an empty name are ignored.
+    </p>
+
+    <div class="members-editor" id="members-editor">
+      <% family.members.forEach(function (m, i) { memberRow(i, m); }); %>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn ghost" id="add-member">Add another member</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn"><%= isNew ? 'Create family' : 'Save changes' %></button>
+    <a href="<%= isNew ? '/families' : '/families/' + family.id %>" class="btn ghost">Cancel</a>
+
+    <% if (!isNew) { %>
+      <span class="spacer"></span>
+    <% } %>
+  </div>
+</form>
+
+<% if (!isNew) { %>
+  <form method="post" action="/families/<%= family.id %>/delete" class="card"
+        style="margin-top:24px;border-color:#d9b4aa"
+        onsubmit="return confirm('Delete this family and all of its members? This cannot be undone.')">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <h2 style="color:var(--danger)">Delete this family</h2>
+    <p class="help" style="margin:-8px 0 14px">
+      Removes the entry, its members and its photograph permanently.
+    </p>
+    <button type="submit" class="btn danger">Delete <%= family.head_name %></button>
+  </form>
+<% } %>
+
+<template id="member-template">
+  <% memberRow('__INDEX__', { name: '', relation: '', dob_day: '', dob_month: '', mobile: '', links: '' }); %>
+</template>
+
+<script src="/javascripts/family-form.js"></script>
+
+<%- include('../partials/footer') %>

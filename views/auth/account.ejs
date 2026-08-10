@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>My account</h1>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card" style="max-width:520px">
+  <form method="post" action="/account" autocomplete="on">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <div class="label">Username</div>
+      <p style="margin:0"><strong><%= currentUser.username %></strong>
+        &nbsp;<span class="tag"><%= currentUser.role %></span></p>
+      <p class="help">Only an administrator can change your username or role.</p>
+    </div>
+
+    <div class="field">
+      <label for="full_name">Your name</label>
+      <input type="text" id="full_name" name="full_name"
+             value="<%= currentUser.full_name %>" autocomplete="name">
+    </div>
+
+    <h2 style="font-size:16px;margin:22px 0 12px">Change password</h2>
+    <p class="help" style="margin-top:-8px;margin-bottom:12px">
+      Leave these blank to keep your current password.
+    </p>
+
+    <div class="field">
+      <label for="current_password">Current password</label>
+      <input type="password" id="current_password" name="current_password"
+             autocomplete="current-password">
+    </div>
+
+    <div class="field">
+      <label for="password">New password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password">
+    </div>
+
+    <div class="field">
+      <label for="password_confirm">Confirm new password</label>
+      <input type="password" id="password_confirm" name="password_confirm"
+             autocomplete="new-password">
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Save changes</button>
+      <a href="/" class="btn ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

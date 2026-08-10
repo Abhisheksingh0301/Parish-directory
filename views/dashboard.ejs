@@ -1,0 +1,78 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <% if (canEdit) { %><a href="/families/new" class="btn">Add a family</a><% } %>
+    <a href="/directory" class="btn ghost">Print directory</a>
+  </div>
+</div>
+
+<div class="stats" style="margin-bottom:22px">
+  <div class="stat"><div class="n"><%= stats.families %></div><div class="k">Families</div></div>
+  <div class="stat"><div class="n"><%= stats.members %></div><div class="k">People</div></div>
+  <div class="stat"><div class="n"><%= stats.published %></div><div class="k">In the printed book</div></div>
+  <div class="stat">
+    <div class="n"><%= stats.families - stats.published %></div>
+    <div class="k">Drafts, not printed</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Coming up <span class="hint">— next 30 days</span></h2>
+
+    <% if (!upcoming.length) { %>
+      <p class="empty" style="padding:20px 0">
+        No birthdays or anniversaries recorded in the next 30 days.
+      </p>
+    <% } else { %>
+      <table class="table">
+        <tbody>
+          <% upcoming.forEach(function (item) { %>
+            <tr>
+              <td>
+                <a href="/families/<%= item.fid %>"><%= item.name %></a>
+                <% if (item.kind === 'anniversary') { %>
+                  <span class="tag">Anniversary</span>
+                <% } %>
+              </td>
+              <td class="nowrap"><%= item.label %></td>
+              <td class="nowrap right" style="color:var(--ink-faint)">
+                <%= item.inDays === 0 ? 'Today' : (item.inDays === 1 ? 'Tomorrow' : 'in ' + item.inDays + ' days') %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      <p class="help" style="margin-top:10px">
+        Dates are day and month only — this directory does not record years.
+      </p>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2>Getting started</h2>
+    <ol class="stack" style="margin:0;padding-left:20px;font-size:15px">
+      <li>
+        <a href="/admin/settings">Set the parish name</a> and choose how many
+        families print on each page.
+      </li>
+      <li><a href="/families/new">Add families</a>, each with its members, photo and dates.</li>
+      <li>
+        Keep an entry as a <strong>draft</strong> while you are still collecting
+        details — drafts stay out of the printed book.
+      </li>
+      <li>
+        <a href="/directory">Open the print directory</a> and use your browser's
+        print dialog to save it as a PDF or send it to a printer.
+      </li>
+      <% if (isAdmin) { %>
+        <li><a href="/admin/users">Invite the parish office</a> to help, as editors or viewers.</li>
+      <% } %>
+    </ol>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

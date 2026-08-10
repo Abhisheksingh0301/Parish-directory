@@ -1,0 +1,333 @@
+/* ==========================================================================
+   Parish Directory — application chrome.
+   The printed directory has its own stylesheet (directory.css); this file
+   styles the screens people work in. Palette is deliberately the same warm
+   family so the app and the printed book feel like one thing.
+   ========================================================================== */
+
+:root {
+  --ink:        #2c2721;
+  --ink-soft:   #4a4239;
+  --ink-faint:  #7a7062;
+  --band:       #cec4b3;
+  --band-dark:  #b6ab97;
+  --rule:       #a99e8a;
+  --line:       #ded7c9;
+  --paper:      #ffffff;
+  --paper-warm: #f7f4ee;
+  --canvas:     #8d8577;
+  --danger:     #96331f;
+  --danger-bg:  #f7e4df;
+  --ok:         #2f6b45;
+  --ok-bg:      #e2f0e7;
+  --radius:     10px;
+}
+
+* { box-sizing: border-box; }
+
+body.app {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper-warm);
+  color: var(--ink);
+  font-family: 'Quicksand', 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+a { color: #6b4f2a; }
+a:hover { color: var(--ink); }
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  background: var(--band);
+  border-bottom: 2px solid var(--rule);
+}
+.topbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.brand {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink);
+  margin-right: auto;
+}
+.brand small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+.nav { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.nav a {
+  padding: 7px 13px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 15px;
+}
+.nav a:hover { background: rgba(255, 255, 255, .5); color: var(--ink); }
+.nav a.active { background: var(--paper); color: var(--ink); }
+
+.whoami {
+  font-size: 13px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.whoami strong { color: var(--ink); }
+
+/* ---------- layout ---------- */
+
+.shell { max-width: 1100px; margin: 0 auto; padding: 26px 20px 60px; }
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.page-head h1 { margin: 0; font-size: 27px; letter-spacing: .02em; }
+.page-head .spacer { margin-left: auto; }
+.page-head p.sub { margin: 4px 0 0; color: var(--ink-faint); font-size: 14px; width: 100%; }
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+.card > h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: .02em; }
+.card > h2 .hint { font-weight: 500; font-size: 13px; color: var(--ink-faint); }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.stack > * + * { margin-top: 14px; }
+
+/* ---------- forms ---------- */
+
+.field { margin-bottom: 14px; }
+.field label, .field > .label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+.field .help { font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
+
+input[type=text], input[type=password], input[type=email], input[type=number],
+input[type=search], select, textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 9px 11px;
+}
+textarea { resize: vertical; min-height: 84px; }
+input:focus, select:focus, textarea:focus {
+  outline: 3px solid rgba(107, 79, 42, .35);
+  outline-offset: 1px;
+  border-color: var(--ink-soft);
+}
+input[type=color] {
+  width: 100%; height: 42px; padding: 3px;
+  border: 1px solid var(--rule); border-radius: 6px; background: #fff;
+}
+input[type=file] { font: inherit; font-size: 14px; }
+
+.checkline { display: flex; align-items: center; gap: 9px; font-size: 15px; }
+.checkline input { width: auto; }
+
+/* Show/hide password. The wrapper is added by password-toggle.js, so without
+   JavaScript the field is a plain password box and nothing looks broken. */
+.password-field { position: relative; display: block; }
+.password-field input { width: 100%; padding-right: 42px; }
+.password-field .toggle-password {
+  position: absolute;
+  top: 0; right: 0;
+  height: 100%; width: 40px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0 6px 6px 0;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.password-field .toggle-password:hover { color: var(--ink); }
+.password-field .toggle-password:focus-visible {
+  outline: 3px solid rgba(107, 79, 42, .35);
+  outline-offset: -3px;
+}
+.password-field .toggle-password svg { width: 20px; height: 20px; display: block; }
+
+.daymonth { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+.actions .spacer { margin-left: auto; }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+  background: var(--band-dark);
+  color: #1f1b16;
+  border: 1px solid transparent;
+  padding: 9px 18px;
+  border-radius: 6px;
+}
+.btn:hover { background: var(--rule); color: #1f1b16; }
+.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.btn.ghost { background: transparent; border-color: var(--rule); color: var(--ink-soft); }
+.btn.ghost:hover { background: var(--paper-warm); color: var(--ink); }
+.btn.danger { background: var(--danger); color: #fff; }
+.btn.danger:hover { background: #7a2718; }
+.btn.small { padding: 5px 11px; font-size: 14px; }
+
+/* ---------- messages ---------- */
+
+.alert {
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 15px;
+  border: 1px solid;
+}
+.alert.error  { background: var(--danger-bg); border-color: #d9b4aa; color: #6d2416; }
+.alert.notice { background: var(--ok-bg);     border-color: #b3d3bf; color: #1f4a30; }
+.alert ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* ---------- tables ---------- */
+
+.table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+.table th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.table tbody tr:hover td { background: var(--paper-warm); }
+.table td.right, .table th.right { text-align: right; }
+.table .nowrap { white-space: nowrap; }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--band);
+  color: var(--ink-soft);
+}
+.tag.draft { background: #eadfc6; color: #6d5a2a; }
+
+.empty {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--ink-faint);
+}
+
+/* ---------- dashboard ---------- */
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.stat {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.stat .n { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.stat .k { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* ---------- member editor ---------- */
+
+.members-editor { display: grid; gap: 12px; }
+.member-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) 96px 180px minmax(120px, 1fr) minmax(100px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-warm);
+}
+.member-row .field { margin: 0; }
+.member-row .drop { align-self: end; }
+
+/* ---------- family detail ---------- */
+
+.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 22px; align-items: start; }
+.detail-grid dl { margin: 0; display: grid; grid-template-columns: 170px 1fr; gap: 1px; }
+.detail-grid dt {
+  background: var(--paper-warm); padding: 9px 12px;
+  font-size: 13px; font-weight: 700; letter-spacing: .03em; color: var(--ink-soft);
+}
+.detail-grid dd { margin: 0; padding: 9px 12px; background: #fff; }
+.photo-box { border: 1px solid var(--rule); background: #fff; padding: 7px; border-radius: 6px; }
+.photo-box img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: var(--paper-warm); }
+.photo-box .none {
+  aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;
+  background: var(--paper-warm); color: var(--ink-faint);
+  font-size: 13px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+}
+
+/* ---------- sign-in screens ---------- */
+
+body.auth {
+  margin: 0;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 30px 16px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Quicksand', 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif;
+}
+.auth-card {
+  width: 100%; max-width: 440px;
+  background: var(--paper);
+  border-radius: var(--radius);
+  padding: 30px 30px 26px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .3);
+}
+.auth-card h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: .02em; }
+.auth-card .parish { margin: 0 0 22px; color: var(--ink-faint); font-size: 14px; }
+.auth-card .btn { width: 100%; padding: 11px; }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 860px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .member-row { grid-template-columns: 1fr 1fr; }
+  .member-row .drop { grid-column: 1 / -1; }
+  .table-wrap { overflow-x: auto; }
+  .detail-grid dl { grid-template-columns: 1fr; }
+  .detail-grid dt { border-radius: 4px 4px 0 0; }
+}
+
+@media print {
+  .topbar, .page-head .actions, .no-print { display: none !important; }
+}

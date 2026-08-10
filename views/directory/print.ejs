@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %> · <%= settings.parish_name %></title>
+<link rel="stylesheet" href="/stylesheets/directory.css">
+</head>
+<%
+  // The parish's saved palette overrides the defaults in directory.css.
+  const palette = [
+    '--band: '      + settings.color_band,
+    '--band-dark: ' + settings.color_band_dark,
+    '--member-a: '  + settings.color_member_a,
+    '--member-b: '  + settings.color_member_b,
+    '--rule: '      + settings.color_rule
+  ].join('; ');
+%>
+<body class="directory directory-body" style="<%= palette %>">
+
+<div class="dir-toolbar">
+  <strong><%= settings.directory_title %></strong>
+  <span>
+    <%= total %> <%= total === 1 ? 'family' : 'families' %>,
+    <%= pages.length %> <%= pages.length === 1 ? 'page' : 'pages' %><%
+    %><% if (includeDrafts) { %> — including drafts<% } %>.
+  </span>
+
+  <span class="spacer"></span>
+
+  <% if (canEdit) { %>
+    <% if (includeDrafts) { %>
+      <a class="ghost" href="/directory">Published only</a>
+    <% } else { %>
+      <a class="ghost" href="/directory?drafts=1">Preview with drafts</a>
+    <% } %>
+  <% } %>
+  <a class="ghost" href="/">Back to the app</a>
+  <button type="button" onclick="window.print()">Print this directory</button>
+</div>
+
+<% if (!pages.length) { %>
+  <div class="page" style="min-height:0">
+    <p style="text-align:center;padding:60px 20px;color:#8d8577">
+      There are no families in the directory yet.
+      <% if (canEdit) { %><br><a href="/families/new">Add the first one</a>.<% } %>
+    </p>
+  </div>
+<% } %>
+
+<% pages.forEach(function (page) { %>
+  <div class="page">
+    <div class="entries">
+      <% page.families.forEach(function (f) { %>
+        <%
+          // The DOM cell is merged across the first two member rows, exactly as
+          // in the approved layout. With a single member it spans just that row.
+          const domSpan = Math.min(2, f.members.length);
+        %>
+        <section class="entry">
+          <div class="entry-head">
+            <div class="head-name"><%= f.head_name %></div>
+            <div class="head-id">FAMILY ID : <%= f.family_id %></div>
+          </div>
+
+          <div class="entry-body">
+            <table class="details">
+              <tbody>
+                <tr>
+                  <th>
+                    <svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/>
+                    </svg>
+                  </th>
+                  <td><%- nl2br(f.address) %></td>
+                </tr>
+                <tr><th>Hometown Address</th><td><%= f.hometown %></td></tr>
+                <tr><th>Home Parish</th><td><%= f.home_parish %></td></tr>
+                <tr><th>Spouse Home</th><td><%= f.spouse_home %></td></tr>
+                <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
+              </tbody>
+            </table>
+
+            <div class="photo-frame">
+              <% if (f.photo) { %>
+                <img class="photo" src="/uploads/<%= f.photo %>"
+                     alt="Photograph of the <%= f.head_name %> family">
+              <% } else { %>
+                <div class="photo-empty">Photograph</div>
+              <% } %>
+            </div>
+          </div>
+
+          <table class="members">
+            <thead>
+              <tr>
+                <th>Family Members</th>
+                <th class="c">Reltn</th>
+                <th class="c">DOB</th>
+                <th class="c">DOM</th>
+                <th class="c">Mobile</th>
+                <th class="c">Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% f.members.forEach(function (m, i) { %>
+                <tr>
+                  <td><%= m.name %></td>
+                  <td class="c"><%= m.relation %></td>
+                  <td class="c"><%= m.dob %></td>
+                  <% if (f.dom && i === 0) { %>
+                    <td class="c" rowspan="<%= domSpan %>"><%= f.dom %></td>
+                  <% } else if (!(f.dom && i < domSpan)) { %>
+                    <td class="c"></td>
+                  <% } %>
+                  <td class="c"><%= m.mobile %></td>
+                  <td class="c"><%= m.links %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </section>
+      <% }); %>
+    </div>
+
+    <div class="page-foot">
+      <div class="lattice"></div>
+      <div class="foot-row">
+        <span class="parish-name"><%= settings.parish_name %></span>
+        <span class="folio"><%= page.folio %></span>
+      </div>
+    </div>
+  </div>
+<% }); %>
+
+</body>
+</html>

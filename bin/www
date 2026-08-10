@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * Server entry point. The database is opened and migrated before the first
+ * request can arrive, so a fresh install is ready the moment it starts.
+ */
+
+const http = require('http');
+const config = require('../config');
+const db = require('../db');
+
+async function main() {
+  await db.init();
+
+  const app = require('../app');
+  app.set('port', config.port);
+
+  const server = http.createServer(app);
+
+  server.on('error', (error) => {
+    if (error.syscall !== 'listen') throw error;
+
+    switch (error.code) {
+      case 'EACCES':
+        console.error(`Port ${config.port} requires elevated privileges`);
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        console.error(`Port ${config.port} is already in use`);
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
+  });
+
+  server.on('listening', () => {
+    console.log(`Parish Directory running at http://localhost:${config.port}  (${config.env})`);
+    console.log(`Data folder: ${config.dataDir}`);
+  });
+
+  server.listen(config.port);
+
+  const shutdown = async (signal) => {
+    console.log(`\n${signal} received, shutting down.`);
+    server.close();
+    await db.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+main().catch((err) => {
+  console.error('Failed to start:', err.message);
+  process.exit(1);
+});

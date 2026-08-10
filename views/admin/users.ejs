@@ -1,0 +1,137 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>User accounts</h1>
+  <p class="sub">Who can sign in to this directory, and what they are allowed to do.</p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th style="width:190px">Role</th>
+          <th class="nowrap">Last signed in</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function (u) { %>
+          <tr>
+            <td>
+              <strong><%= u.username %></strong>
+              <% if (u.id === currentUser.id) { %><span class="tag">You</span><% } %>
+              <% if (!u.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+              <% if (u.full_name) { %>
+                <div style="color:var(--ink-faint);font-size:14px"><%= u.full_name %></div>
+              <% } %>
+            </td>
+
+            <td>
+              <form method="post" action="/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <select name="role" aria-label="Role for <%= u.username %>">
+                  <% roles.forEach(function (r) { %>
+                    <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>>
+                      <%= r.label %>
+                    </option>
+                  <% }); %>
+                </select>
+                <button type="submit" class="btn ghost small">Set</button>
+              </form>
+            </td>
+
+            <td class="nowrap" style="color:var(--ink-faint);font-size:14px">
+              <%= u.last_login_at || 'never' %>
+            </td>
+
+            <td class="right nowrap">
+              <form method="post" action="/admin/users/<%= u.id %>/active" style="display:inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="is_active" value="<%= u.is_active ? '0' : '1' %>">
+                <button type="submit" class="btn ghost small">
+                  <%= u.is_active ? 'Deactivate' : 'Reactivate' %>
+                </button>
+              </form>
+
+              <form method="post" action="/admin/users/<%= u.id %>/delete" style="display:inline"
+                    onsubmit="return confirm('Delete the account <%= u.username %>?')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="btn danger small">Delete</button>
+              </form>
+            </td>
+          </tr>
+
+          <tr>
+            <td colspan="4" style="padding-top:0">
+              <form method="post" action="/admin/users/<%= u.id %>/password"
+                    style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <span style="color:var(--ink-faint)">Reset password:</span>
+                <input type="password" name="password" placeholder="New password"
+                       autocomplete="new-password" style="width:180px">
+                <input type="password" name="password_confirm" placeholder="Confirm"
+                       autocomplete="new-password" style="width:180px">
+                <button type="submit" class="btn ghost small">Reset</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add a user</h2>
+
+  <form method="post" action="/admin/users">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="<%= form.username || '' %>" required>
+      </div>
+
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" value="<%= form.full_name || '' %>">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" required>
+        <p class="help">At least 8 characters. Ask them to change it after they first sign in.</p>
+      </div>
+
+      <div class="field">
+        <label for="password_confirm">Confirm password</label>
+        <input type="password" id="password_confirm" name="password_confirm"
+               autocomplete="new-password" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Role</div>
+      <div class="stack">
+        <% roles.forEach(function (r) { %>
+          <label class="checkline">
+            <input type="radio" name="role" value="<%= r.value %>"
+                   <%= (form.role || 'viewer') === r.value ? 'checked' : '' %>>
+            <span><strong><%= r.label %></strong> — <%= r.blurb %></span>
+          </label>
+        <% }); %>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Create account</button>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

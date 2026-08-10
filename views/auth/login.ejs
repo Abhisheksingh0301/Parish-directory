@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %> · <%= settings.parish_name %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+</head>
+<body class="auth">
+
+<div class="auth-card">
+  <h1><%= settings.directory_title %></h1>
+  <p class="parish"><%= settings.parish_name %></p>
+
+  <%- include('../partials/messages') %>
+
+  <form method="post" action="/login" autocomplete="on">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="<%= username %>"
+             autocomplete="username" autofocus required>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             autocomplete="current-password" required>
+    </div>
+
+    <button type="submit" class="btn">Sign in</button>
+  </form>
+</div>
+
+<script src="/javascripts/password-toggle.js"></script>
+</body>
+</html>

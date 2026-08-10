@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('partials/head-assets') %>
+<title><%= title %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+</head>
+<body class="auth">
+
+<div class="auth-card">
+  <h1><%= title %></h1>
+  <p class="parish"><%= message %></p>
+
+  <% if (error && error.stack) { %>
+    <pre style="background:#f7f4ee;border:1px solid #ded7c9;border-radius:6px;
+                padding:12px;font-size:12px;overflow:auto;max-height:320px"><%= error.stack %></pre>
+  <% } %>
+
+  <a href="/" class="btn" style="margin-top:8px">Back to the directory</a>
+</div>
+
+</body>
+</html>

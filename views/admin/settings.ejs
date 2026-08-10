@@ -1,0 +1,99 @@
+<%- include('../partials/header') %>
+
+<%
+  const colorLabels = {
+    color_band:       'Name & ID band',
+    color_band_dark:  'Members table header',
+    color_member_a:   'Member row, odd',
+    color_member_b:   'Member row, even',
+    color_rule:       'Table borders'
+  };
+%>
+
+<div class="page-head">
+  <h1>Parish settings</h1>
+  <p class="sub">
+    Everything that makes this copy of the directory belong to your church.
+    No code changes are needed to set up a new parish.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<form method="post" action="/admin/settings">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="card">
+    <h2>Identity</h2>
+
+    <div class="field">
+      <label for="parish_name">Parish name</label>
+      <input type="text" id="parish_name" name="parish_name" value="<%= values.parish_name %>" required>
+      <p class="help">Printed at the foot of every directory page.</p>
+    </div>
+
+    <div class="field">
+      <label for="directory_title">Directory title</label>
+      <input type="text" id="directory_title" name="directory_title" value="<%= values.directory_title %>">
+      <p class="help">Shown in the app header and the browser tab, e.g. &ldquo;Parish Directory 2026&rdquo;.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Printed layout</h2>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="per_page">Families per printed page</label>
+        <input type="number" id="per_page" name="per_page" min="1" max="6" value="<%= values.per_page %>">
+        <p class="help">Two fits an A4 page comfortably with the standard entry size.</p>
+      </div>
+
+      <div class="field">
+        <label for="starting_page">Starting page number</label>
+        <input type="number" id="starting_page" name="starting_page" min="0" value="<%= values.starting_page %>">
+        <p class="help">Set this if the directory follows front matter in the printed book.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="relation_options">Relation codes</label>
+      <input type="text" id="relation_options" name="relation_options" value="<%= values.relation_options %>">
+      <p class="help">
+        Comma separated. Offered as suggestions in the member editor —
+        e.g. HF (head of family), W (wife), S (son), D (daughter).
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Printed colours</h2>
+    <p class="help" style="margin:-8px 0 16px">
+      The palette of the printed entry. Defaults match the approved template.
+    </p>
+
+    <div class="grid-2">
+      <% colorKeys.forEach(function (key) { %>
+        <div class="field">
+          <label for="<%= key %>"><%= colorLabels[key] %></label>
+          <input type="color" id="<%= key %>" name="<%= key %>" value="<%= values[key] %>">
+          <p class="help"><%= values[key] %></p>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn">Save settings</button>
+    <a href="/directory" class="btn ghost">Preview the directory</a>
+  </div>
+</form>
+
+<form method="post" action="/admin/settings/reset-colors" class="card" style="margin-top:24px">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <h2>Reset colours</h2>
+  <p class="help" style="margin:-8px 0 14px">Put the five printed colours back to the template defaults.</p>
+  <button type="submit" class="btn ghost">Reset to template colours</button>
+</form>
+
+<%- include('../partials/footer') %>

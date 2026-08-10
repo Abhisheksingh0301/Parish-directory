@@ -1,0 +1,70 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Families</h1>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <form method="get" action="/families" style="display:flex;gap:8px">
+      <input type="search" name="q" value="<%= search %>" placeholder="Search name, ID, address, mobile…"
+             style="min-width:260px" aria-label="Search families">
+      <button type="submit" class="btn ghost">Search</button>
+      <% if (search) { %><a href="/families" class="btn ghost">Clear</a><% } %>
+    </form>
+    <% if (canEdit) { %><a href="/families/new" class="btn">Add a family</a><% } %>
+  </div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <% if (!families.length) { %>
+    <div class="empty">
+      <% if (search) { %>
+        No families match &ldquo;<%= search %>&rdquo;.
+      <% } else { %>
+        No families yet.
+        <% if (canEdit) { %><br><a href="/families/new">Add the first one</a>.<% } %>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:90px">ID</th>
+            <th>Family head</th>
+            <th>Address</th>
+            <th class="nowrap">Members</th>
+            <th class="nowrap">DOM</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% families.forEach(function (f) { %>
+            <tr>
+              <td class="nowrap"><strong><%= f.family_id %></strong></td>
+              <td>
+                <a href="/families/<%= f.id %>"><%= f.head_name %></a>
+                <% if (!f.is_published) { %><span class="tag draft">Draft</span><% } %>
+              </td>
+              <td style="color:var(--ink-faint)"><%= f.address.split('\n')[0] %></td>
+              <td class="nowrap"><%= f.member_count %></td>
+              <td class="nowrap"><%= f.dom || '—' %></td>
+              <td class="right nowrap">
+                <% if (canEdit) { %>
+                  <a href="/families/<%= f.id %>/edit" class="btn ghost small">Edit</a>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<% if (families.length) { %>
+  <p class="help" style="color:var(--ink-faint);font-size:14px">
+    <%= families.length %> <%= families.length === 1 ? 'family' : 'families' %> shown.
+  </p>
+<% } %>
+
+<%- include('../partials/footer') %>

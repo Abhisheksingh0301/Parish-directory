@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+</head>
+<body class="auth">
+
+<div class="auth-card">
+  <h1>Welcome</h1>
+  <p class="parish">
+    This directory has no accounts yet. Create the administrator account —
+    you can add more people afterwards under <strong>Users</strong>.
+  </p>
+
+  <%- include('../partials/messages') %>
+
+  <form method="post" action="/setup" autocomplete="on">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="field">
+      <label for="parish_name">Parish name</label>
+      <input type="text" id="parish_name" name="parish_name"
+             value="<%= form.parish_name || settings.parish_name %>"
+             placeholder="St. Mary's Church, Bengaluru" autofocus>
+      <p class="help">Printed in the footer of every directory page. Changeable later.</p>
+    </div>
+
+    <div class="field">
+      <label for="full_name">Your name</label>
+      <input type="text" id="full_name" name="full_name" value="<%= form.full_name || '' %>"
+             autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="<%= form.username || '' %>"
+             autocomplete="username" required>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password" required>
+      <p class="help">At least 8 characters.</p>
+    </div>
+
+    <div class="field">
+      <label for="password_confirm">Confirm password</label>
+      <input type="password" id="password_confirm" name="password_confirm"
+             autocomplete="new-password" required>
+    </div>
+
+    <button type="submit" class="btn">Create account &amp; continue</button>
+  </form>
+</div>
+
+<script src="/javascripts/password-toggle.js"></script>
+</body>
+</html>

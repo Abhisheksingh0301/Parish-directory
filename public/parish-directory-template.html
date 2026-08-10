@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parish Directory — Template</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:            #2c2721;
+    --ink-soft:       #4a4239;
+    --band:           #cec4b3;   /* header band */
+    --band-dark:      #b6ab97;   /* table header */
+    --row-a:          #ffffff;
+    --row-b:          #f2efe9;
+    --member-a:       #d9d2c4;
+    --member-b:       #cec6b6;
+    --rule:           #a99e8a;
+    --page:           #ffffff;
+    --frame:          #ffffff;
+    --watermark:      #ded7c9;
+    --radius:         10px;
+  }
+
+  *{box-sizing:border-box}
+
+  html{-webkit-text-size-adjust:100%}
+
+  body{
+    margin:0;
+    background:#8d8577;
+    font-family:'Quicksand','Century Gothic','Futura','Trebuchet MS',sans-serif;
+    color:var(--ink);
+    padding:28px 16px 60px;
+  }
+
+  /* ---------- controls (screen only) ---------- */
+  .toolbar{
+    max-width:960px;margin:0 auto 22px;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    background:#fffdf9;border-radius:var(--radius);padding:14px 18px;
+    font-size:14px;color:var(--ink-soft);
+  }
+  .toolbar strong{font-weight:700;color:var(--ink)}
+  .toolbar button{
+    font:inherit;font-weight:600;cursor:pointer;
+    background:var(--band-dark);color:#1f1b16;border:none;
+    padding:8px 16px;border-radius:6px;
+  }
+  .toolbar button:hover{background:var(--rule)}
+  .toolbar button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  /* ---------- page ---------- */
+  .page{
+    max-width:960px;margin:0 auto 26px;
+    background:var(--page);
+    padding:26px 26px 0;
+    position:relative;
+    box-shadow:0 10px 30px rgba(0,0,0,.28);
+    display:flex;flex-direction:column;
+    min-height:1160px;
+  }
+
+  .entries{flex:1 1 auto}
+
+  /* ---------- one family entry ---------- */
+  .entry{margin-bottom:34px}
+
+  .entry-head{
+    display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;
+    margin-bottom:10px;
+  }
+  .head-name{
+    background:var(--band);border-radius:var(--radius);
+    padding:9px 20px;
+    font-size:26px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;line-height:1.15;
+    display:flex;align-items:center;
+  }
+  .head-id{
+    background:var(--band);border-radius:var(--radius);
+    padding:9px 20px;
+    font-size:22px;font-weight:600;letter-spacing:.02em;
+    display:flex;align-items:center;white-space:nowrap;
+    align-self:end;
+  }
+
+  .entry-body{
+    display:grid;grid-template-columns:1fr 0.82fr;gap:18px;align-items:start;
+    margin-bottom:12px;
+  }
+
+  /* details table */
+  .details{
+    width:100%;border-collapse:collapse;
+    border:1px solid var(--rule);
+    font-size:17px;line-height:1.35;
+  }
+  .details th,.details td{
+    border:1px solid var(--rule);
+    padding:8px 12px;text-align:left;vertical-align:middle;
+  }
+  .details th{
+    width:31%;font-weight:600;background:var(--row-b);
+  }
+  .details td{background:var(--row-a)}
+  .details tr:first-child th,
+  .details tr:first-child td{padding-top:12px;padding-bottom:12px}
+  .home-icon{display:block;margin:0 auto;width:34px;height:34px;fill:var(--ink-soft)}
+  .email{word-break:break-all}
+
+  /* photo */
+  .photo-frame{
+    background:var(--frame);
+    border:1px solid var(--rule);
+    padding:7px;border-radius:4px;
+    box-shadow:0 2px 6px rgba(0,0,0,.12);
+  }
+  .photo{
+    width:100%;aspect-ratio:4/3;display:block;object-fit:cover;
+    background:var(--row-b);
+  }
+  .photo-empty{
+    width:100%;aspect-ratio:4/3;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--row-b);color:#8d8577;
+    font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  }
+
+  /* members table */
+  .members{
+    width:100%;border-collapse:collapse;
+    border-radius:6px;overflow:hidden;
+    font-size:17px;
+  }
+  .members th{
+    background:var(--band-dark);
+    font-weight:700;padding:7px 12px;text-align:left;
+  }
+  .members th.c,.members td.c{text-align:center}
+  .members td{padding:7px 12px;border:none}
+  .members tbody tr:nth-child(odd)  td{background:var(--member-a)}
+  .members tbody tr:nth-child(even) td{background:var(--member-b)}
+  .members td[rowspan]{text-align:center;vertical-align:middle}
+
+  /* ---------- footer ---------- */
+  .page-foot{
+    margin-top:auto;
+    position:relative;
+    padding:70px 0 18px;
+  }
+  .lattice{
+    position:absolute;left:-26px;right:-26px;bottom:0;height:190px;
+    opacity:.55;pointer-events:none;
+    background-image:var(--lattice-svg);
+    background-size:88px 88px;
+  }
+  .foot-row{
+    position:relative;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-top:1px solid var(--rule);
+    padding-top:8px;
+    font-size:17px;
+  }
+  .parish-name{font-weight:500}
+  .folio{font-weight:600}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:720px){
+    body{padding:14px 8px 40px}
+    .page{padding:16px 16px 0;min-height:0}
+    .entry-body{grid-template-columns:1fr}
+    .entry-head{grid-template-columns:1fr}
+    .head-name{font-size:20px}
+    .head-id{font-size:17px;align-self:auto}
+    .details,.members{font-size:15px}
+    .members{display:block;overflow-x:auto}
+  }
+
+  /* ---------- print ---------- */
+  @page{size:A4 portrait;margin:12mm}
+  @media print{
+    body{background:#fff;padding:0}
+    .toolbar{display:none}
+    .page{box-shadow:none;max-width:none;margin:0;padding:0;min-height:0;page-break-after:always}
+    .page:last-child{page-break-after:auto}
+    .entry{page-break-inside:avoid}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <strong>Parish directory template.</strong>
+  <span>Edit the entry list at the bottom of this file, then print or save as PDF.</span>
+  <button onclick="window.print()">Print this directory</button>
+</div>
+
+<div id="directory"></div>
+
+<script>
+/* ============================================================
+   YOUR DATA GOES HERE
+   ------------------------------------------------------------
+   - Add one object per family to the `families` array.
+   - `photo` takes any image URL or file path; leave it as ""
+     to show an empty photo frame.
+   - `members` rows: [name, relation, dob, mobile, links]
+   - `dom` is the marriage date shown merged across the first
+     two rows (leave "" to hide it).
+   - Set `perPage` to how many families print on one page.
+   ============================================================ */
+
+const parishName = "Your Parish Church, City";
+const startingPage = 1;
+const perPage = 2;
+
+const families = [
+  {
+    headName: "Family Head Name",
+    familyId: "0001",
+    address: "Flat no., Building name, Street,\nLocality, City — 000000",
+    hometown: "House name, Village",
+    homeParish: "HOME PARISH NAME",
+    spouseHome: "House name, Village",
+    email: "name@example.com",
+    photo: "",
+    dom: "00 - Mon",
+    members: [
+      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", ""],
+      ["Mrs. Spouse Name",  "W",  "00 - Mon", "",           ""],
+      ["Mr. Child Name",    "S",  "00 - Mon", "",           ""]
+    ]
+  },
+  {
+    headName: "Second Family Head",
+    familyId: "0002",
+    address: "Flat no., Building name, Street,\nLocality, City — 000000",
+    hometown: "House name, Village",
+    homeParish: "HOME PARISH NAME",
+    spouseHome: "House name, Village",
+    email: "name@example.com",
+    photo: "",
+    dom: "00 - Mon",
+    members: [
+      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", ""],
+      ["Mrs. Spouse Name",  "W",  "00 - Mon", "",           ""],
+      ["Ms. Child Name",    "D",  "00 - Mon", "",           ""]
+    ]
+  }
+];
+
+/* ============================================================
+   RENDERING — no need to edit below this line
+   ============================================================ */
+
+const latticeSVG = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'>
+     <g fill='none' stroke='#ded7c9' stroke-width='7'>
+       <path d='M44 4 L84 44 L44 84 L4 44 Z'/>
+       <path d='M4 4 L84 84 M84 4 L4 84'/>
+       <circle cx='44' cy='44' r='15'/>
+     </g>
+   </svg>`
+)}")`;
+
+const homeIcon = `<svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>`;
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+
+function renderMembers(f) {
+  const rows = f.members || [];
+  const domSpan = Math.min(2, rows.length);
+  return rows.map((m, i) => {
+    const [name, reltn, dob, mobile, links] = m;
+    let domCell = "";
+    if (f.dom && i === 0) domCell = `<td class="c" rowspan="${domSpan}">${esc(f.dom)}</td>`;
+    else if (f.dom && i < domSpan) domCell = "";
+    else if (i >= domSpan) domCell = `<td class="c"></td>`;
+    else domCell = `<td class="c"></td>`;
+    return `<tr>
+      <td>${esc(name)}</td>
+      <td class="c">${esc(reltn)}</td>
+      <td class="c">${esc(dob)}</td>
+      ${domCell}
+      <td class="c">${esc(mobile)}</td>
+      <td class="c">${esc(links)}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderEntry(f) {
+  const photo = f.photo
+    ? `<img class="photo" src="${esc(f.photo)}" alt="Photograph of the ${esc(f.headName)} family">`
+    : `<div class="photo-empty">Photograph</div>`;
+
+  return `
+  <section class="entry">
+    <div class="entry-head">
+      <div class="head-name">${esc(f.headName)}</div>
+      <div class="head-id">FAMILY ID : ${esc(f.familyId)}</div>
+    </div>
+
+    <div class="entry-body">
+      <table class="details">
+        <tbody>
+          <tr>
+            <th>${homeIcon}</th>
+            <td>${esc(f.address).replace(/\n/g, "<br>")}</td>
+          </tr>
+          <tr><th>Hometown Address</th><td>${esc(f.hometown)}</td></tr>
+          <tr><th>Home Parish</th><td>${esc(f.homeParish)}</td></tr>
+          <tr><th>Spouse Home</th><td>${esc(f.spouseHome)}</td></tr>
+          <tr><th>Email ID</th><td class="email">${esc(f.email)}</td></tr>
+        </tbody>
+      </table>
+
+      <div class="photo-frame">${photo}</div>
+    </div>
+
+    <table class="members">
+      <thead>
+        <tr>
+          <th>Family Members</th>
+          <th class="c">Reltn</th>
+          <th class="c">DOB</th>
+          <th class="c">DOM</th>
+          <th class="c">Mobile</th>
+          <th class="c">Links</th>
+        </tr>
+      </thead>
+      <tbody>${renderMembers(f)}</tbody>
+    </table>
+  </section>`;
+}
+
+function renderPage(group, folio) {
+  return `
+  <div class="page">
+    <div class="entries">${group.map(renderEntry).join("")}</div>
+    <div class="page-foot">
+      <div class="lattice" style="--lattice-svg:${latticeSVG}"></div>
+      <div class="foot-row">
+        <span class="parish-name">${esc(parishName)}</span>
+        <span class="folio">${folio}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+const pages = [];
+for (let i = 0; i < families.length; i += perPage) {
+  pages.push(families.slice(i, i + perPage));
+}
+document.getElementById("directory").innerHTML =
+  pages.map((g, i) => renderPage(g, startingPage + i)).join("");
+</script>
+
+</body>
+</html>
