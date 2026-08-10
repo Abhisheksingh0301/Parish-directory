@@ -60,23 +60,20 @@ async function tx(fn) {
 
 /**
  * Schema migrations, applied in order and tracked with PRAGMA user_version.
- * Never edit a migration that has shipped — append a new one instead, so
- * parishes already running an older copy upgrade cleanly.
+ *
+ * Migration 1 is the whole schema as one set of CREATE TABLEs — no parish is
+ * running an older copy yet, so there is nothing to migrate *from* and every
+ * column belongs in the table that owns it. Once this has gone out to a
+ * church, that stops being true: never edit a migration that has shipped,
+ * append a new one instead, so parishes already running an older copy upgrade
+ * cleanly.
+ *
+ * Tables are created in dependency order — families before the members and
+ * logins that point at them.
  */
 const MIGRATIONS = [
-  // 1 — initial schema
+  // 1 — the schema
   `
-  CREATE TABLE users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    password_hash TEXT NOT NULL,
-    full_name     TEXT NOT NULL DEFAULT '',
-    role          TEXT NOT NULL DEFAULT 'viewer',
-    is_active     INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-    last_login_at TEXT
-  );
-
   CREATE TABLE families (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     family_id    TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -87,6 +84,7 @@ const MIGRATIONS = [
     spouse_home  TEXT NOT NULL DEFAULT '',
     email        TEXT NOT NULL DEFAULT '',
     photo        TEXT,
+    -- Date of marriage: day and month only, never a year.
     dom_day      INTEGER,
     dom_month    INTEGER,
     is_published INTEGER NOT NULL DEFAULT 1,
@@ -100,10 +98,31 @@ const MIGRATIONS = [
     position  INTEGER NOT NULL DEFAULT 0,
     name      TEXT NOT NULL,
     relation  TEXT NOT NULL DEFAULT '',
+    -- Date of birth: a full date, but the year is optional, so an entry can
+    -- be recorded before anyone has asked the family for it. Day and month
+    -- stay in their own columns to keep the birthday list sortable.
     dob_day   INTEGER,
     dob_month INTEGER,
+    dob_year  INTEGER,
     mobile    TEXT NOT NULL DEFAULT '',
     links     TEXT NOT NULL DEFAULT ''
+  );
+
+  CREATE TABLE users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    full_name     TEXT NOT NULL DEFAULT '',
+    role          TEXT NOT NULL DEFAULT 'viewer',
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    -- Set on a family login: the one family this account may reach. NULL for
+    -- staff accounts. UNIQUE gives a family at most one login — SQLite treats
+    -- NULLs as distinct, so any number of staff accounts still fit.
+    family_id     INTEGER UNIQUE REFERENCES families(id) ON DELETE CASCADE,
+    -- Still using the password everyone was given, so the reminder shows.
+    on_default_password INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at TEXT
   );
 
   CREATE INDEX idx_members_family ON members(family_id, position);
@@ -121,26 +140,6 @@ const MIGRATIONS = [
   );
 
   CREATE INDEX idx_sessions_expires ON sessions(expires);
-  `,
-
-  // 2 — family logins: an account tied to one family, created with the
-  // shared default password so the parish can invite everybody in one email.
-  `
-  ALTER TABLE users ADD COLUMN family_id INTEGER
-    REFERENCES families(id) ON DELETE CASCADE;
-
-  ALTER TABLE users ADD COLUMN on_default_password INTEGER NOT NULL DEFAULT 0;
-
-  CREATE UNIQUE INDEX idx_users_family ON users(family_id)
-    WHERE family_id IS NOT NULL;
-  `,
-
-  // 3 — a year on dates of birth. The date of marriage stays day + month, but
-  // a birthday is a full date, so `dob_year` joins the day and month already
-  // stored. Nullable: entries collected before this, and families who would
-  // rather not give a year, keep working.
-  `
-  ALTER TABLE members ADD COLUMN dob_year INTEGER;
   `
 ];
 
@@ -161,6 +160,16 @@ const DEFAULT_SETTINGS = {
 async function migrate() {
   const row = await get('PRAGMA user_version');
   const current = row ? row.user_version : 0;
+
+  // A database newer than the code means someone has gone backwards — an
+  // older copy of the app pointed at a parish that has already been upgraded.
+  // Say so rather than running queries against a schema we don't know.
+  if (current > MIGRATIONS.length) {
+    throw new Error(
+      `This database is at schema version ${current}, but this copy of the app ` +
+      `only knows ${MIGRATIONS.length}. Update the app before opening it.`
+    );
+  }
 
   for (let version = current; version < MIGRATIONS.length; version += 1) {
     await exec(MIGRATIONS[version]);

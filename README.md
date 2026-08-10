@@ -141,8 +141,14 @@ public/stylesheets/  app.css (screens), directory.css (the printed book)
 ### Schema changes
 
 `db/index.js` holds a `MIGRATIONS` array applied in order and tracked with
-`PRAGMA user_version`. Append a new entry; never edit one that has shipped, so
-parishes already running an older copy upgrade cleanly.
+`PRAGMA user_version`. Migration 1 is the whole schema as plain `CREATE TABLE`
+statements — every column is declared on the table that owns it, rather than
+bolted on afterwards.
+
+Once this has gone out to a church that stops being editable: append a new
+entry and never touch one that has shipped, so parishes already running an
+older copy upgrade cleanly. Opening a database newer than the code is refused
+outright rather than half-working.
 
 ---
 
