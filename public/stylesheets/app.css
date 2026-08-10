@@ -182,6 +182,8 @@ input[type=file] { font: inherit; font-size: 14px; }
 .password-field .toggle-password svg { width: 20px; height: 20px; display: block; }
 
 .daymonth { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+/* Dates of birth carry a year as well; the date of marriage does not. */
+.daymonth.with-year { grid-template-columns: 72px 1fr 82px; }
 
 .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
 .actions .spacer { margin-left: auto; }
@@ -243,6 +245,50 @@ input[type=file] { font: inherit; font-size: 14px; }
   color: var(--ink-soft);
 }
 .tag.draft { background: #eadfc6; color: #6d5a2a; }
+.tag.ok    { background: var(--ok-bg); color: var(--ok); }
+
+/* ---------- default password: the reminder, and how it is shown ---------- */
+
+.default-password-banner {
+  background: #f3e7c8;
+  border-bottom: 1px solid #d9c79b;
+  color: #5c4a1e;
+  font-size: 15px;
+}
+.default-password-banner .inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 11px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.default-password-banner span { flex: 1; }
+.default-password-banner a { color: #5c4a1e; }
+
+/* The one place a password is deliberately shown in full: it is the shared
+   default, printed so the office can copy it into the invitation email. */
+.default-password {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  letter-spacing: .04em;
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0;
+  display: inline-block;
+  user-select: all;
+}
+
+details.invite > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: .02em;
+}
+details.invite > summary .hint { font-weight: 500; font-size: 13px; color: var(--ink-faint); }
+details.invite textarea { min-height: 96px; font-size: 14px; }
 
 .empty {
   text-align: center;
@@ -267,7 +313,7 @@ input[type=file] { font: inherit; font-size: 14px; }
 .members-editor { display: grid; gap: 12px; }
 .member-row {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) 96px 180px minmax(120px, 1fr) minmax(100px, 1fr) auto;
+  grid-template-columns: minmax(160px, 2fr) 96px 250px minmax(120px, 1fr) minmax(100px, 1fr) auto;
   gap: 10px;
   align-items: end;
   padding: 12px;

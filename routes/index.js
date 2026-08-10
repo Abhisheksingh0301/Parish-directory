@@ -8,6 +8,9 @@ const wrap = require('../lib/async');
 const router = express.Router();
 
 router.get('/', wrap(async (req, res) => {
+  // A family login has no dashboard — its home is its own entry.
+  if (auth.isFamilyLogin(req.user)) return res.redirect(`/families/${req.user.family_id}`);
+
   const [stats, upcoming] = await Promise.all([
     Family.stats(),
     Family.upcoming(30)

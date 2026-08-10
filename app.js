@@ -62,7 +62,11 @@ app.use(settings.middleware);
  */
 app.use((req, res, next) => {
   if (!req.is('multipart/form-data')) return next();
-  if (!auth.atLeast(req.user, 'editor')) {
+
+  // Editors upwards, plus a family login sending the photograph for its own
+  // entry — the route it posts to checks that it is in fact their own, and
+  // deletes the uploaded file if it is not.
+  if (!auth.atLeast(req.user, 'editor') && !auth.isFamilyLogin(req.user)) {
     return next(createError(403, 'You do not have permission to upload files.'));
   }
   return acceptPhoto(req, res, next);
@@ -75,6 +79,7 @@ app.use(csrf);
 app.use((req, res, next) => {
   res.locals.path = req.path;
   res.locals.atLeast = (role) => auth.atLeast(req.user, role);
+  res.locals.isFamilyLogin = auth.isFamilyLogin(req.user);
   res.locals.nl2br = html.nl2br;
   next();
 });

@@ -8,6 +8,9 @@ const wrap = require('../lib/async');
 
 const router = express.Router();
 
+// The whole parish's addresses in one document — not for a family login.
+router.use(auth.requireRole('viewer'));
+
 /**
  * The printable directory — a server-rendered version of
  * public/parish-directory-template.html, fed from the database.

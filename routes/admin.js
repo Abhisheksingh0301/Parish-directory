@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const config = require('../config');
 const db = require('../db');
 const auth = require('../lib/auth');
 const settings = require('../lib/settings');
@@ -96,8 +97,12 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
 
 function listUsers() {
   return db.all(
-    `SELECT id, username, full_name, role, is_active, created_at, last_login_at
-     FROM users ORDER BY role, username COLLATE NOCASE`
+    `SELECT u.id, u.username, u.full_name, u.role, u.is_active, u.created_at,
+            u.last_login_at, u.family_id, u.on_default_password,
+            f.family_id AS family_ref, f.head_name AS family_head
+     FROM users u
+     LEFT JOIN families f ON f.id = u.family_id
+     ORDER BY u.role, u.username COLLATE NOCASE`
   );
 }
 
@@ -105,7 +110,10 @@ async function renderUsers(res, extra = {}) {
   res.render('admin/users', {
     title: 'User accounts',
     users: await listUsers(),
-    roles: auth.ROLE_LIST,
+    // Family logins are made from the family, not typed in here.
+    roles: auth.STAFF_ROLE_LIST,
+    allRoles: auth.ROLES,
+    defaultPassword: config.defaultUserPassword,
     error: null,
     notice: null,
     form: {},
@@ -130,7 +138,9 @@ router.post('/users', wrap(async (req, res) => {
   if (!/^[a-zA-Z0-9._-]{3,40}$/.test(form.username)) {
     return fail('Username may use letters, numbers, dot, dash and underscore (3–40 characters).');
   }
-  if (!auth.ROLES[form.role]) return fail('Choose a role.');
+  if (!auth.ROLES[form.role] || auth.ROLES[form.role].familyLogin) {
+    return fail('Choose a role. Family logins are created from the families list.');
+  }
 
   const passwordError = auth.validatePassword(req.body.password, req.body.password_confirm);
   if (passwordError) return fail(passwordError);
@@ -164,9 +174,18 @@ router.post('/users/:id(\\d+)/role', wrap(async (req, res, next) => {
   if (!user) return next();
 
   const role = req.body.role;
-  if (!auth.ROLES[role]) {
+  if (!auth.ROLES[role] || auth.ROLES[role].familyLogin) {
     res.status(400);
     return renderUsers(res, { error: 'Choose a valid role.' });
+  }
+
+  // A family login is defined by the family it belongs to; promoting it would
+  // hand one household the whole directory.
+  if (user.family_id) {
+    res.status(400);
+    return renderUsers(res, {
+      error: `${user.username} is a family login — its role cannot be changed here.`
+    });
   }
 
   if (user.role === 'admin' && role !== 'admin' && (await wouldOrphanAdmins(user.id))) {
@@ -211,10 +230,10 @@ router.post('/users/:id(\\d+)/password', wrap(async (req, res, next) => {
     return renderUsers(res, { error: `${user.username}: ${passwordError}` });
   }
 
-  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [
-    await auth.hashPassword(req.body.password),
-    user.id
-  ]);
+  await db.run(
+    'UPDATE users SET password_hash = ?, on_default_password = 0 WHERE id = ?',
+    [await auth.hashPassword(req.body.password), user.id]
+  );
 
   return renderUsers(res, { notice: `Password reset for ${user.username}.` });
 }));

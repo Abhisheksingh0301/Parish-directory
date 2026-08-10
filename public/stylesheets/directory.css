@@ -196,6 +196,8 @@ body.directory-body {
 .members tbody tr:nth-child(odd)  td { background: var(--member-a); }
 .members tbody tr:nth-child(even) td { background: var(--member-b); }
 .members td[rowspan] { text-align: center; vertical-align: middle; }
+/* A date of birth carries a year: "02 - Aug - 1975" must not wrap. */
+.members .d { white-space: nowrap; }
 
 /* ---------- footer ---------- */
 .page-foot { margin-top: auto; position: relative; padding: 70px 0 18px; }

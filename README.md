@@ -26,16 +26,22 @@ account and name the parish. There is no default password to change afterwards.
 
 ---
 
-## Dates have no year
+## Two shapes of date
 
-Date of marriage (DOM) and date of birth (DOB) are recorded and printed as
-**day and month only** — `14 - Mar`. There is no year field anywhere, in the
-form or in the printed book.
+**Date of marriage** is **day and month only** — `14 - Mar`. There is no year
+field for it anywhere, in the form or in the printed book.
 
-They are stored as two small integers (`dom_day` / `dom_month`) rather than a
-date string, which keeps them sortable for the birthday and anniversary list on
-the dashboard without inventing a year nobody supplied. 29 February is a valid
-date here, for the same reason.
+**Date of birth** is a **full date** — `02 - Aug - 1975` — but the year is
+optional, so an entry can be filled in before anyone has asked the family for
+it. A year that *is* given must be a real one: between 1900 and this year, and
+29 February only in a leap year.
+
+Both are stored as separate small integers (`dom_day` / `dom_month`,
+`dob_day` / `dob_month` / `dob_year`) rather than a date string. Day and month
+in their own columns keeps the birthday and anniversary list on the dashboard
+sortable without caring about the year — and lets a date of marriage exist
+without inventing a year nobody supplied. `dob_year` is nullable, so entries
+recorded before the year was collected keep working.
 
 In the printed entry the DOM cell is merged across the first two member rows,
 matching the approved layout.
@@ -49,10 +55,46 @@ matching the approved layout.
 | **Administrator** | Everything, plus parish settings and user accounts |
 | **Editor** | Add, edit and delete families |
 | **Viewer** | Browse and print the directory; change nothing |
+| **Family** | Complete and correct their own entry, and nothing else |
 
 Accounts are created by an administrator under **Users**. Passwords are hashed
 with bcrypt. Deactivating or deleting someone signs them out everywhere
 immediately.
+
+---
+
+## Letting families complete their own entry
+
+Collecting a parish directory by hand is the slow part. Any family with an
+email address can be given a login instead, and fill in its own entry.
+
+On **Families**, under *Invite families to complete their own entry*:
+
+1. **Create family logins** — one account per family, the username being the
+   family's own email address, all with the same default password.
+2. **Copy all addresses** — every family email, comma separated, ready for the
+   Bcc line of one message. Send them the address, the password and a request
+   to check their entry.
+
+A family login is not a directory account. It reaches exactly one family — its
+own — and never the list, the dashboard or the printed book, so giving a
+household a login does not hand it everybody else's address and telephone
+number. Within its own entry it may change anything except the family ID and
+whether the entry is printed, which stay with the parish office, and it cannot
+delete the entry.
+
+The default password lives in `.env`:
+
+```
+DEFAULT_USER_PASSWORD=Churchmembers@2026
+```
+
+It is shown in full on the Families and Users pages — it has to be, since the
+office has to put it in the email. Anyone still using it sees a reminder on
+every page until they choose their own under **My account**; the reminder can
+be dismissed for the current visit but comes back at the next sign-in. An
+administrator can see who is still on the default in the **Login** column of
+the families list, and reset a single family back to it from that family's page.
 
 ---
 
@@ -87,7 +129,7 @@ models/family.js     families + members, always read and written together
 lib/
   auth.js            roles, password hashing, route guards
   csrf.js            per-session CSRF token
-  daymonth.js        the no-year date type: parse, format, validate
+  daymonth.js        the two date types: parse, format, validate
   session-store.js   sessions in the same SQLite file
   settings.js        the per-parish settings layer
   upload.js          photo uploads

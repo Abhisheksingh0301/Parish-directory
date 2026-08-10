@@ -15,12 +15,17 @@
     </a>
 
     <nav class="nav">
-      <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
-      <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
-      <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
-      <% if (atLeast('admin')) { %>
-        <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
-        <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+      <% if (isFamilyLogin) { %>
+        <a href="/families/<%= currentUser.family_id %>"
+           class="<%= path.startsWith('/families') ? 'active' : '' %>">Our entry</a>
+      <% } else { %>
+        <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
+        <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
+        <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
+        <% if (atLeast('admin')) { %>
+          <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
+          <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+        <% } %>
       <% } %>
     </nav>
 
@@ -33,5 +38,17 @@
     </div>
   </div>
 </header>
+
+<% if (currentUser.on_default_password) { %>
+  <div class="default-password-banner" id="default-password-banner" hidden>
+    <div class="inner">
+      <span>
+        You are still signed in with the password everyone was given.
+        <a href="/account">Choose a password of your own</a>.
+      </span>
+      <button type="button" class="btn ghost small" data-dismiss-banner>Not now</button>
+    </div>
+  </div>
+<% } %>
 
 <main class="shell">

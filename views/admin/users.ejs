@@ -7,6 +7,26 @@
 
 <%- include('../partials/messages') %>
 
+<div class="card">
+  <h2>Family logins</h2>
+  <p class="help" style="margin-top:0">
+    A family login signs in with the family&rsquo;s own email address and reaches
+    only that family&rsquo;s entry — never the list, the dashboard or the printed
+    book. They are created in bulk from the
+    <a href="/families">families list</a>, not here.
+  </p>
+
+  <div class="field" style="margin-bottom:0">
+    <div class="label">The password every family login is created with</div>
+    <p class="default-password"><%= defaultPassword %></p>
+    <p class="help">
+      Set by <code>DEFAULT_USER_PASSWORD</code> in this install&rsquo;s
+      <code>.env</code> file. Anyone still on it sees a reminder to choose
+      their own until they do.
+    </p>
+  </div>
+</div>
+
 <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap">
     <table class="table">
@@ -25,23 +45,33 @@
               <strong><%= u.username %></strong>
               <% if (u.id === currentUser.id) { %><span class="tag">You</span><% } %>
               <% if (!u.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+              <% if (u.on_default_password) { %><span class="tag">Default password</span><% } %>
               <% if (u.full_name) { %>
                 <div style="color:var(--ink-faint);font-size:14px"><%= u.full_name %></div>
+              <% } %>
+              <% if (u.family_id) { %>
+                <div style="color:var(--ink-faint);font-size:14px">
+                  Family <a href="/families/<%= u.family_id %>"><%= u.family_ref %> — <%= u.family_head %></a>
+                </div>
               <% } %>
             </td>
 
             <td>
-              <form method="post" action="/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <select name="role" aria-label="Role for <%= u.username %>">
-                  <% roles.forEach(function (r) { %>
-                    <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>>
-                      <%= r.label %>
-                    </option>
-                  <% }); %>
-                </select>
-                <button type="submit" class="btn ghost small">Set</button>
-              </form>
+              <% if (u.family_id) { %>
+                <span style="color:var(--ink-faint)"><%= allRoles[u.role].label %> login</span>
+              <% } else { %>
+                <form method="post" action="/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <select name="role" aria-label="Role for <%= u.username %>">
+                    <% roles.forEach(function (r) { %>
+                      <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>>
+                        <%= r.label %>
+                      </option>
+                    <% }); %>
+                  </select>
+                  <button type="submit" class="btn ghost small">Set</button>
+                </form>
+              <% } %>
             </td>
 
             <td class="nowrap" style="color:var(--ink-faint);font-size:14px">

@@ -14,6 +14,78 @@
   </div>
 </div>
 
+<%- include('../partials/messages') %>
+
+<% if (canEdit) { %>
+  <%
+    const emailList = allEmails.join(', ');
+    // Mail clients and browsers truncate very long mailto: links, so the
+    // button only appears while it is short enough to survive the trip.
+    const mailtoUsable = emailList.length > 0 && emailList.length < 1800;
+  %>
+  <details class="card invite" <%= pendingLoginCount ? 'open' : '' %>>
+    <summary>
+      Invite families to complete their own entry
+      <span class="hint">
+        — <%= allEmails.length %> <%= allEmails.length === 1 ? 'address' : 'addresses' %> on file<%
+        %><% if (isAdmin && pendingLoginCount) { %>, <%= pendingLoginCount %> without a login yet<% } %>
+      </span>
+    </summary>
+
+    <p class="help" style="margin-top:12px">
+      Every family with an email address can be given a login. They sign in with
+      that address and the password below, and may correct their own entry —
+      their address, their members, their photograph — and nothing else.
+    </p>
+
+    <div class="field">
+      <div class="label">The password every family login is created with</div>
+      <p class="default-password"><%= defaultPassword %></p>
+      <p class="help">
+        Set by <code>DEFAULT_USER_PASSWORD</code> in this install&rsquo;s <code>.env</code> file.
+        Put it in the email you send; each family is asked to change it once they are in.
+      </p>
+    </div>
+
+    <% if (isAdmin) { %>
+      <form method="post" action="/families/logins" style="margin-bottom:18px"
+            onsubmit="return confirm('Create logins for <%= pendingLoginCount %> famil<%= pendingLoginCount === 1 ? 'y' : 'ies' %>?')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn" <%= pendingLoginCount ? '' : 'disabled' %>>
+          <% if (pendingLoginCount) { %>
+            Create <%= pendingLoginCount %> family <%= pendingLoginCount === 1 ? 'login' : 'logins' %>
+          <% } else { %>
+            Every family with an email already has a login
+          <% } %>
+        </button>
+      </form>
+    <% } %>
+
+    <div class="field">
+      <div class="label">All family email addresses, separated by commas</div>
+
+      <% if (!allEmails.length) { %>
+        <p class="help">No family has an email address yet.</p>
+      <% } else { %>
+        <textarea id="all-emails" rows="4" readonly aria-label="All family email addresses"><%= emailList %></textarea>
+
+        <div class="actions" style="margin-top:10px">
+          <button type="button" class="btn ghost" data-copy-emails>Copy all addresses</button>
+          <% if (mailtoUsable) { %>
+            <a class="btn ghost" href="mailto:?bcc=<%= encodeURIComponent(emailList) %>&subject=<%= encodeURIComponent('Please complete your entry in the ' + settings.directory_title) %>">
+              Open in your email programme
+            </a>
+          <% } %>
+        </div>
+
+        <p class="help" style="margin-top:8px">
+          Send it as <strong>Bcc</strong>, so no family sees another family&rsquo;s address.
+        </p>
+      <% } %>
+    </div>
+  </details>
+<% } %>
+
 <div class="card" style="padding:0;overflow:hidden">
   <% if (!families.length) { %>
     <div class="empty">
@@ -34,6 +106,7 @@
             <th>Address</th>
             <th class="nowrap">Members</th>
             <th class="nowrap">DOM</th>
+            <% if (isAdmin) { %><th class="nowrap">Login</th><% } %>
             <th></th>
           </tr>
         </thead>
@@ -48,6 +121,19 @@
               <td style="color:var(--ink-faint)"><%= f.address.split('\n')[0] %></td>
               <td class="nowrap"><%= f.member_count %></td>
               <td class="nowrap"><%= f.dom || '—' %></td>
+              <% if (isAdmin) { %>
+                <td class="nowrap">
+                  <% if (!f.login_id) { %>
+                    <span style="color:var(--ink-faint)"><%= f.email ? 'none yet' : '—' %></span>
+                  <% } else if (!f.login_active) { %>
+                    <span class="tag draft">Deactivated</span>
+                  <% } else if (f.login_on_default_password) { %>
+                    <span class="tag">Default password</span>
+                  <% } else { %>
+                    <span class="tag ok">Signed up</span>
+                  <% } %>
+                </td>
+              <% } %>
               <td class="right nowrap">
                 <% if (canEdit) { %>
                   <a href="/families/<%= f.id %>/edit" class="btn ghost small">Edit</a>
@@ -66,5 +152,7 @@
     <%= families.length %> <%= families.length === 1 ? 'family' : 'families' %> shown.
   </p>
 <% } %>
+
+<script src="/javascripts/copy-emails.js"></script>
 
 <%- include('../partials/footer') %>

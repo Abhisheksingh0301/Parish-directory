@@ -106,11 +106,11 @@
                 <tr>
                   <td><%= m.name %></td>
                   <td class="c"><%= m.relation %></td>
-                  <td class="c"><%= m.dob %></td>
+                  <td class="c d"><%= m.dob %></td>
                   <% if (f.dom && i === 0) { %>
-                    <td class="c" rowspan="<%= domSpan %>"><%= f.dom %></td>
+                    <td class="c d" rowspan="<%= domSpan %>"><%= f.dom %></td>
                   <% } else if (!(f.dom && i < domSpan)) { %>
-                    <td class="c"></td>
+                    <td class="c d"></td>
                   <% } %>
                   <td class="c"><%= m.mobile %></td>
                   <td class="c"><%= m.links %></td>

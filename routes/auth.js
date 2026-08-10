@@ -186,10 +186,13 @@ router.post('/account', auth.requireAuth, wrap(async (req, res) => {
     return res.status(400).render('auth/account', { title: 'My account', error: passwordError, notice: null });
   }
 
-  await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [
-    await auth.hashPassword(password),
-    req.user.id
-  ]);
+  // Choosing your own password is what clears the "still on the default"
+  // banner — so it can only go away by actually being fixed.
+  await db.run(
+    'UPDATE users SET password_hash = ?, on_default_password = 0 WHERE id = ?',
+    [await auth.hashPassword(password), req.user.id]
+  );
+  req.user.on_default_password = 0;
 
   render({ notice: 'Your password has been changed.' });
 }));

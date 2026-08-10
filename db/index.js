@@ -121,6 +121,26 @@ const MIGRATIONS = [
   );
 
   CREATE INDEX idx_sessions_expires ON sessions(expires);
+  `,
+
+  // 2 — family logins: an account tied to one family, created with the
+  // shared default password so the parish can invite everybody in one email.
+  `
+  ALTER TABLE users ADD COLUMN family_id INTEGER
+    REFERENCES families(id) ON DELETE CASCADE;
+
+  ALTER TABLE users ADD COLUMN on_default_password INTEGER NOT NULL DEFAULT 0;
+
+  CREATE UNIQUE INDEX idx_users_family ON users(family_id)
+    WHERE family_id IS NOT NULL;
+  `,
+
+  // 3 — a year on dates of birth. The date of marriage stays day + month, but
+  // a birthday is a full date, so `dob_year` joins the day and month already
+  // stored. Nullable: entries collected before this, and families who would
+  // rather not give a year, keep working.
+  `
+  ALTER TABLE members ADD COLUMN dob_year INTEGER;
   `
 ];
 

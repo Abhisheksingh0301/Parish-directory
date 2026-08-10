@@ -20,7 +20,7 @@
 
     <div class="field">
       <label>Date of birth</label>
-      <div class="daymonth">
+      <div class="daymonth with-year">
         <input type="number" name="members[<%= index %>][dob_day]" min="1" max="31"
                value="<%= m.dob_day || '' %>" placeholder="Day" aria-label="Day of birth">
         <select name="members[<%= index %>][dob_month]" aria-label="Month of birth">
@@ -31,6 +31,9 @@
             </option>
           <% }); %>
         </select>
+        <input type="number" name="members[<%= index %>][dob_year]"
+               min="<%= earliestBirthYear %>" max="<%= thisYear %>"
+               value="<%= m.dob_year || '' %>" placeholder="Year" aria-label="Year of birth">
       </div>
     </div>
 
@@ -52,10 +55,15 @@
 <% } %>
 
 <div class="page-head">
-  <h1><%= isNew ? 'Add a family' : 'Edit family' %></h1>
+  <h1><%= isNew ? 'Add a family' : (isOwnEntry ? 'Our entry' : 'Edit family') %></h1>
   <p class="sub">
-    Dates of birth and the date of marriage are recorded as day and month only —
-    there is no year, in the form or in the printed directory.
+    <% if (isOwnEntry) { %>
+      Fill in whatever is missing and correct anything that is wrong. Your family
+      ID and whether the entry is printed are set by the parish office.
+    <% } %>
+    A date of birth is a full date, though the year may be left blank. The date
+    of marriage is day and month only — no year, in the form or in the printed
+    directory.
   </p>
 </div>
 
@@ -76,8 +84,13 @@
     <div class="grid-2">
       <div class="field">
         <label for="family_id">Family ID</label>
-        <input type="text" id="family_id" name="family_id" value="<%= family.family_id %>" required>
-        <p class="help">Prints in the corner of the entry. Any format your parish already uses.</p>
+        <% if (isOwnEntry) { %>
+          <input type="text" id="family_id" value="<%= family.family_id %>" disabled>
+          <p class="help">Given to your family by the parish office.</p>
+        <% } else { %>
+          <input type="text" id="family_id" name="family_id" value="<%= family.family_id %>" required>
+          <p class="help">Prints in the corner of the entry. Any format your parish already uses.</p>
+        <% } %>
       </div>
 
       <div class="field">
@@ -132,15 +145,17 @@
         <p class="help">Day and month only. Leave blank to hide the DOM column for this family.</p>
       </div>
 
-      <div class="field">
-        <div class="label">In the printed directory</div>
-        <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0">
-          <input type="checkbox" name="is_published" value="1"
-                 <%= family.is_published ? 'checked' : '' %>>
-          Include this family when printing
-        </label>
-        <p class="help">Uncheck to keep it as a draft while details are still being collected.</p>
-      </div>
+      <% if (!isOwnEntry) { %>
+        <div class="field">
+          <div class="label">In the printed directory</div>
+          <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0">
+            <input type="checkbox" name="is_published" value="1"
+                   <%= family.is_published ? 'checked' : '' %>>
+            Include this family when printing
+          </label>
+          <p class="help">Uncheck to keep it as a draft while details are still being collected.</p>
+        </div>
+      <% } %>
     </div>
   </div>
 
@@ -195,7 +210,7 @@
   </div>
 </form>
 
-<% if (!isNew) { %>
+<% if (!isNew && !isOwnEntry) { %>
   <form method="post" action="/families/<%= family.id %>/delete" class="card"
         style="margin-top:24px;border-color:#d9b4aa"
         onsubmit="return confirm('Delete this family and all of its members? This cannot be undone.')">
@@ -209,7 +224,9 @@
 <% } %>
 
 <template id="member-template">
-  <% memberRow('__INDEX__', { name: '', relation: '', dob_day: '', dob_month: '', mobile: '', links: '' }); %>
+  <% memberRow('__INDEX__', {
+       name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '', links: ''
+     }); %>
 </template>
 
 <script src="/javascripts/family-form.js"></script>

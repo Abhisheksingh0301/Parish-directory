@@ -59,6 +59,13 @@ module.exports = {
     process.env.SECURE_COOKIES === '1' ||
     (process.env.SECURE_COOKIES === undefined && isProduction) ||
     (process.env.SECURE_COOKIES === '' && isProduction),
+  /**
+   * The password every family login is created with. It is deliberately one
+   * shared value the parish office can put in a single email to everybody;
+   * each family is asked to change it once they are in.
+   */
+  defaultUserPassword:
+    (process.env.DEFAULT_USER_PASSWORD || 'Churchmembers@2026').trim(),
   // Used once, when the database is first created.
   seed: {
     parishName: process.env.PARISH_NAME || 'Your Parish Church, City',

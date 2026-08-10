@@ -7,10 +7,26 @@
   </h1>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <a href="/families" class="btn ghost">Back to families</a>
-    <% if (canEdit) { %><a href="/families/<%= family.id %>/edit" class="btn">Edit</a><% } %>
+    <% if (!isOwnEntry) { %><a href="/families" class="btn ghost">Back to families</a><% } %>
+    <% if (canEdit) { %>
+      <a href="/families/<%= family.id %>/edit" class="btn">
+        <%= isOwnEntry ? 'Complete our entry' : 'Edit' %>
+      </a>
+    <% } %>
   </div>
 </div>
+
+<%- include('../partials/messages') %>
+
+<% if (isOwnEntry) { %>
+  <div class="card">
+    <p style="margin:0">
+      This is your family&rsquo;s entry in the <%= settings.directory_title %>.
+      Please check it, fill in anything missing and correct anything wrong —
+      it is printed exactly as it stands here.
+    </p>
+  </div>
+<% } %>
 
 <div class="detail-grid">
   <div class="card">
@@ -82,8 +98,55 @@
   </div>
 
   <p class="help" style="margin-top:12px">
-    Dates of birth and the date of marriage are day and month only — no year is stored.
+    A date of birth is a full date, where the family has given the year.
+    The date of marriage is day and month only — no year is stored.
   </p>
 </div>
+
+<% if (isAdmin) { %>
+  <div class="card">
+    <h2>Family login</h2>
+
+    <% if (login) { %>
+      <dl>
+        <dt>Signs in as</dt>
+        <dd><%= login.username %></dd>
+
+        <dt>Password</dt>
+        <dd>
+          <% if (login.on_default_password) { %>
+            still the default — <code><%= defaultPassword %></code>
+          <% } else { %>
+            chosen by the family
+          <% } %>
+        </dd>
+
+        <dt>Last signed in</dt>
+        <dd><%= login.last_login_at || 'never' %></dd>
+      </dl>
+
+      <form method="post" action="/families/<%= family.id %>/login"
+            onsubmit="return confirm('Put <%= login.username %> back to the default password?')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn ghost small">Reset to the default password</button>
+      </form>
+    <% } else if (family.email) { %>
+      <p class="help" style="margin-top:0">
+        No login yet. Creating one lets this family sign in as
+        <strong><%= family.email %></strong> with the default password
+        (<code><%= defaultPassword %></code>) and complete their own entry.
+      </p>
+      <form method="post" action="/families/<%= family.id %>/login">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn">Create a login for this family</button>
+      </form>
+    <% } else { %>
+      <p class="help" style="margin-top:0">
+        This family has no email address, so it cannot be given a login.
+        Add one under <a href="/families/<%= family.id %>/edit">Edit</a>.
+      </p>
+    <% } %>
+  </div>
+<% } %>
 
 <%- include('../partials/footer') %>

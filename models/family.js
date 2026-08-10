@@ -28,7 +28,7 @@ function decorate(family, members) {
     dom: dayMonth.format(family.dom_day, family.dom_month),
     members: members.map((m) => ({
       ...m,
-      dob: dayMonth.format(m.dob_day, m.dob_month)
+      dob: dayMonth.formatFull(m.dob_day, m.dob_month, m.dob_year)
     }))
   };
 }
@@ -68,11 +68,40 @@ async function list({ search = '', publishedOnly = false } = {}) {
   const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   return db.all(
-    `SELECT f.*, (SELECT COUNT(*) FROM members m WHERE m.family_id = f.id) AS member_count
+    `SELECT f.*,
+            (SELECT COUNT(*) FROM members m WHERE m.family_id = f.id) AS member_count,
+            u.id       AS login_id,
+            u.username AS login_username,
+            u.is_active AS login_active,
+            u.on_default_password AS login_on_default_password,
+            u.last_login_at AS login_last_seen
      FROM families f
+     LEFT JOIN users u ON u.family_id = f.id
      ${clause}
      ${orderBy('f.family_id')}`,
     params
+  );
+}
+
+/**
+ * Every family email address, in printed-directory order, ready to be pasted
+ * into the "To" line of one message to the whole parish.
+ */
+async function emails() {
+  const rows = await db.all(
+    `SELECT email FROM families WHERE TRIM(email) != '' ${orderBy()}`
+  );
+  return rows.map((r) => r.email.trim());
+}
+
+/** Families with an email address and no login yet — the ones an invite would reach. */
+function withoutLogins() {
+  return db.all(
+    `SELECT f.id, f.family_id, f.head_name, f.email
+     FROM families f
+     LEFT JOIN users u ON u.family_id = f.id
+     WHERE TRIM(f.email) != '' AND u.id IS NULL
+     ${orderBy('f.family_id')}`
   );
 }
 
@@ -134,9 +163,10 @@ async function replaceMembers(familyId, members) {
   for (let i = 0; i < members.length; i += 1) {
     const m = members[i];
     await db.run(
-      `INSERT INTO members (family_id, position, name, relation, dob_day, dob_month, mobile, links)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [familyId, i, m.name, m.relation, m.dob_day, m.dob_month, m.mobile, m.links]
+      `INSERT INTO members
+         (family_id, position, name, relation, dob_day, dob_month, dob_year, mobile, links)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [familyId, i, m.name, m.relation, m.dob_day, m.dob_month, m.dob_year, m.mobile, m.links]
     );
   }
 }
@@ -246,6 +276,8 @@ async function upcoming(days = 30) {
 
 module.exports = {
   list,
+  emails,
+  withoutLogins,
   listWithMembers,
   findById,
   familyIdTaken,

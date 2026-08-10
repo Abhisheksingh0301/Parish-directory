@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const config = require('../config');
+const db = require('../db');
 const Family = require('../models/family');
 const dayMonth = require('../lib/daymonth');
 const settings = require('../lib/settings');
@@ -11,6 +13,35 @@ const { removePhoto, maxBytes } = require('../lib/upload');
 const router = express.Router();
 
 const canEdit = auth.requireRole('editor');
+const canBrowse = auth.requireRole('viewer');
+const isAdmin = auth.requireRole('admin');
+
+/** A family login has no business on the list — send it to its own entry. */
+function familyLoginsGoHome(req, res, next) {
+  if (auth.isFamilyLogin(req.user)) return res.redirect(`/families/${req.user.family_id}`);
+  next();
+}
+
+/**
+ * Guard an entry. Staff from `minRole` upwards reach any family; a family
+ * login reaches only its own. `minRole` is 'viewer' to look and 'editor' to
+ * change, so the same guard covers both directions.
+ */
+function allowOwnFamily(minRole) {
+  return function (req, res, next) {
+    if (auth.atLeast(req.user, minRole)) return next();
+    if (auth.isFamilyLogin(req.user) && auth.ownsFamily(req.user, req.params.id)) return next();
+
+    // A photo uploaded with a request we are about to refuse must not be left behind.
+    if (req.file) removePhoto(req.file.filename);
+
+    res.status(403).render('error', {
+      title: 'Not allowed',
+      message: 'You do not have permission to do that.',
+      error: {}
+    });
+  };
+}
 
 // Photo uploads are parsed in app.js, before the CSRF check — by the time a
 // handler here runs, req.file and req.photoError are already populated.
@@ -29,7 +60,10 @@ function readForm(req) {
   const members = rawMembers
     .filter((m) => m && text(m.name))
     .map((m, i) => {
-      const dob = dayMonth.parse(m.dob_day, m.dob_month, `Date of birth for "${text(m.name)}"`);
+      // Dates of birth are full dates; the year is optional but must be real.
+      const dob = dayMonth.parseFull(
+        m.dob_day, m.dob_month, m.dob_year, `Date of birth for "${text(m.name)}"`
+      );
       if (dob.error) errors.push(dob.error);
 
       return {
@@ -37,6 +71,7 @@ function readForm(req) {
         relation: text(m.relation),
         dob_day: dob.day,
         dob_month: dob.month,
+        dob_year: dob.year,
         mobile: text(m.mobile),
         links: text(m.links),
         position: i
@@ -72,9 +107,14 @@ async function formLocals(req, extra) {
   const parishSettings = await settings.load();
   return {
     months: dayMonth.MONTH_OPTIONS,
+    earliestBirthYear: dayMonth.EARLIEST_BIRTH_YEAR,
+    thisYear: new Date().getFullYear(),
     relationOptions: settings.relationOptions(parishSettings),
     maxPhotoMb: Math.round(maxBytes / (1024 * 1024)),
     errors: [],
+    // A household editing its own entry gets a shorter form: no family ID,
+    // no draft switch, no delete.
+    isOwnEntry: auth.isFamilyLogin(req.user),
     ...extra
   };
 }
@@ -83,16 +123,84 @@ async function formLocals(req, extra) {
 // List
 // ---------------------------------------------------------------------------
 
-router.get('/', wrap(async (req, res) => {
+router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
   const search = String(req.query.q || '');
-  const families = await Family.list({ search });
+  const [families, allEmails, pendingLogins] = await Promise.all([
+    Family.list({ search }),
+    Family.emails(),
+    Family.withoutLogins()
+  ]);
 
   res.render('families/list', {
     title: 'Families',
     families: families.map((f) => ({ ...f, dom: dayMonth.format(f.dom_day, f.dom_month) })),
     search,
-    canEdit: auth.atLeast(req.user, 'editor')
+    canEdit: auth.atLeast(req.user, 'editor'),
+    isAdmin: auth.atLeast(req.user, 'admin'),
+    allEmails,
+    pendingLoginCount: pendingLogins.length,
+    defaultPassword: config.defaultUserPassword,
+    notice: req.query.notice || null,
+    error: req.query.error || null
   });
+}));
+
+// ---------------------------------------------------------------------------
+// Family logins — one account per household, so a family can complete its own
+// entry. Created with the shared default password, which the parish office
+// sends out with the comma-separated address list from the page above.
+// ---------------------------------------------------------------------------
+
+/**
+ * One bcrypt hash is computed per run and reused for every account created in
+ * it. They all hold the same, deliberately public, default password, so a
+ * salt each would buy nothing — and hashing 12 rounds per family would make
+ * inviting a parish of 300 households take minutes.
+ */
+async function createLogins(families) {
+  const hash = await auth.hashPassword(config.defaultUserPassword);
+  const skipped = [];
+  let created = 0;
+
+  for (const family of families) {
+    const username = String(family.email || '').trim();
+    if (!username) {
+      skipped.push(`${family.family_id} (${family.head_name}) has no email address`);
+      continue;
+    }
+    if (await db.get('SELECT id FROM users WHERE username = ?', [username])) {
+      skipped.push(`${username} is already a username`);
+      continue;
+    }
+
+    await db.run(
+      `INSERT INTO users
+         (username, password_hash, full_name, role, family_id, on_default_password)
+       VALUES (?, ?, ?, 'family', ?, 1)`,
+      [username, hash, family.head_name, family.id]
+    );
+    created += 1;
+  }
+
+  return { created, skipped };
+}
+
+router.post('/logins', isAdmin, wrap(async (req, res) => {
+  const pending = await Family.withoutLogins();
+
+  if (!pending.length) {
+    return res.redirect('/families?notice=' + encodeURIComponent(
+      'Every family with an email address already has a login.'
+    ));
+  }
+
+  const { created, skipped } = await createLogins(pending);
+
+  const parts = [`Created ${created} family ${created === 1 ? 'login' : 'logins'}, ` +
+                 `each with the default password.`];
+  if (skipped.length) parts.push(`Skipped ${skipped.length}: ${skipped.join('; ')}.`);
+
+  res.redirect('/families?notice=' + encodeURIComponent(parts.join(' ')));
 }));
 
 // ---------------------------------------------------------------------------
@@ -112,7 +220,9 @@ router.get('/new', canEdit, wrap(async (req, res) => {
     dom_day: null,
     dom_month: null,
     is_published: true,
-    members: [{ name: '', relation: 'HF', dob_day: null, dob_month: null, mobile: '', links: '' }]
+    members: [
+      { name: '', relation: 'HF', dob_day: null, dob_month: null, dob_year: null, mobile: '', links: '' }
+    ]
   };
 
   res.render('families/form', await formLocals(req, {
@@ -148,18 +258,53 @@ router.post('/', canEdit, wrap(async (req, res) => {
 // Show / edit / update / delete
 // ---------------------------------------------------------------------------
 
-router.get('/:id(\\d+)', wrap(async (req, res, next) => {
+router.get('/:id(\\d+)', allowOwnFamily('viewer'), wrap(async (req, res, next) => {
   const family = await Family.findById(req.params.id);
   if (!family) return next();
+
+  const login = await db.get(
+    `SELECT username, is_active, on_default_password, last_login_at
+     FROM users WHERE family_id = ?`,
+    [family.id]
+  );
 
   res.render('families/show', {
     title: family.head_name,
     family,
-    canEdit: auth.atLeast(req.user, 'editor')
+    login: login || null,
+    canEdit: auth.atLeast(req.user, 'editor') || auth.ownsFamily(req.user, family.id),
+    isOwnEntry: auth.isFamilyLogin(req.user),
+    isAdmin: auth.atLeast(req.user, 'admin'),
+    defaultPassword: config.defaultUserPassword,
+    notice: req.query.notice || null,
+    error: null
   });
 }));
 
-router.get('/:id(\\d+)/edit', canEdit, wrap(async (req, res, next) => {
+/** Give one family a login, or put it back to the default password. */
+router.post('/:id(\\d+)/login', isAdmin, wrap(async (req, res, next) => {
+  const family = await Family.findById(req.params.id);
+  if (!family) return next();
+
+  const existing = await db.get('SELECT id FROM users WHERE family_id = ?', [family.id]);
+  const done = (message) =>
+    res.redirect(`/families/${family.id}?notice=` + encodeURIComponent(message));
+
+  if (existing) {
+    await db.run(
+      `UPDATE users SET password_hash = ?, on_default_password = 1, is_active = 1 WHERE id = ?`,
+      [await auth.hashPassword(config.defaultUserPassword), existing.id]
+    );
+    return done('That login is back on the default password.');
+  }
+
+  const { created, skipped } = await createLogins([family]);
+  return done(created
+    ? `Login created for ${family.email}, with the default password.`
+    : `No login created — ${skipped[0]}.`);
+}));
+
+router.get('/:id(\\d+)/edit', allowOwnFamily('editor'), wrap(async (req, res, next) => {
   const family = await Family.findById(req.params.id);
   if (!family) return next();
 
@@ -170,9 +315,18 @@ router.get('/:id(\\d+)/edit', canEdit, wrap(async (req, res, next) => {
   }));
 }));
 
-router.post('/:id(\\d+)', canEdit, wrap(async (req, res, next) => {
+router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) => {
   const existing = await Family.findById(req.params.id);
   if (!existing) return next();
+
+  // A household may correct its own details, but not renumber itself or put
+  // itself into the printed book — those stay where the parish office left
+  // them. Substituted before the form is read, so the fields their shorter
+  // form never sends are not reported back to them as missing.
+  if (auth.isFamilyLogin(req.user)) {
+    req.body.family_id = existing.family_id;
+    req.body.is_published = existing.is_published ? '1' : '';
+  }
 
   const { data, errors } = readForm(req);
 
