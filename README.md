@@ -7,7 +7,14 @@ hand-edited array at the bottom of an HTML file.
 
 Built to be reused: **one install per church**. Nothing about a particular
 parish is in the code — the name, the printed palette, the page layout and the
-relation codes are all settings an administrator edits in the browser.
+relation names are all settings an administrator edits in the browser.
+
+Relations are whole words — `Head`, `Wife`, `Son`, `Daughter` — not the codes
+`HF, W, S, D` this started with. They print as typed and read without a key,
+which matters when the family filling in its own entry has never seen the
+directory's shorthand. Migration 2 converts the ten shipped codes in place; a
+parish's own codes, and its own edited list of suggestions, are left alone, and
+`lib/relations.js` still recognises both spellings.
 
 ---
 
@@ -31,20 +38,34 @@ account and name the parish. There is no default password to change afterwards.
 **Date of marriage** is **day and month only** — `14 - Mar`. There is no year
 field for it anywhere, in the form or in the printed book.
 
-**Date of birth** is a **full date** — `02 - Aug - 1975` — but the year is
-optional, so an entry can be filled in before anyone has asked the family for
-it. A year that *is* given must be a real one: between 1900 and this year, and
-29 February only in a leap year.
+**Date of birth** is a **full date** — `02 - Aug - 1975` — chosen with a date
+picker, so it is a real date by construction: between 1900 and today, with
+29 February only in a leap year. The picker is
+`public/javascripts/datepicker.js` rather than the browser's own, which only
+walks a month at a time: it puts the month and the year in dropdowns above the
+calendar, because a date of birth is usually decades away. It enhances a plain
+`<input type="date">`, so with JavaScript off the field is still a native date
+input and the server sees the same value. A son or daughter must be born after the
+youngest parent in the family; the form refuses a child who would be as old as
+their parents.
 
 Both are stored as separate small integers (`dom_day` / `dom_month`,
 `dob_day` / `dob_month` / `dob_year`) rather than a date string. Day and month
 in their own columns keeps the birthday and anniversary list on the dashboard
 sortable without caring about the year — and lets a date of marriage exist
-without inventing a year nobody supplied. `dob_year` is nullable, so entries
-recorded before the year was collected keep working.
+without inventing a year nobody supplied. `dob_year` stays nullable: entries
+recorded before the year was collected still print, and the form offers to keep
+that day and month rather than losing it when the rest of the row is edited.
 
 In the printed entry the DOM cell is merged across the first two member rows,
-matching the approved layout.
+matching the approved layout — which assumes the second row is the spouse. When
+it is a recognised son or daughter instead, the merge shrinks to the head's own
+row (`relations.domSpan`), because a merged cell over a child reads as that
+child's wedding date. An unfamiliar relation code prints exactly as before:
+a parish's own codes never quietly redraw its book. Note this is the one place
+`views/directory/print.ejs` knowingly departs from
+`public/parish-directory-template.html`, whose sample data has the spouse
+second and so renders identically either way.
 
 ---
 
@@ -107,7 +128,7 @@ Copy the project, then — without touching any code:
 3. Go to **Settings** and set:
    - parish name (prints in the footer of every page) and directory title,
    - families per printed page and the starting page number,
-   - the relation codes your parish uses (`HF, W, S, D, …`),
+   - the relations your parish uses (`Head, Wife, Son, Daughter, …`),
    - the five colours of the printed entry.
 4. Add families, then open **Print directory** and use the browser's print
    dialog to send it to a printer or save it as a PDF.
@@ -130,12 +151,15 @@ lib/
   auth.js            roles, password hashing, route guards
   csrf.js            per-session CSRF token
   daymonth.js        the two date types: parse, format, validate
+  email.js           stricter than type=email, which passes "steve@gmail"
+  relations.js       who is a parent, who is a child, and who is too old
   session-store.js   sessions in the same SQLite file
   settings.js        the per-parish settings layer
   upload.js          photo uploads
 routes/              auth, dashboard, families, directory, admin
 views/directory/     the printable directory
 public/stylesheets/  app.css (screens), directory.css (the printed book)
+public/javascripts/  datepicker.js and friends — progressive enhancement only
 ```
 
 ### Schema changes

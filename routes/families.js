@@ -5,6 +5,8 @@ const config = require('../config');
 const db = require('../db');
 const Family = require('../models/family');
 const dayMonth = require('../lib/daymonth');
+const relations = require('../lib/relations');
+const emails = require('../lib/email');
 const settings = require('../lib/settings');
 const auth = require('../lib/auth');
 const wrap = require('../lib/async');
@@ -46,6 +48,19 @@ function allowOwnFamily(minRole) {
 // Photo uploads are parsed in app.js, before the CSRF check — by the time a
 // handler here runs, req.file and req.photoError are already populated.
 
+/**
+ * A member's date of birth off the form. The picker sends one full date; a
+ * member recorded before the year was collected sends the day and month it
+ * already had on the "keep" checkbox instead, so editing the rest of that row
+ * does not quietly throw the date away.
+ */
+function readDob(m, label) {
+  if (String(m.dob ?? '').trim()) return dayMonth.parseISO(m.dob, label);
+
+  const [day, month] = String(m.dob_partial ?? '').split('-');
+  return { ...dayMonth.parse(day, month, label), year: null };
+}
+
 /** Pull a family (and its members) out of a submitted form. */
 function readForm(req) {
   const text = (value) => String(value ?? '').trim();
@@ -60,10 +75,7 @@ function readForm(req) {
   const members = rawMembers
     .filter((m) => m && text(m.name))
     .map((m, i) => {
-      // Dates of birth are full dates; the year is optional but must be real.
-      const dob = dayMonth.parseFull(
-        m.dob_day, m.dob_month, m.dob_year, `Date of birth for "${text(m.name)}"`
-      );
+      const dob = readDob(m, `Date of birth for "${text(m.name)}"`);
       if (dob.error) errors.push(dob.error);
 
       return {
@@ -77,6 +89,10 @@ function readForm(req) {
         position: i
       };
     });
+
+  // Only worth asking once every date on the form is a date: comparing ages
+  // against numbers the member has already been told to fix helps nobody.
+  if (!errors.length) errors.push(...relations.generationErrors(members));
 
   const data = {
     family_id: text(req.body.family_id),
@@ -95,20 +111,34 @@ function readForm(req) {
   if (!data.family_id) errors.push('Family ID is required.');
   if (!data.head_name) errors.push('Family head name is required.');
   if (!members.length) errors.push('Add at least one family member.');
-  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    errors.push('That email address does not look valid.');
-  }
+  // The address becomes the family's login, so it is checked properly and the
+  // reason is handed back rather than a flat "invalid".
+  const badEmail = emails.problem(data.email);
+  if (badEmail) errors.push(badEmail);
   if (req.photoError) errors.push(req.photoError);
 
   return { data, errors };
+}
+
+/** Today as "2026-08-11", in the parish's own timezone rather than UTC. */
+function todayISO() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 async function formLocals(req, extra) {
   const parishSettings = await settings.load();
   return {
     months: dayMonth.MONTH_OPTIONS,
-    earliestBirthYear: dayMonth.EARLIEST_BIRTH_YEAR,
-    thisYear: new Date().getFullYear(),
+    // The date picker offers 1900 up to today — nobody in the directory was
+    // born before that, and nobody is born tomorrow.
+    earliestBirthDate: `${dayMonth.EARLIEST_BIRTH_YEAR}-01-01`,
+    today: todayISO(),
+    toISO: dayMonth.toISO,
+    formatDayMonth: dayMonth.format,
+    emailPattern: emails.HTML_PATTERN,
     relationOptions: settings.relationOptions(parishSettings),
     maxPhotoMb: Math.round(maxBytes / (1024 * 1024)),
     errors: [],

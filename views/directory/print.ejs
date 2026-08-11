@@ -52,9 +52,10 @@
     <div class="entries">
       <% page.families.forEach(function (f) { %>
         <%
-          // The DOM cell is merged across the first two member rows, exactly as
-          // in the approved layout. With a single member it spans just that row.
-          const domSpan = Math.min(2, f.members.length);
+          // The DOM cell is merged across the first two member rows, as in the
+          // approved layout — except over a child in the second row, where the
+          // merge would read as that child's wedding date. See lib/relations.js.
+          const span = domSpan(f.members);
         %>
         <section class="entry">
           <div class="entry-head">
@@ -73,7 +74,7 @@
                   </th>
                   <td><%- nl2br(f.address) %></td>
                 </tr>
-                <tr><th>Hometown Address</th><td><%= f.hometown %></td></tr>
+                <tr><th>Hometown Address</th><td><%- nl2br(f.hometown) %></td></tr>
                 <tr><th>Home Parish</th><td><%= f.home_parish %></td></tr>
                 <tr><th>Spouse Home</th><td><%= f.spouse_home %></td></tr>
                 <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
@@ -94,7 +95,7 @@
             <thead>
               <tr>
                 <th>Family Members</th>
-                <th class="c">Reltn</th>
+                <th class="c">Relation</th>
                 <th class="c">DOB</th>
                 <th class="c">DOM</th>
                 <th class="c">Mobile</th>
@@ -108,8 +109,8 @@
                   <td class="c"><%= m.relation %></td>
                   <td class="c d"><%= m.dob %></td>
                   <% if (f.dom && i === 0) { %>
-                    <td class="c d" rowspan="<%= domSpan %>"><%= f.dom %></td>
-                  <% } else if (!(f.dom && i < domSpan)) { %>
+                    <td class="c d" rowspan="<%= span %>"><%= f.dom %></td>
+                  <% } else if (!(f.dom && i < span)) { %>
                     <td class="c d"></td>
                   <% } %>
                   <td class="c"><%= m.mobile %></td>

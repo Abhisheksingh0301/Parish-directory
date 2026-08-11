@@ -134,7 +134,7 @@ a:hover { color: var(--ink); }
 .field .help { font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
 
 input[type=text], input[type=password], input[type=email], input[type=number],
-input[type=search], select, textarea {
+input[type=search], input[type=date], select, textarea {
   width: 100%;
   font: inherit;
   color: var(--ink);
@@ -157,6 +157,15 @@ input[type=file] { font: inherit; font-size: 14px; }
 
 .checkline { display: flex; align-items: center; gap: 9px; font-size: 15px; }
 .checkline input { width: auto; }
+
+/* The address and the hometown address are compared by eye, so they get the
+   same box: equal columns, and one height for both rather than whatever each
+   control defaults to. */
+.address-pair .field { display: flex; flex-direction: column; }
+.address-pair textarea { min-height: 104px; flex: 1 1 auto; }
+.address-pair .help, .address-pair .same-address { margin-top: 6px; }
+.address-pair .same-address { font-size: 14px; color: var(--ink-faint); }
+textarea.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
 
 /* Show/hide password. The wrapper is added by password-toggle.js, so without
    JavaScript the field is a plain password box and nothing looks broken. */
@@ -181,9 +190,104 @@ input[type=file] { font: inherit; font-size: 14px; }
 }
 .password-field .toggle-password svg { width: 20px; height: 20px; display: block; }
 
+/* The date of marriage is day and month only, so it stays a pair of fields —
+   a date picker would insist on a year nobody supplied. */
 .daymonth { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
-/* Dates of birth carry a year as well; the date of marriage does not. */
-.daymonth.with-year { grid-template-columns: 72px 1fr 82px; }
+
+/* ---------- date picker (datepicker.js) ---------- */
+
+.datepicker { position: relative; }
+.datepicker input[type=text] { cursor: pointer; background: #fff; }
+
+.dp-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 280px;
+  padding: 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(44, 39, 33, .18);
+}
+.dp-pop.to-left { left: auto; right: 0; }
+
+.dp-head { display: flex; align-items: center; gap: 6px; }
+.dp-head select {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
+  font-size: 14px;
+}
+.dp-head .dp-year { flex: 0 0 78px; }
+.dp-nav {
+  flex: 0 0 28px;
+  height: 28px;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.dp-nav:hover:not(:disabled) { background: var(--band); color: var(--ink); }
+.dp-nav:disabled { opacity: .35; cursor: default; }
+
+.dp-weekdays, .dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dp-weekdays {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-align: center;
+}
+.dp-day {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 0;
+  cursor: pointer;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.dp-day:hover:not(:disabled) { background: var(--paper-warm); }
+.dp-day:disabled { color: #c9c2b6; cursor: default; }
+.dp-day.is-today { border-color: var(--band-dark); }
+.dp-day.is-selected { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+.dp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.dp-clear {
+  font: inherit;
+  font-size: 13px;
+  padding: 3px 9px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.dp-clear:hover { background: var(--paper-warm); color: var(--ink); }
 
 .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
 .actions .spacer { margin-left: auto; }
@@ -313,7 +417,7 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
 .members-editor { display: grid; gap: 12px; }
 .member-row {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) 96px 250px minmax(120px, 1fr) minmax(100px, 1fr) auto;
+  grid-template-columns: minmax(160px, 2fr) 140px 190px minmax(120px, 1fr) minmax(100px, 1fr) auto;
   gap: 10px;
   align-items: end;
   padding: 12px;
@@ -323,6 +427,8 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
 }
 .member-row .field { margin: 0; }
 .member-row .drop { align-self: end; }
+/* Offered only on members whose date of birth was recorded without a year. */
+.keep-dob { font-size: 13px; gap: 6px; margin-top: 6px; color: var(--ink-faint); }
 
 /* ---------- family detail ---------- */
 

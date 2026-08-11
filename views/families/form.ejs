@@ -13,28 +13,30 @@
     </div>
 
     <div class="field">
-      <label>Reltn</label>
+      <label>Relation</label>
       <input type="text" name="members[<%= index %>][relation]" value="<%= m.relation %>"
-             list="relation-codes" placeholder="HF">
+             list="relation-codes" placeholder="Head">
     </div>
 
+    <%
+      // A date already on record shows in the picker only if it is complete.
+      // Older entries kept a day and month with no year, which no date picker
+      // can hold — those are offered back as a checkbox instead of vanishing.
+      const dobISO = toISO(m.dob_day, m.dob_month, m.dob_year);
+      const dobPartial = dobISO ? '' : formatDayMonth(m.dob_day, m.dob_month);
+    %>
     <div class="field">
-      <label>Date of birth</label>
-      <div class="daymonth with-year">
-        <input type="number" name="members[<%= index %>][dob_day]" min="1" max="31"
-               value="<%= m.dob_day || '' %>" placeholder="Day" aria-label="Day of birth">
-        <select name="members[<%= index %>][dob_month]" aria-label="Month of birth">
-          <option value="">Month</option>
-          <% months.forEach(function (mo) { %>
-            <option value="<%= mo.value %>" <%= Number(m.dob_month) === mo.value ? 'selected' : '' %>>
-              <%= mo.name %>
-            </option>
-          <% }); %>
-        </select>
-        <input type="number" name="members[<%= index %>][dob_year]"
-               min="<%= earliestBirthYear %>" max="<%= thisYear %>"
-               value="<%= m.dob_year || '' %>" placeholder="Year" aria-label="Year of birth">
-      </div>
+      <label for="dob-<%= index %>">Date of birth</label>
+      <input type="date" id="dob-<%= index %>" name="members[<%= index %>][dob]"
+             value="<%= dobISO %>"
+             min="<%= earliestBirthDate %>" max="<%= today %>">
+      <% if (dobPartial) { %>
+        <label class="checkline keep-dob" data-keep-dob>
+          <input type="checkbox" name="members[<%= index %>][dob_partial]"
+                 value="<%= m.dob_day %>-<%= m.dob_month %>" checked>
+          Keep <%= dobPartial %> (no year on record)
+        </label>
+      <% } %>
     </div>
 
     <div class="field">
@@ -61,9 +63,9 @@
       Fill in whatever is missing and correct anything that is wrong. Your family
       ID and whether the entry is printed are set by the parish office.
     <% } %>
-    A date of birth is a full date, though the year may be left blank. The date
-    of marriage is day and month only — no year, in the form or in the printed
-    directory.
+    A date of birth is picked as a full date, and a son or daughter has to be
+    younger than their parents. The date of marriage is day and month only —
+    no year, in the form or in the printed directory.
   </p>
 </div>
 
@@ -100,19 +102,33 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="address">Address</label>
-      <textarea id="address" name="address"
-                placeholder="Flat no., Building name, Street,&#10;Locality, City — 000000"><%= family.address %></textarea>
-      <p class="help">Line breaks are preserved in the printed entry.</p>
+    <%
+      // The two addresses sit side by side because they are read together —
+      // where the family lives now, and where the family is from. The tick
+      // below comes back ticked when the two are already the same.
+      const hometownText = String(family.hometown || '').trim();
+      const sameAddress = !!hometownText && hometownText === String(family.address || '').trim();
+    %>
+    <div class="grid-2 address-pair">
+      <div class="field">
+        <label for="address">Address</label>
+        <textarea id="address" name="address"
+                  placeholder="Flat no., Building name, Street,&#10;Locality, City — 000000"><%= family.address %></textarea>
+        <p class="help">Line breaks are preserved in the printed entry.</p>
+      </div>
+
+      <div class="field">
+        <label for="hometown">Hometown address</label>
+        <textarea id="hometown" name="hometown"
+                  placeholder="House name, Village"><%= family.hometown %></textarea>
+        <label class="checkline same-address" hidden>
+          <input type="checkbox" id="same-address" <%= sameAddress ? 'checked' : '' %>>
+          Same as the address above
+        </label>
+      </div>
     </div>
 
     <div class="grid-2">
-      <div class="field">
-        <label for="hometown">Hometown address</label>
-        <input type="text" id="hometown" name="hometown" value="<%= family.hometown %>">
-      </div>
-
       <div class="field">
         <label for="home_parish">Home parish</label>
         <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>">
@@ -125,7 +141,10 @@
 
       <div class="field">
         <label for="email">Email ID</label>
-        <input type="email" id="email" name="email" value="<%= family.email %>">
+        <input type="email" id="email" name="email" value="<%= family.email %>"
+               pattern="<%= emailPattern %>"
+               title="A full email address, ending in .com, .in and so on — like name@example.com">
+        <p class="help">Doubles as the family's sign-in name.</p>
       </div>
 
       <div class="field">
@@ -188,7 +207,9 @@
     <h2>Family members</h2>
     <p class="help" style="margin:-8px 0 14px">
       The first two rows share the DOM cell in the printed table, matching the
-      directory layout. Rows with an empty name are ignored.
+      directory layout — so put the spouse second. If the second row is a son
+      or daughter the cell stays on the first row instead, rather than reading
+      as a child's wedding date. Rows with an empty name are ignored.
     </p>
 
     <div class="members-editor" id="members-editor">
@@ -229,6 +250,8 @@
      }); %>
 </template>
 
+<script src="/javascripts/datepicker.js"></script>
+<script src="/javascripts/same-address.js"></script>
 <script src="/javascripts/family-form.js"></script>
 
 <%- include('../partials/footer') %>

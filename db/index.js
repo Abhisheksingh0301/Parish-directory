@@ -140,6 +140,36 @@ const MIGRATIONS = [
   );
 
   CREATE INDEX idx_sessions_expires ON sessions(expires);
+  `,
+
+  // 2 — relation codes become words
+  //
+  // "HF, W, S, D" is obvious to whoever compiled the last directory and to
+  // nobody else — least of all a family filling in its own entry. The words
+  // print just as well and read without a key, so the codes already recorded
+  // are converted here rather than left as a second vocabulary nobody can
+  // look up. Only the ten codes this app shipped with are touched; a parish
+  // that invented its own keeps them untouched, and so does one that has
+  // already edited the list of suggestions.
+  `
+  UPDATE members SET relation = CASE UPPER(TRIM(relation))
+    WHEN 'HF' THEN 'Head'
+    WHEN 'W'  THEN 'Wife'
+    WHEN 'S'  THEN 'Son'
+    WHEN 'D'  THEN 'Daughter'
+    WHEN 'F'  THEN 'Father'
+    WHEN 'M'  THEN 'Mother'
+    WHEN 'B'  THEN 'Brother'
+    WHEN 'SR' THEN 'Sister'
+    WHEN 'GF' THEN 'Grandfather'
+    WHEN 'GM' THEN 'Grandmother'
+    ELSE relation
+  END;
+
+  UPDATE settings
+     SET value = 'Head, Wife, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother'
+   WHERE key = 'relation_options'
+     AND value = 'HF, W, S, D, F, M, B, Sr, GF, GM';
   `
 ];
 
@@ -149,7 +179,7 @@ const DEFAULT_SETTINGS = {
   directory_title: config.seed.directoryTitle,
   starting_page: '1',
   per_page: '2',
-  relation_options: 'HF, W, S, D, F, M, B, Sr, GF, GM',
+  relation_options: 'Head, Wife, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother',
   color_band: '#cec4b3',
   color_band_dark: '#b6ab97',
   color_member_a: '#d9d2c4',

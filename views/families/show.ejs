@@ -37,7 +37,7 @@
       <dd><%- family.address ? nl2br(family.address) : '&mdash;' %></dd>
 
       <dt>Hometown address</dt>
-      <dd><%= family.hometown || '—' %></dd>
+      <dd><%- family.hometown ? nl2br(family.hometown) : '&mdash;' %></dd>
 
       <dt>Home parish</dt>
       <dd><%= family.home_parish || '—' %></dd>
@@ -77,7 +77,7 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Reltn</th>
+          <th>Relation</th>
           <th>DOB</th>
           <th>Mobile</th>
           <th>Links</th>
