@@ -1,0 +1,88 @@
+# CSI dioceses, WITH PLACEHOLDER ZONES.
+#
+# The 24 diocese names are real and come from csi-dioceses.csv.
+#
+# THE ZONE NAMES ARE NOT REAL. CSI groups congregations into pastorates, and
+# those are decided inside each diocese and published in diocesan directories
+# rather than anywhere public — so there is no honest list to bundle. Every
+# zone here is a numbered placeholder, named so that nobody mistakes it for
+# the real thing.
+#
+# Use this to get a working dropdown today, then rename each zone on the
+# Zones page as you learn the real pastorate names, or edit this file and
+# re-import — importing is idempotent, so nothing is duplicated.
+#
+# A zone with no churches in it can simply be dissolved from the Zones page.
+diocese,zone,church,city
+Madras,,,
+Madras,Madras Zone 1,,
+Madras,Madras Zone 2,,
+Coimbatore,,,
+Coimbatore,Coimbatore Zone 1,,
+Coimbatore,Coimbatore Zone 2,,
+Kanyakumari,,,
+Kanyakumari,Kanyakumari Zone 1,,
+Kanyakumari,Kanyakumari Zone 2,,
+Madurai-Ramnad,,,
+Madurai-Ramnad,Madurai-Ramnad Zone 1,,
+Madurai-Ramnad,Madurai-Ramnad Zone 2,,
+Thoothukudi-Nazareth,,,
+Thoothukudi-Nazareth,Thoothukudi-Nazareth Zone 1,,
+Thoothukudi-Nazareth,Thoothukudi-Nazareth Zone 2,,
+Tirunelveli,,,
+Tirunelveli,Tirunelveli Zone 1,,
+Tirunelveli,Tirunelveli Zone 2,,
+Trichy-Tanjore,,,
+Trichy-Tanjore,Trichy-Tanjore Zone 1,,
+Trichy-Tanjore,Trichy-Tanjore Zone 2,,
+Vellore,,,
+Vellore,Vellore Zone 1,,
+Vellore,Vellore Zone 2,,
+South Kerala,,,
+South Kerala,South Kerala Zone 1,,
+South Kerala,South Kerala Zone 2,,
+Madhya Kerala,,,
+Madhya Kerala,Madhya Kerala Zone 1,,
+Madhya Kerala,Madhya Kerala Zone 2,,
+East Kerala,,,
+East Kerala,East Kerala Zone 1,,
+East Kerala,East Kerala Zone 2,,
+North Kerala,,,
+North Kerala,North Kerala Zone 1,,
+North Kerala,North Kerala Zone 2,,
+Cochin,,,
+Cochin,Cochin Zone 1,,
+Cochin,Cochin Zone 2,,
+Malabar,,,
+Malabar,Malabar Zone 1,,
+Malabar,Malabar Zone 2,,
+Dornakal,,,
+Dornakal,Dornakal Zone 1,,
+Dornakal,Dornakal Zone 2,,
+Karimnagar,,,
+Karimnagar,Karimnagar Zone 1,,
+Karimnagar,Karimnagar Zone 2,,
+Krishna-Godavari,,,
+Krishna-Godavari,Krishna-Godavari Zone 1,,
+Krishna-Godavari,Krishna-Godavari Zone 2,,
+Medak,,,
+Medak,Medak Zone 1,,
+Medak,Medak Zone 2,,
+Nandyal,,,
+Nandyal,Nandyal Zone 1,,
+Nandyal,Nandyal Zone 2,,
+Rayalaseema,,,
+Rayalaseema,Rayalaseema Zone 1,,
+Rayalaseema,Rayalaseema Zone 2,,
+Karnataka Central,,,
+Karnataka Central,Karnataka Central Zone 1,,
+Karnataka Central,Karnataka Central Zone 2,,
+Karnataka North,,,
+Karnataka North,Karnataka North Zone 1,,
+Karnataka North,Karnataka North Zone 2,,
+Karnataka South,,,
+Karnataka South,Karnataka South Zone 1,,
+Karnataka South,Karnataka South Zone 2,,
+Jaffna,,,
+Jaffna,Jaffna Zone 1,,
+Jaffna,Jaffna Zone 2,,

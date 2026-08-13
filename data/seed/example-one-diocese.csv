@@ -1,0 +1,15 @@
+# What a real import usually looks like: one diocese, its foranes, its parishes.
+#
+# This is the shape to copy. Replace every name with your own — the point of
+# the file is the layout, not the contents.
+#
+# A row is read as deeply as it is filled in, so the first row makes only the
+# diocese, the next few make zones inside it, and the rest make churches.
+diocese,zone,church,city
+Diocese of Trichy,,,
+Diocese of Trichy,Chalakudy Forane,,
+Diocese of Trichy,Thanjavur Forane,,
+Diocese of Trichy,Chalakudy Forane,St Mary Church,Chalakudy
+Diocese of Trichy,Chalakudy Forane,Holy Family Church,Annamanada
+Diocese of Trichy,Thanjavur Forane,St Peter Church,Thanjavur
+Diocese of Trichy,,Sacred Heart Church,Trichy

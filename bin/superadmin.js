@@ -15,7 +15,7 @@
  * directory — which has users already — leaving an unauthenticated way to mint
  * the most privileged account in the system would be indefensible.
  *
- *   node bin/superadmin.js create <username> [--name "Full Name"]
+ *   node bin/superadmin.js create <email> [--name "Full Name"]
  *   node bin/superadmin.js reset  <username>
  *   node bin/superadmin.js list
  *
@@ -26,6 +26,7 @@
 const readline = require('readline');
 const db = require('../db');
 const auth = require('../lib/auth');
+const email = require('../lib/email');
 const Users = require('../models/user');
 
 function parseArgs(argv) {
@@ -85,17 +86,25 @@ async function choosePassword(flags) {
 }
 
 async function create(username, flags) {
-  if (!/^[a-zA-Z0-9._@-]{3,60}$/.test(username || '')) {
-    throw new Error('Username may use letters, numbers, dot, dash, underscore and @ (3–60 characters).');
+  // A super administrator signs in with an email address, not a handle. Family
+  // logins are already addresses, so the rule is now the same everywhere — and
+  // this is the one account with nobody above it to fix things, so it has to
+  // be somewhere its holder can actually be reached.
+  const address = String(username || '').trim();
+  if (!address) {
+    throw new Error('A username is required, and it must be an email address.');
   }
-  if (await Users.usernameTaken(username)) {
-    throw new Error(`The username "${username}" is already taken.`);
+  const badAddress = email.problem(address);
+  if (badAddress) throw new Error(badAddress);
+
+  if (await Users.usernameTaken(address)) {
+    throw new Error(`The username "${address}" is already taken.`);
   }
 
   const password = await choosePassword(flags);
 
   await Users.create({
-    username,
+    username: address,
     password_hash: await auth.hashPassword(password),
     full_name: typeof flags.name === 'string' ? flags.name : '',
     role: 'superadmin',
@@ -104,7 +113,7 @@ async function create(username, flags) {
     church_id: null
   });
 
-  console.log(`\nSuper administrator "${username}" created.`);
+  console.log(`\nSuper administrator "${address}" created.`);
   console.log('Sign in and add your dioceses, zones and churches.\n');
 }
 
@@ -154,7 +163,7 @@ async function list() {
 
 const USAGE = `
 Usage:
-  node bin/superadmin.js create <username> [--name "Full Name"] [--password <value>]
+  node bin/superadmin.js create <email> [--name "Full Name"] [--password <value>]
   node bin/superadmin.js reset  <username> [--password <value>]
   node bin/superadmin.js list
 `;

@@ -19,27 +19,115 @@ directory's shorthand.
 
 ## Running it
 
+### 1. Have Node.js 18 or newer
+
+```bash
+node -v      # v18.0.0 or higher
+npm -v
+```
+
+If that command is not found, install Node.js from [nodejs.org](https://nodejs.org)
+and open a new terminal afterwards, so the updated `PATH` is picked up.
+
+### 2. Install the dependencies
+
+From the project folder:
+
 ```bash
 npm install
-cp .env.example .env      # then edit it
-npm start                 # http://localhost:3000
-npm test                  # 128 end-to-end checks
 ```
 
-`npm run dev` restarts on file changes.
+Once, and again only when `package.json` changes. It writes `node_modules/`,
+which is not in the repository.
 
-On a brand-new database the first screen asks you to create an account. On an
-installation upgraded from the single-parish version, create the super
-administrator from the command line instead:
+### 3. Create your `.env`
+
+The app reads its configuration from a `.env` file that does not ship with the
+code — copy the example and edit it:
 
 ```bash
-node bin/superadmin.js create bishop
+cp .env.example .env                 # macOS, Linux, Git Bash
 ```
+
+```powershell
+Copy-Item .env.example .env          # Windows PowerShell
+```
+
+The defaults run as they are for local use. The one value worth setting now is
+`SESSION_SECRET`, which signs the session cookie — generate one and paste it in:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Leaving it empty is fine while `NODE_ENV=development`. In production the app
+**refuses to start** without it, rather than quietly inventing a throwaway
+secret that logs everybody out on every restart.
+
+### 4. Start the server
+
+```bash
+npm start
+```
+
+Then open **http://localhost:3000**. Stop it with `Ctrl+C`.
+
+Nothing needs creating first: on start-up `bin/www` opens the database in
+`DATA_DIR` (`./data` by default), creating it if it is not there, and applies
+any migrations the code is ahead of. Use `npm run dev` instead while working on
+the code — it restarts on every file change.
+
+If the port is taken, change `PORT` in `.env`.
+
+### 5. Create the first account
+
+**A brand-new database has no users**, so visiting any page sends you to
+`/setup`, which asks for the first administrator and the parish name. Fill it
+in and you are signed in.
+
+**An installation upgraded from the single-parish version already has users**,
+so `/setup` is closed and the super administrator is made from the command line
+instead:
+
+```bash
+node bin/superadmin.js create bishop@example.com
+```
+
+**The username must be an email address** — the same rule family logins already
+follow, and this is the one account with nobody above it to recover it. It then
+asks for a password twice, without echoing it, and wants at least 8 characters.
+
+`reset <address>` puts a new password on an existing super administrator,
+reactivating it if it was switched off, and `list` shows them all.
 
 That route is deliberately not on the web. `/setup` is open to anyone while the
 database has no users at all, and on an upgraded directory — which has users
 already — leaving an unauthenticated way to mint the most privileged account in
 the system would be indefensible.
+
+### 6. Check it works
+
+```bash
+npm test
+```
+
+128 end-to-end checks across four suites — smoke, console, tenancy and
+reports — each booting the app over HTTP against a throwaway database in your
+system temp folder. They override `DATA_DIR`, so your own `data/` folder is
+left alone. The last line should read `ALL CHECKS PASSED`. Run one suite on
+its own with `npm run test:tenancy`, and the same for `test:smoke`,
+`test:console` and `test:reports`.
+
+### Every command
+
+| Command | |
+|---|---|
+| `npm start` | Run the app |
+| `npm run dev` | Run it, restarting on file changes |
+| `npm test` | All 128 checks |
+| `npm run superadmin` | Create, reset or list super administrators |
+| `npm run backup` | Snapshot the database and photographs |
+| `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
 
 ---
 

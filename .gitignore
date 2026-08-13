@@ -1,5 +1,10 @@
 node_modules/
-data/
+# The runtime folder: the database, the session secret and the uploaded
+# photographs. Written with data/* rather than data/ because git does not
+# descend into an ignored directory, so the seed lists below could never be
+# re-included from underneath a plain data/ rule.
+data/*
+!data/seed/
 # .env
 npm-debug.log*
 *.db
