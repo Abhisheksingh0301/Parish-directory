@@ -1,0 +1,156 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1><%= church.name %></h1>
+  <p class="sub">
+    <%= church.diocese_name %><% if (church.zone_name) { %> · <%= church.zone_name %><% } %>
+    <% if (church.city) { %> · <%= church.city %><% } %>
+    <% if (!church.is_active) { %> <span class="tag draft">Deactivated</span><% } %>
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="stats">
+  <div class="stat"><strong><%= families %></strong><span>Families</span></div>
+  <div class="stat"><strong><%= staff.length %></strong><span>Staff accounts</span></div>
+</div>
+
+<div class="card">
+  <h2>Work in this church</h2>
+  <p class="help" style="margin-top:0">
+    Opens the ordinary screens as this parish sees them. A bar at the top of
+    every page will say which church you are in until you leave it.
+  </p>
+  <div class="actions">
+    <% if (church.is_active) { %>
+      <form method="post" action="/super/churches/<%= church.id %>/act">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn">Open this church</button>
+      </form>
+    <% } else { %>
+      <p class="help">Reactivate it first.</p>
+    <% } %>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Where it sits</h2>
+  <form method="post" action="/super/churches/<%= church.id %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" value="<%= church.name %>" required>
+      </div>
+      <div class="field">
+        <label for="city">City or town</label>
+        <input type="text" id="city" name="city" value="<%= church.city %>">
+      </div>
+      <div class="field">
+        <label for="diocese_id"><%= labels.diocese %></label>
+        <select id="diocese_id" name="diocese_id" required>
+          <% dioceses.forEach(function (d) { %>
+            <option value="<%= d.id %>" <%= d.id === church.diocese_id ? 'selected' : '' %>>
+              <%= d.name %>
+            </option>
+          <% }); %>
+        </select>
+        <p class="help">
+          Moving it to another <%= labels.diocese.toLowerCase() %> means choosing
+          a <%= labels.zone.toLowerCase() %> from that one, or none.
+        </p>
+      </div>
+      <div class="field">
+        <label for="zone_id"><%= labels.zone %></label>
+        <select id="zone_id" name="zone_id">
+          <option value="">None</option>
+          <% zones.forEach(function (z) { %>
+            <option value="<%= z.id %>" <%= z.id === church.zone_id ? 'selected' : '' %>>
+              <%= z.name %>
+            </option>
+          <% }); %>
+        </select>
+        <p class="help">
+          Only <%= labels.zone.toLowerCase() %>s in
+          <%= church.diocese_name %> are listed.
+        </p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Staff account</th>
+          <th>Role</th>
+          <th class="nowrap">Last signed in</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!staff.length) { %>
+          <tr>
+            <td colspan="3" class="empty">
+              This church has no staff account. Nobody can sign in to it.
+            </td>
+          </tr>
+        <% } %>
+        <% staff.forEach(function (u) { %>
+          <tr>
+            <td>
+              <strong><%= u.username %></strong>
+              <% if (!u.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+              <% if (u.on_default_password) { %><span class="tag">Default password</span><% } %>
+              <% if (u.full_name) { %><div class="help"><%= u.full_name %></div><% } %>
+            </td>
+            <td><%= roleLabel(u.role) %></td>
+            <td class="nowrap" style="color:var(--ink-faint);font-size:14px">
+              <%= u.last_login_at || 'never' %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Its own settings</h2>
+  <p class="help" style="margin-top:0">
+    Printed as &ldquo;<%= churchSettings.parish_name %>&rdquo;, titled
+    &ldquo;<%= churchSettings.directory_title %>&rdquo;,
+    <%= churchSettings.per_page %> families to a page. Open the church to change
+    any of it — these belong to the parish, not to you.
+  </p>
+</div>
+
+<div class="card">
+  <h2><%= church.is_active ? 'Deactivate' : 'Reactivate' %> this church</h2>
+  <p class="help" style="margin-top:0">
+    <% if (church.is_active) { %>
+      Its people are signed out immediately and cannot sign back in. Nothing is
+      deleted — its families, members and photographs stay exactly as they are.
+    <% } else { %>
+      Its staff will be able to sign in again.
+    <% } %>
+  </p>
+  <form method="post" action="/super/churches/<%= church.id %>/active">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="is_active" value="<%= church.is_active ? '0' : '1' %>">
+    <button type="submit" class="btn <%= church.is_active ? 'danger' : '' %>">
+      <%= church.is_active ? 'Deactivate' : 'Reactivate' %>
+    </button>
+  </form>
+</div>
+
+<p><a href="/super/churches">← All churches</a></p>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,80 @@
+<%
+  /*
+   * One family's printed entry.
+   *
+   * Shared by the single-church book (print.ejs) and the combined one
+   * (multi.ejs) so the two can never drift apart — this markup reproduces
+   * public/parish-directory-template.html and is the thing a parish has
+   * already approved.
+   *
+   * Expects: f (a family with members), domSpan, nl2br.
+   *
+   * The DOM cell is merged across the first two member rows, as in the
+   * approved layout — except over a child in the second row, where the merge
+   * would read as that child's wedding date. See lib/relations.js.
+   */
+  const span = domSpan(f.members);
+%>
+<section class="entry">
+  <div class="entry-head">
+    <div class="head-name"><%= f.head_name %></div>
+    <div class="head-id">FAMILY ID : <%= f.family_id %></div>
+  </div>
+
+  <div class="entry-body">
+    <table class="details">
+      <tbody>
+        <tr>
+          <th>
+            <svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/>
+            </svg>
+          </th>
+          <td><%- nl2br(f.address) %></td>
+        </tr>
+        <tr><th>Hometown Address</th><td><%- nl2br(f.hometown) %></td></tr>
+        <tr><th>Home Parish</th><td><%= f.home_parish %></td></tr>
+        <tr><th>Spouse Home</th><td><%= f.spouse_home %></td></tr>
+        <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
+      </tbody>
+    </table>
+
+    <div class="photo-frame">
+      <% if (f.photo) { %>
+        <img class="photo" src="<%= f.photo_url %>"
+             alt="Photograph of the <%= f.head_name %> family">
+      <% } else { %>
+        <div class="photo-empty">Photograph</div>
+      <% } %>
+    </div>
+  </div>
+
+  <table class="members">
+    <thead>
+      <tr>
+        <th>Family Members</th>
+        <th class="c">Relation</th>
+        <th class="c">DOB</th>
+        <th class="c">DOM</th>
+        <th class="c">Mobile</th>
+        <th class="c">Links</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% f.members.forEach(function (m, i) { %>
+        <tr>
+          <td><%= m.name %></td>
+          <td class="c"><%= m.relation %></td>
+          <td class="c d"><%= m.dob %></td>
+          <% if (f.dom && i === 0) { %>
+            <td class="c d" rowspan="<%= span %>"><%= f.dom %></td>
+          <% } else if (!(f.dom && i < span)) { %>
+            <td class="c d"></td>
+          <% } %>
+          <td class="c"><%= m.mobile %></td>
+          <td class="c"><%= m.links %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</section>

@@ -9,9 +9,9 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="/">
+    <a class="brand" href="<%= isSuperAdmin && !churchId ? '/super' : '/' %>">
       <%= settings.directory_title %>
-      <small><%= settings.parish_name %></small>
+      <small><%= church ? church.name : settings.parish_name %></small>
     </a>
 
     <nav class="nav">
@@ -19,12 +19,22 @@
         <a href="/families/<%= currentUser.family_id %>"
            class="<%= path.startsWith('/families') ? 'active' : '' %>">Our entry</a>
       <% } else { %>
-        <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
-        <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
-        <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
-        <% if (atLeast('admin')) { %>
-          <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
-          <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+        <% if (churchId) { %>
+          <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
+          <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
+          <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
+          <% if (atLeast('admin')) { %>
+            <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
+            <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+          <% } %>
+        <% } %>
+
+        <% if (isSuperAdmin) { %>
+          <a href="/super"           class="<%= path === '/super' ? 'active' : '' %>">System</a>
+          <a href="/super/churches"  class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
+          <a href="/super/reports"   class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+          <a href="/super/zones"     class="<%= path.startsWith('/super/zones') ? 'active' : '' %>"><%= labels.zone %>s</a>
+          <a href="/super/dioceses"  class="<%= path.startsWith('/super/dioceses') ? 'active' : '' %>"><%= labels.diocese %>s</a>
         <% } %>
       <% } %>
     </nav>
@@ -38,6 +48,30 @@
     </div>
   </div>
 </header>
+
+<%
+  /*
+   * A super administrator working inside a borrowed church is one click away
+   * from editing the wrong parish's data. That is not a breach — they are
+   * allowed everywhere — but it corrupts real records quietly, so the bar says
+   * whose directory this is on every page until they leave it.
+   */
+%>
+<% if (actingAs && church) { %>
+  <div class="default-password-banner">
+    <div class="inner">
+      <span>
+        You are working in <strong><%= church.name %></strong><%
+        %><% if (church.city) { %>, <%= church.city %><% } %>.
+        Anything you change here belongs to that parish.
+      </span>
+      <form method="post" action="/super/stop-acting" style="display:inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn ghost small">Leave this church</button>
+      </form>
+    </div>
+  </div>
+<% } %>
 
 <% if (currentUser.on_default_password) { %>
   <div class="default-password-banner" id="default-password-banner" hidden>

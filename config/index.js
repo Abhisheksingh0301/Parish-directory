@@ -53,6 +53,20 @@ module.exports = {
   dataDir,
   uploadDir,
   dbFile: path.join(dataDir, 'parish.db'),
+  /**
+   * The database, described rather than assumed.
+   *
+   * Every query in the app is written against Sequelize's model API instead of
+   * SQL, so moving to PostgreSQL or MySQL is setting `DATABASE_URL` and running
+   * the schema — not rewriting the code. The one part that does not travel for
+   * free is the schema history; see the note at the top of db/migrations.js.
+   */
+  db: {
+    url: (process.env.DATABASE_URL || '').trim() || null,
+    dialect: (process.env.DB_DIALECT || 'sqlite').trim(),
+    storage: path.join(dataDir, 'parish.db'),
+    logSql: process.env.LOG_SQL === '1'
+  },
   sessionSecret: resolveSessionSecret(),
   trustProxy: process.env.TRUST_PROXY === '1',
   secureCookies:
@@ -69,7 +83,10 @@ module.exports = {
   // Used once, when the database is first created.
   seed: {
     parishName: process.env.PARISH_NAME || 'Your Parish Church, City',
-    directoryTitle: process.env.DIRECTORY_TITLE || 'Parish Directory'
+    directoryTitle: process.env.DIRECTORY_TITLE || 'Parish Directory',
+    // The diocese an already-running single-parish install is folded into when
+    // it is upgraded to hold many churches. Renamed in the console afterwards.
+    dioceseName: process.env.DIOCESE_NAME || 'Unnamed Diocese'
   },
   maxPhotoBytes: 5 * 1024 * 1024
 };

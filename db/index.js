@@ -1,185 +1,36 @@
 'use strict';
 
 /**
- * SQLite data layer (node-sqlite3).
+ * Opening, migrating and seeding the database.
  *
- * node-sqlite3 is callback-based; everything below is wrapped in promises so
- * route handlers can use async/await. One connection is used for the whole
- * process and is put into serialized mode, so statements — including the ones
- * inside a transaction — never interleave.
+ * The engine is chosen in config and connected in db/sequelize.js; the shape of
+ * the data is db/models.js; the history of that shape is db/migrations.js. This
+ * file is the start-up sequence that puts the three together, plus the two sets
+ * of default settings a new installation begins with.
  */
 
-const sqlite3 = require('sqlite3');
+const { QueryTypes, DataTypes, Op } = require('sequelize');
 const config = require('../config');
-
-let db = null;
-
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) return reject(err);
-      resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
-}
-
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
-  });
-}
-
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-  });
-}
-
-function exec(sql) {
-  return new Promise((resolve, reject) => {
-    db.exec(sql, (err) => (err ? reject(err) : resolve()));
-  });
-}
-
-/** Run `fn` inside a transaction, rolling back if it throws. */
-async function tx(fn) {
-  await run('BEGIN IMMEDIATE');
-  try {
-    const result = await fn();
-    await run('COMMIT');
-    return result;
-  } catch (err) {
-    try {
-      await run('ROLLBACK');
-    } catch (rollbackErr) {
-      // The original error is the useful one; keep it.
-    }
-    throw err;
-  }
-}
+const { sequelize, applyDialectPragmas } = require('./sequelize');
+const models = require('./models');
+const { MIGRATIONS, CHURCH_SETTING_KEYS } = require('./migrations');
 
 /**
- * Schema migrations, applied in order and tracked with PRAGMA user_version.
- *
- * Migration 1 is the whole schema as one set of CREATE TABLEs — no parish is
- * running an older copy yet, so there is nothing to migrate *from* and every
- * column belongs in the table that owns it. Once this has gone out to a
- * church, that stops being true: never edit a migration that has shipped,
- * append a new one instead, so parishes already running an older copy upgrade
- * cleanly.
- *
- * Tables are created in dependency order — families before the members and
- * logins that point at them.
+ * Settings that belong to one church. These live in `settings` as the fallback
+ * a newly created church starts from, and are copied into `church_settings`
+ * the moment that church edits any of them.
  */
-const MIGRATIONS = [
-  // 1 — the schema
-  `
-  CREATE TABLE families (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    family_id    TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    head_name    TEXT NOT NULL,
-    address      TEXT NOT NULL DEFAULT '',
-    hometown     TEXT NOT NULL DEFAULT '',
-    home_parish  TEXT NOT NULL DEFAULT '',
-    spouse_home  TEXT NOT NULL DEFAULT '',
-    email        TEXT NOT NULL DEFAULT '',
-    photo        TEXT,
-    -- Date of marriage: day and month only, never a year.
-    dom_day      INTEGER,
-    dom_month    INTEGER,
-    is_published INTEGER NOT NULL DEFAULT 1,
-    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE members (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
-    position  INTEGER NOT NULL DEFAULT 0,
-    name      TEXT NOT NULL,
-    relation  TEXT NOT NULL DEFAULT '',
-    -- Date of birth: a full date, but the year is optional, so an entry can
-    -- be recorded before anyone has asked the family for it. Day and month
-    -- stay in their own columns to keep the birthday list sortable.
-    dob_day   INTEGER,
-    dob_month INTEGER,
-    dob_year  INTEGER,
-    mobile    TEXT NOT NULL DEFAULT '',
-    links     TEXT NOT NULL DEFAULT ''
-  );
-
-  CREATE TABLE users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    password_hash TEXT NOT NULL,
-    full_name     TEXT NOT NULL DEFAULT '',
-    role          TEXT NOT NULL DEFAULT 'viewer',
-    is_active     INTEGER NOT NULL DEFAULT 1,
-    -- Set on a family login: the one family this account may reach. NULL for
-    -- staff accounts. UNIQUE gives a family at most one login — SQLite treats
-    -- NULLs as distinct, so any number of staff accounts still fit.
-    family_id     INTEGER UNIQUE REFERENCES families(id) ON DELETE CASCADE,
-    -- Still using the password everyone was given, so the reminder shows.
-    on_default_password INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-    last_login_at TEXT
-  );
-
-  CREATE INDEX idx_members_family ON members(family_id, position);
-  CREATE INDEX idx_families_head  ON families(head_name COLLATE NOCASE);
-
-  CREATE TABLE settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
-
-  CREATE TABLE sessions (
-    sid     TEXT PRIMARY KEY,
-    expires INTEGER NOT NULL,
-    data    TEXT NOT NULL
-  );
-
-  CREATE INDEX idx_sessions_expires ON sessions(expires);
-  `,
-
-  // 2 — relation codes become words
-  //
-  // "HF, W, S, D" is obvious to whoever compiled the last directory and to
-  // nobody else — least of all a family filling in its own entry. The words
-  // print just as well and read without a key, so the codes already recorded
-  // are converted here rather than left as a second vocabulary nobody can
-  // look up. Only the ten codes this app shipped with are touched; a parish
-  // that invented its own keeps them untouched, and so does one that has
-  // already edited the list of suggestions.
-  `
-  UPDATE members SET relation = CASE UPPER(TRIM(relation))
-    WHEN 'HF' THEN 'Head'
-    WHEN 'W'  THEN 'Wife'
-    WHEN 'S'  THEN 'Son'
-    WHEN 'D'  THEN 'Daughter'
-    WHEN 'F'  THEN 'Father'
-    WHEN 'M'  THEN 'Mother'
-    WHEN 'B'  THEN 'Brother'
-    WHEN 'SR' THEN 'Sister'
-    WHEN 'GF' THEN 'Grandfather'
-    WHEN 'GM' THEN 'Grandmother'
-    ELSE relation
-  END;
-
-  UPDATE settings
-     SET value = 'Head, Wife, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother'
-   WHERE key = 'relation_options'
-     AND value = 'HF, W, S, D, F, M, B, Sr, GF, GM';
-  `
-];
-
-/** Settings a fresh install starts with. Editable in-app under Settings. */
 const DEFAULT_SETTINGS = {
   parish_name: config.seed.parishName,
   directory_title: config.seed.directoryTitle,
   starting_page: '1',
   per_page: '2',
   relation_options: 'Head, Wife, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother',
+  // The password every member login in this church is created with. It was a
+  // single environment variable shared by the whole installation, which meant
+  // one church's staff could read the string that opened every other church's
+  // new member accounts. DEFAULT_USER_PASSWORD is now only the starting value.
+  default_member_password: config.defaultUserPassword,
   color_band: '#cec4b3',
   color_band_dark: '#b6ab97',
   color_member_a: '#d9d2c4',
@@ -187,55 +38,165 @@ const DEFAULT_SETTINGS = {
   color_rule: '#a99e8a'
 };
 
-async function migrate() {
-  const row = await get('PRAGMA user_version');
-  const current = row ? row.user_version : 0;
+/**
+ * Settings that belong to the installation rather than to any church.
+ *
+ * The two nouns are configurable because Indian denominations do not share
+ * them: a Syro-Malabar install says Eparchy and Forane, a CSI one says Diocese
+ * and Pastorate, and hard-coding either would read as wrong to half the users.
+ * One deployment serves one structure, so these are not per-church.
+ */
+const PLATFORM_SETTINGS = {
+  diocese_label: 'Diocese',
+  zone_label: 'Zone'
+};
 
-  // A database newer than the code means someone has gone backwards — an
-  // older copy of the app pointed at a parish that has already been upgraded.
-  // Say so rather than running queries against a schema we don't know.
+/**
+ * The applied schema version.
+ *
+ * Recorded in a table rather than SQLite's `PRAGMA user_version`, which no
+ * other engine has. An install created before that table existed carries its
+ * version in the pragma, so it is read across once and never consulted again.
+ */
+async function readVersion(qi) {
+  await qi.createTable('schema_version', {
+    version: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false }
+  });
+
+  const rows = await sequelize.query(
+    'SELECT version FROM schema_version',
+    { type: QueryTypes.SELECT }
+  );
+  if (rows.length) return Number(rows[0].version);
+
+  let legacy = 0;
+  if (sequelize.getDialect() === 'sqlite') {
+    const [row] = await sequelize.query('PRAGMA user_version', { type: QueryTypes.SELECT });
+    legacy = (row && Number(row.user_version)) || 0;
+  }
+
+  await sequelize.query('INSERT INTO schema_version (version) VALUES (:v)', {
+    replacements: { v: legacy }
+  });
+  return legacy;
+}
+
+function bumpVersion(version, transaction) {
+  return sequelize.query('UPDATE schema_version SET version = :v', {
+    replacements: { v: version },
+    transaction
+  });
+}
+
+/**
+ * One migration, in a transaction, rolled back whole if any part of it fails.
+ *
+ * SQLite needs its transaction issued by hand, and the reason is worth writing
+ * down because the failure it prevents is silent and total.
+ *
+ * `sequelize.transaction()` takes a connection from the pool, and the SQLite
+ * driver runs `PRAGMA FOREIGN_KEYS=ON` on every connection it opens. Pragmas
+ * are per-connection, so `foreign_keys = OFF` set before the transaction does
+ * not apply inside it. That matters because rebuilding `families` has to drop
+ * it, and `DROP TABLE` with foreign keys enabled performs an implicit
+ * `DELETE FROM` first — which cascades into `members` and into the household
+ * logins in `users`, emptying both. The migration reports success and the
+ * directory is gone.
+ *
+ * Issuing BEGIN and COMMIT as plain statements keeps every statement on the one
+ * connection the SQLite pool is capped at, where the pragma holds. Other
+ * engines have neither the pragma nor the problem, and use the managed
+ * transaction.
+ */
+async function runMigration(qi, step, version, isSqlite) {
+  const label = `Migration ${version + 1}`;
+
+  if (!isSqlite) {
+    return sequelize.transaction(async (transaction) => {
+      await step({ qi, sequelize, transaction, DataTypes });
+      await bumpVersion(version + 1, transaction);
+    }).catch((err) => {
+      throw new Error(`${label} failed and was rolled back: ${err.message}`);
+    });
+  }
+
+  await sequelize.query('BEGIN IMMEDIATE');
+  try {
+    await step({ qi, sequelize, transaction: null, DataTypes });
+
+    // Enforcement is off; this check is not, and it is the last chance to
+    // notice that a rebuild has orphaned something.
+    const broken = await sequelize.query('PRAGMA foreign_key_check', {
+      type: QueryTypes.SELECT
+    });
+    if (broken.length) {
+      throw new Error(`it left ${broken.length} broken foreign key reference(s)`);
+    }
+
+    await bumpVersion(version + 1, null);
+    await sequelize.query('COMMIT');
+  } catch (err) {
+    await sequelize.query('ROLLBACK').catch(() => {});
+    throw new Error(`${label} failed and was rolled back: ${err.message}`);
+  }
+}
+
+async function migrate() {
+  const qi = sequelize.getQueryInterface();
+  const current = await readVersion(qi);
+
+  // A database newer than the code means someone has gone backwards — an older
+  // copy of the app pointed at a directory that has already been upgraded. Say
+  // so rather than running queries against a schema we do not know.
   if (current > MIGRATIONS.length) {
     throw new Error(
       `This database is at schema version ${current}, but this copy of the app ` +
       `only knows ${MIGRATIONS.length}. Update the app before opening it.`
     );
   }
+  if (current === MIGRATIONS.length) return;
 
-  for (let version = current; version < MIGRATIONS.length; version += 1) {
-    await exec(MIGRATIONS[version]);
-    // PRAGMA does not accept bound parameters.
-    await exec(`PRAGMA user_version = ${version + 1}`);
+  const isSqlite = sequelize.getDialect() === 'sqlite';
+  if (isSqlite) await sequelize.query('PRAGMA foreign_keys = OFF');
+
+  try {
+    for (let version = current; version < MIGRATIONS.length; version += 1) {
+      await runMigration(qi, MIGRATIONS[version], version, isSqlite);
+    }
+  } finally {
+    if (isSqlite) await sequelize.query('PRAGMA foreign_keys = ON');
   }
 }
 
+/** Settings a fresh installation starts with. Existing values are never touched. */
 async function seedSettings() {
-  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-    await run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', [key, value]);
-  }
-}
+  const all = { ...DEFAULT_SETTINGS, ...PLATFORM_SETTINGS };
 
-function open() {
-  return new Promise((resolve, reject) => {
-    db = new sqlite3.Database(config.dbFile, (err) => (err ? reject(err) : resolve()));
-  });
+  for (const [key, value] of Object.entries(all)) {
+    await models.Setting.findOrCreate({ where: { key }, defaults: { key, value } });
+  }
 }
 
 async function init() {
-  await open();
-  db.serialize();
-  await run('PRAGMA journal_mode = WAL');
-  await run('PRAGMA foreign_keys = ON');
-  await run('PRAGMA busy_timeout = 5000');
+  await sequelize.authenticate();
+  await applyDialectPragmas();
   await migrate();
   await seedSettings();
   return module.exports;
 }
 
 function close() {
-  return new Promise((resolve) => {
-    if (!db) return resolve();
-    db.close(() => resolve());
-  });
+  return sequelize.close();
 }
 
-module.exports = { init, close, run, get, all, exec, tx, DEFAULT_SETTINGS };
+module.exports = {
+  init,
+  close,
+  sequelize,
+  Op,
+  QueryTypes,
+  ...models,
+  DEFAULT_SETTINGS,
+  PLATFORM_SETTINGS,
+  CHURCH_SETTING_KEYS
+};

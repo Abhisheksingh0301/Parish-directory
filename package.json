@@ -5,7 +5,15 @@
   "description": "A printable parish family directory with sign-in — one install per church.",
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "node --watch ./bin/www"
+    "dev": "node --watch ./bin/www",
+    "test": "node ./test/smoke.js && node ./test/console.js && node ./test/tenancy.js && node ./test/reports.js",
+    "superadmin": "node ./bin/superadmin.js",
+    "test:smoke": "node ./test/smoke.js",
+    "test:console": "node ./test/console.js",
+    "test:tenancy": "node ./test/tenancy.js",
+    "test:reports": "node ./test/reports.js",
+    "backup": "node ./bin/backup.js",
+    "import-hierarchy": "node ./bin/import-hierarchy.js"
   },
   "engines": {
     "node": ">=18"
@@ -19,6 +27,7 @@
     "http-errors": "^2.0.1",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
+    "sequelize": "^6.37.8",
     "sqlite3": "^6.0.1"
   }
 }

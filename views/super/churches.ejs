@@ -1,0 +1,210 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Churches</h1>
+  <p class="sub">Every parish in the system, and the one you are working in.</p>
+</div>
+
+<% if (pick) { %>
+  <div class="alert notice">
+    That page belongs to a church. Choose which one you are working in, and you
+    will be taken back to it.
+  </div>
+<% } %>
+
+<%- include('../partials/messages') %>
+
+<div class="card">
+  <form method="get" action="/super/churches" class="grid-2">
+    <div class="field">
+      <label for="q">Search by name or city</label>
+      <input type="search" id="q" name="q" value="<%= search %>" placeholder="Name or city">
+    </div>
+    <div class="field">
+      <label for="diocese"><%= labels.diocese %></label>
+      <select id="diocese" name="diocese">
+        <option value="">All</option>
+        <% dioceses.forEach(function (d) { %>
+          <option value="<%= d.id %>" <%= filterDiocese === d.id ? 'selected' : '' %>>
+            <%= d.name %>
+          </option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn ghost small">Filter</button>
+      <% if (search || filterDiocese || filterZone) { %>
+        <a class="btn ghost small" href="/super/churches">Clear</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<form method="post" action="/super/churches/reassign">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:32px"></th>
+            <th>Church</th>
+            <th><%= labels.diocese %></th>
+            <th><%= labels.zone %></th>
+            <th class="right">Families</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!churches.length) { %>
+            <tr><td colspan="6" class="empty">No churches match.</td></tr>
+          <% } %>
+          <% churches.forEach(function (c) { %>
+            <tr>
+              <td>
+                <input type="checkbox" name="church_ids" value="<%= c.id %>"
+                       aria-label="Select <%= c.name %>">
+              </td>
+              <td>
+                <a href="/super/churches/<%= c.id %>"><strong><%= c.name %></strong></a>
+                <% if (!c.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+                <% if (c.city) { %><div class="help"><%= c.city %></div><% } %>
+              </td>
+              <td><%= c.diocese_name %></td>
+              <td><%= c.zone_name || '—' %></td>
+              <td class="right"><%= c.family_count %></td>
+              <td class="right nowrap">
+                <% if (c.is_active) { %>
+                  <form method="post" action="/super/churches/<%= c.id %>/act" style="display:inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn small">Open</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (churches.length && dioceses.length) { %>
+    <div class="card">
+      <h2>Move the selected churches</h2>
+      <p class="help" style="margin-top:0">
+        For when a <%= labels.zone.toLowerCase() %> is reorganised or a
+        <%= labels.diocese.toLowerCase() %> splits. Tick the churches above,
+        then choose where they go. Leave the <%= labels.zone.toLowerCase() %>
+        blank to move them without putting them in one.
+      </p>
+      <div class="grid-2">
+        <div class="field">
+          <label for="move_diocese"><%= labels.diocese %></label>
+          <select id="move_diocese" name="diocese_id" required>
+            <% dioceses.forEach(function (d) { %>
+              <option value="<%= d.id %>"><%= d.name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="move_zone"><%= labels.zone %></label>
+          <select id="move_zone" name="zone_id">
+            <option value="">None</option>
+            <% zones.forEach(function (z) { %>
+              <option value="<%= z.id %>"><%= z.diocese_name %> — <%= z.name %></option>
+            <% }); %>
+          </select>
+          <p class="help">
+            Must belong to the <%= labels.diocese.toLowerCase() %> chosen beside
+            it, or the move is refused.
+          </p>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn">Move them</button>
+      </div>
+    </div>
+  <% } %>
+</form>
+
+<div class="card">
+  <h2>Add a church</h2>
+
+  <% if (!dioceses.length) { %>
+    <p class="help">
+      Add a <%= labels.diocese.toLowerCase() %> first — every church belongs to one.
+    </p>
+  <% } else { %>
+    <p class="help" style="margin-top:0">
+      The church and the account that will run it are created together, so it is
+      usable straight away.
+    </p>
+
+    <form method="post" action="/super/churches">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="name">Church name</label>
+          <input type="text" id="name" name="name" required
+                 value="<%= form.name || '' %>" placeholder="e.g. St Mary's Church">
+        </div>
+        <div class="field">
+          <label for="city">City or town</label>
+          <input type="text" id="city" name="city" value="<%= form.city || '' %>">
+        </div>
+        <div class="field">
+          <label for="new_diocese"><%= labels.diocese %></label>
+          <select id="new_diocese" name="diocese_id" required>
+            <% dioceses.forEach(function (d) { %>
+              <option value="<%= d.id %>" <%= String(form.diocese_id) === String(d.id) ? 'selected' : '' %>>
+                <%= d.name %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="new_zone"><%= labels.zone %></label>
+          <select id="new_zone" name="zone_id">
+            <option value="">None yet</option>
+            <% zones.forEach(function (z) { %>
+              <option value="<%= z.id %>" <%= String(form.zone_id) === String(z.id) ? 'selected' : '' %>>
+                <%= z.diocese_name %> — <%= z.name %>
+              </option>
+            <% }); %>
+          </select>
+          <p class="help">Must belong to the <%= labels.diocese.toLowerCase() %> chosen above.</p>
+        </div>
+      </div>
+
+      <h2>Its administrator</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="admin_username">Username</label>
+          <input type="text" id="admin_username" name="admin_username" required
+                 value="<%= form.admin_username || '' %>">
+        </div>
+        <div class="field">
+          <label for="admin_full_name">Full name</label>
+          <input type="text" id="admin_full_name" name="admin_full_name"
+                 value="<%= form.admin_full_name || '' %>">
+        </div>
+        <div class="field">
+          <label for="admin_password">Password</label>
+          <input type="password" id="admin_password" name="admin_password" required>
+        </div>
+        <div class="field">
+          <label for="admin_password_confirm">Password again</label>
+          <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn">Add the church</button>
+      </div>
+    </form>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

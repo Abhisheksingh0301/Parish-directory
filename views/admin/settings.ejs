@@ -37,6 +37,18 @@
       <input type="text" id="directory_title" name="directory_title" value="<%= values.directory_title %>">
       <p class="help">Shown in the app header and the browser tab, e.g. &ldquo;Parish Directory 2026&rdquo;.</p>
     </div>
+
+    <div class="field">
+      <label for="default_member_password">Password for new member logins</label>
+      <input type="text" id="default_member_password" name="default_member_password"
+             value="<%= values.default_member_password %>" required minlength="8">
+      <p class="help">
+        The one password every household in <em>this church</em> is given when
+        its login is created, so the office can put it in a single email. It is
+        yours alone &mdash; no other church can see it, and each family is asked
+        to change it once they are in.
+      </p>
+    </div>
   </div>
 
   <div class="card">

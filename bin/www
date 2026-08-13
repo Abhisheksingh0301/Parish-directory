@@ -12,6 +12,7 @@ const db = require('../db');
 
 async function main() {
   await db.init();
+  await require('../lib/upload').relocateLegacyPhotos(db);
 
   const app = require('../app');
   app.set('port', config.port);

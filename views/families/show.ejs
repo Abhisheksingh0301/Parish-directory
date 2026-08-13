@@ -61,7 +61,7 @@
     <h2>Photograph</h2>
     <div class="photo-box">
       <% if (family.photo) { %>
-        <img src="/uploads/<%= family.photo %>" alt="Photograph of the <%= family.head_name %> family">
+        <img src="<%= family.photo_url %>" alt="Photograph of the <%= family.head_name %> family">
       <% } else { %>
         <div class="none">No photograph</div>
       <% } %>
@@ -105,7 +105,7 @@
 
 <% if (isAdmin) { %>
   <div class="card">
-    <h2>Family login</h2>
+    <h2>Member login</h2>
 
     <% if (login) { %>
       <dl>

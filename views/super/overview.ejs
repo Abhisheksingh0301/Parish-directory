@@ -1,0 +1,74 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>System overview</h1>
+  <p class="sub">
+    Every <%= labels.diocese.toLowerCase() %>, <%= labels.zone.toLowerCase() %>
+    and church in this installation.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="stats">
+  <div class="stat"><strong><%= counts.dioceses %></strong><span><%= labels.diocese %>s</span></div>
+  <div class="stat"><strong><%= counts.zones %></strong><span><%= labels.zone %>s</span></div>
+  <div class="stat"><strong><%= counts.churches %></strong><span>Churches</span></div>
+  <div class="stat"><strong><%= counts.families %></strong><span>Families</span></div>
+  <div class="stat"><strong><%= counts.members %></strong><span>Members</span></div>
+  <div class="stat"><strong><%= counts.users %></strong><span>Accounts</span></div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th><%= labels.diocese %></th>
+          <th class="right"><%= labels.zone %>s</th>
+          <th class="right">Churches</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!dioceses.length) { %>
+          <tr>
+            <td colspan="4" class="empty">
+              Nothing yet. Start by adding a <%= labels.diocese.toLowerCase() %>.
+            </td>
+          </tr>
+        <% } %>
+        <% dioceses.forEach(function (d) { %>
+          <tr>
+            <td>
+              <%= d.name %>
+              <% if (!d.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+            </td>
+            <td class="right"><%= d.zone_count %></td>
+            <td class="right"><%= d.church_count %></td>
+            <td class="right nowrap">
+              <a class="btn ghost small" href="/super/churches?diocese=<%= d.id %>">Churches</a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Getting started</h2>
+  <p class="help">
+    Add your <%= labels.diocese.toLowerCase() %>s first, then their
+    <%= labels.zone.toLowerCase() %>s, then the churches inside them. A church
+    is created together with the account that will run it, so it is usable the
+    moment it exists.
+  </p>
+  <div class="actions">
+    <a class="btn" href="/super/dioceses">Manage <%= labels.diocese.toLowerCase() %>s</a>
+    <a class="btn ghost" href="/super/zones">Manage <%= labels.zone.toLowerCase() %>s</a>
+    <a class="btn ghost" href="/super/churches">Manage churches</a>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -2,23 +2,28 @@
 
 const express = require('express');
 const config = require('../config');
-const db = require('../db');
+const Users = require('../models/user');
 const Family = require('../models/family');
 const dayMonth = require('../lib/daymonth');
 const relations = require('../lib/relations');
 const emails = require('../lib/email');
 const settings = require('../lib/settings');
 const auth = require('../lib/auth');
+const tenancy = require('../lib/tenancy');
 const wrap = require('../lib/async');
 const { removePhoto, maxBytes } = require('../lib/upload');
 
 const router = express.Router();
 
+// Every family belongs to a church; a request that has not established which
+// one has no business reading or writing any of them.
+router.use(tenancy.requireChurch);
+
 const canEdit = auth.requireRole('editor');
 const canBrowse = auth.requireRole('viewer');
 const isAdmin = auth.requireRole('admin');
 
-/** A family login has no business on the list — send it to its own entry. */
+/** A member login has no business on the list — send it to its own entry. */
 function familyLoginsGoHome(req, res, next) {
   if (auth.isFamilyLogin(req.user)) return res.redirect(`/families/${req.user.family_id}`);
   next();
@@ -35,7 +40,7 @@ function allowOwnFamily(minRole) {
     if (auth.isFamilyLogin(req.user) && auth.ownsFamily(req.user, req.params.id)) return next();
 
     // A photo uploaded with a request we are about to refuse must not be left behind.
-    if (req.file) removePhoto(req.file.filename);
+    if (req.file) removePhoto(req.churchId, req.file.filename);
 
     res.status(403).render('error', {
       title: 'Not allowed',
@@ -129,7 +134,7 @@ function todayISO() {
 }
 
 async function formLocals(req, extra) {
-  const parishSettings = await settings.load();
+  const parishSettings = await settings.load(req.churchId);
   return {
     months: dayMonth.MONTH_OPTIONS,
     // The date picker offers 1900 up to today — nobody in the directory was
@@ -156,9 +161,9 @@ async function formLocals(req, extra) {
 router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
   const search = String(req.query.q || '');
   const [families, allEmails, pendingLogins] = await Promise.all([
-    Family.list({ search }),
-    Family.emails(),
-    Family.withoutLogins()
+    Family.list(req.churchId, { search }),
+    Family.emails(req.churchId),
+    Family.withoutLogins(req.churchId)
   ]);
 
   res.render('families/list', {
@@ -169,14 +174,14 @@ router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
     isAdmin: auth.atLeast(req.user, 'admin'),
     allEmails,
     pendingLoginCount: pendingLogins.length,
-    defaultPassword: config.defaultUserPassword,
+    defaultPassword: req.settings.default_member_password,
     notice: req.query.notice || null,
     error: req.query.error || null
   });
 }));
 
 // ---------------------------------------------------------------------------
-// Family logins — one account per household, so a family can complete its own
+// Member logins — one account per household, so a family can complete its own
 // entry. Created with the shared default password, which the parish office
 // sends out with the comma-separated address list from the page above.
 // ---------------------------------------------------------------------------
@@ -187,8 +192,8 @@ router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
  * salt each would buy nothing — and hashing 12 rounds per family would make
  * inviting a parish of 300 households take minutes.
  */
-async function createLogins(families) {
-  const hash = await auth.hashPassword(config.defaultUserPassword);
+async function createLogins(families, defaultPassword) {
+  const hash = await auth.hashPassword(defaultPassword);
   const skipped = [];
   let created = 0;
 
@@ -198,17 +203,19 @@ async function createLogins(families) {
       skipped.push(`${family.family_id} (${family.head_name}) has no email address`);
       continue;
     }
-    if (await db.get('SELECT id FROM users WHERE username = ?', [username])) {
+    if (await Users.usernameTaken(username)) {
       skipped.push(`${username} is already a username`);
       continue;
     }
 
-    await db.run(
-      `INSERT INTO users
-         (username, password_hash, full_name, role, family_id, on_default_password)
-       VALUES (?, ?, ?, 'family', ?, 1)`,
-      [username, hash, family.head_name, family.id]
-    );
+    await Users.create({
+      username,
+      password_hash: hash,
+      full_name: family.head_name,
+      role: 'family',
+      family_id: family.id,
+      on_default_password: true
+    });
     created += 1;
   }
 
@@ -216,7 +223,7 @@ async function createLogins(families) {
 }
 
 router.post('/logins', isAdmin, wrap(async (req, res) => {
-  const pending = await Family.withoutLogins();
+  const pending = await Family.withoutLogins(req.churchId);
 
   if (!pending.length) {
     return res.redirect('/families?notice=' + encodeURIComponent(
@@ -224,7 +231,7 @@ router.post('/logins', isAdmin, wrap(async (req, res) => {
     ));
   }
 
-  const { created, skipped } = await createLogins(pending);
+  const { created, skipped } = await createLogins(pending, req.settings.default_member_password);
 
   const parts = [`Created ${created} family ${created === 1 ? 'login' : 'logins'}, ` +
                  `each with the default password.`];
@@ -239,7 +246,7 @@ router.post('/logins', isAdmin, wrap(async (req, res) => {
 
 router.get('/new', canEdit, wrap(async (req, res) => {
   const family = {
-    family_id: await Family.nextFamilyId(),
+    family_id: await Family.nextFamilyId(req.churchId),
     head_name: '',
     address: '',
     hometown: '',
@@ -265,12 +272,12 @@ router.get('/new', canEdit, wrap(async (req, res) => {
 router.post('/', canEdit, wrap(async (req, res) => {
   const { data, errors } = readForm(req);
 
-  if (!errors.length && (await Family.familyIdTaken(data.family_id))) {
+  if (!errors.length && (await Family.familyIdTaken(req.churchId, data.family_id))) {
     errors.push(`Family ID "${data.family_id}" is already used by another family.`);
   }
 
   if (errors.length) {
-    if (req.file) removePhoto(req.file.filename);
+    if (req.file) removePhoto(req.churchId, req.file.filename);
     return res.status(400).render('families/form', await formLocals(req, {
       title: 'Add a family',
       family: { ...data, photo: null },
@@ -280,7 +287,7 @@ router.post('/', canEdit, wrap(async (req, res) => {
   }
 
   data.photo = req.file ? req.file.filename : null;
-  const id = await Family.create(data);
+  const id = await Family.create(req.churchId, data);
   res.redirect(`/families/${id}`);
 }));
 
@@ -289,14 +296,10 @@ router.post('/', canEdit, wrap(async (req, res) => {
 // ---------------------------------------------------------------------------
 
 router.get('/:id(\\d+)', allowOwnFamily('viewer'), wrap(async (req, res, next) => {
-  const family = await Family.findById(req.params.id);
+  const family = await Family.findById(req.churchId, req.params.id);
   if (!family) return next();
 
-  const login = await db.get(
-    `SELECT username, is_active, on_default_password, last_login_at
-     FROM users WHERE family_id = ?`,
-    [family.id]
-  );
+  const login = await Users.findByFamily(family.id);
 
   res.render('families/show', {
     title: family.head_name,
@@ -305,7 +308,7 @@ router.get('/:id(\\d+)', allowOwnFamily('viewer'), wrap(async (req, res, next) =
     canEdit: auth.atLeast(req.user, 'editor') || auth.ownsFamily(req.user, family.id),
     isOwnEntry: auth.isFamilyLogin(req.user),
     isAdmin: auth.atLeast(req.user, 'admin'),
-    defaultPassword: config.defaultUserPassword,
+    defaultPassword: req.settings.default_member_password,
     notice: req.query.notice || null,
     error: null
   });
@@ -313,29 +316,29 @@ router.get('/:id(\\d+)', allowOwnFamily('viewer'), wrap(async (req, res, next) =
 
 /** Give one family a login, or put it back to the default password. */
 router.post('/:id(\\d+)/login', isAdmin, wrap(async (req, res, next) => {
-  const family = await Family.findById(req.params.id);
+  const family = await Family.findById(req.churchId, req.params.id);
   if (!family) return next();
 
-  const existing = await db.get('SELECT id FROM users WHERE family_id = ?', [family.id]);
+  const existing = await Users.findByFamily(family.id);
   const done = (message) =>
     res.redirect(`/families/${family.id}?notice=` + encodeURIComponent(message));
 
   if (existing) {
-    await db.run(
-      `UPDATE users SET password_hash = ?, on_default_password = 1, is_active = 1 WHERE id = ?`,
-      [await auth.hashPassword(config.defaultUserPassword), existing.id]
+    await Users.resetToDefaultPassword(
+      existing.id,
+      await auth.hashPassword(req.settings.default_member_password)
     );
     return done('That login is back on the default password.');
   }
 
-  const { created, skipped } = await createLogins([family]);
+  const { created, skipped } = await createLogins([family], req.settings.default_member_password);
   return done(created
     ? `Login created for ${family.email}, with the default password.`
     : `No login created — ${skipped[0]}.`);
 }));
 
 router.get('/:id(\\d+)/edit', allowOwnFamily('editor'), wrap(async (req, res, next) => {
-  const family = await Family.findById(req.params.id);
+  const family = await Family.findById(req.churchId, req.params.id);
   if (!family) return next();
 
   res.render('families/form', await formLocals(req, {
@@ -346,7 +349,7 @@ router.get('/:id(\\d+)/edit', allowOwnFamily('editor'), wrap(async (req, res, ne
 }));
 
 router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) => {
-  const existing = await Family.findById(req.params.id);
+  const existing = await Family.findById(req.churchId, req.params.id);
   if (!existing) return next();
 
   // A household may correct its own details, but not renumber itself or put
@@ -360,12 +363,12 @@ router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) 
 
   const { data, errors } = readForm(req);
 
-  if (!errors.length && (await Family.familyIdTaken(data.family_id, existing.id))) {
+  if (!errors.length && (await Family.familyIdTaken(req.churchId, data.family_id, existing.id))) {
     errors.push(`Family ID "${data.family_id}" is already used by another family.`);
   }
 
   if (errors.length) {
-    if (req.file) removePhoto(req.file.filename);
+    if (req.file) removePhoto(req.churchId, req.file.filename);
     return res.status(400).render('families/form', await formLocals(req, {
       title: `Edit ${existing.head_name}`,
       family: { ...data, id: existing.id, photo: existing.photo },
@@ -377,20 +380,20 @@ router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) 
   const removingPhoto = req.body.remove_photo === '1';
   data.photo = req.file ? req.file.filename : (removingPhoto ? null : existing.photo);
 
-  await Family.update(existing.id, data);
+  await Family.update(req.churchId, existing.id, data);
 
   // Only unlink the old file once the row that pointed at it is updated.
-  if (existing.photo && existing.photo !== data.photo) removePhoto(existing.photo);
+  if (existing.photo && existing.photo !== data.photo) removePhoto(req.churchId, existing.photo);
 
   res.redirect(`/families/${existing.id}`);
 }));
 
 router.post('/:id(\\d+)/delete', canEdit, wrap(async (req, res, next) => {
-  const family = await Family.findById(req.params.id);
+  const family = await Family.findById(req.churchId, req.params.id);
   if (!family) return next();
 
-  await Family.remove(family.id);
-  if (family.photo) removePhoto(family.photo);
+  await Family.remove(req.churchId, family.id);
+  if (family.photo) removePhoto(req.churchId, family.photo);
 
   res.redirect('/families');
 }));

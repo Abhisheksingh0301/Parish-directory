@@ -1,0 +1,93 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1><%= labels.zone %>s</h1>
+  <p class="sub">
+    A <%= labels.zone.toLowerCase() %> groups churches inside one
+    <%= labels.diocese.toLowerCase() %>. A church may be in none — it still
+    belongs to its <%= labels.diocese.toLowerCase() %>.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th><%= labels.zone %></th>
+          <th><%= labels.diocese %></th>
+          <th class="right">Churches</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!zones.length) { %>
+          <tr><td colspan="4" class="empty">None yet.</td></tr>
+        <% } %>
+        <% zones.forEach(function (z) { %>
+          <tr>
+            <td>
+              <form method="post" action="/super/zones/<%= z.id %>" class="checkline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="text" name="name" value="<%= z.name %>" required
+                       aria-label="Name of <%= z.name %>">
+                <button type="submit" class="btn ghost small">Rename</button>
+              </form>
+            </td>
+            <td><%= z.diocese_name %></td>
+            <td class="right"><%= z.church_count %></td>
+            <td class="right nowrap">
+              <form method="post" action="/super/zones/<%= z.id %>/delete" style="display:inline"
+                    onsubmit="return confirm('Dissolve <%= z.name %>? Its <%= z.church_count %> church(es) will become unzoned. Nothing is deleted.')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="btn danger small">Dissolve</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add a <%= labels.zone.toLowerCase() %></h2>
+
+  <% if (!dioceses.length) { %>
+    <p class="help">
+      Add a <%= labels.diocese.toLowerCase() %> first —
+      a <%= labels.zone.toLowerCase() %> has to belong to one.
+    </p>
+  <% } else { %>
+    <form method="post" action="/super/zones">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="grid-2">
+        <div class="field">
+          <label for="name"><%= labels.zone %> name</label>
+          <input type="text" id="name" name="name" required
+                 placeholder="e.g. Chalakudy">
+        </div>
+        <div class="field">
+          <label for="diocese_id"><%= labels.diocese %></label>
+          <select id="diocese_id" name="diocese_id" required>
+            <% dioceses.forEach(function (d) { %>
+              <option value="<%= d.id %>"><%= d.name %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn">Add</button>
+      </div>
+    </form>
+  <% } %>
+
+  <p class="help">
+    Dissolving a <%= labels.zone.toLowerCase() %> never removes a parish. Its
+    churches simply become unzoned, and can be put into another one afterwards.
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

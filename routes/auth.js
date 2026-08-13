@@ -2,6 +2,7 @@
 
 const express = require('express');
 const db = require('../db');
+const Users = require('../models/user');
 const auth = require('../lib/auth');
 const wrap = require('../lib/async');
 
@@ -82,23 +83,23 @@ router.post('/setup', setupGuard, wrap(async (req, res) => {
 
   const hash = await auth.hashPassword(req.body.password);
 
-  await db.tx(async () => {
-    await db.run(
-      `INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, 'admin')`,
-      [form.username, hash, form.full_name]
-    );
+  await db.sequelize.transaction(async (transaction) => {
+    await db.User.create({
+      username: form.username,
+      password_hash: hash,
+      full_name: form.full_name,
+      role: 'admin',
+      created_at: db.now()
+    }, { transaction });
+
     if (form.parish_name) {
-      await db.run(
-        `INSERT INTO settings (key, value) VALUES ('parish_name', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-        [form.parish_name]
-      );
+      await db.Setting.upsert({ key: 'parish_name', value: form.parish_name }, { transaction });
     }
   });
 
   require('../lib/settings').invalidate();
 
-  const user = await db.get('SELECT * FROM users WHERE username = ?', [form.username]);
+  const user = await Users.findByUsername(form.username);
   await startSession(req, user);
   res.redirect('/');
 }));
@@ -126,7 +127,7 @@ router.post('/login', wrap(async (req, res) => {
     return fail('Too many failed attempts. Please wait 15 minutes and try again.', 429);
   }
 
-  const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+  const user = await Users.findByUsername(username);
 
   // Same message either way, so the form never reveals which usernames exist.
   if (!user || !user.is_active || !(await auth.verifyPassword(password, user.password_hash))) {
@@ -135,7 +136,7 @@ router.post('/login', wrap(async (req, res) => {
   }
 
   attempts.delete(key);
-  await db.run(`UPDATE users SET last_login_at = datetime('now') WHERE id = ?`, [user.id]);
+  await Users.recordLogin(user.id);
 
   const returnTo = req.session.returnTo;
   await startSession(req, user);
@@ -163,7 +164,7 @@ router.post('/account', auth.requireAuth, wrap(async (req, res) => {
   const render = (opts) => res.render('auth/account', { title: 'My account', error: null, notice: null, ...opts });
 
   const fullName = (req.body.full_name || '').trim();
-  await db.run('UPDATE users SET full_name = ? WHERE id = ?', [fullName, req.user.id]);
+  await Users.setFullName(req.user.id, fullName);
   req.user.full_name = fullName;
 
   const { current_password: current, password, password_confirm: confirm } = req.body;
@@ -172,7 +173,7 @@ router.post('/account', auth.requireAuth, wrap(async (req, res) => {
     return render({ notice: 'Your name has been updated.' });
   }
 
-  const stored = await db.get('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+  const stored = await Users.findById(req.user.id);
   if (!(await auth.verifyPassword(current || '', stored.password_hash))) {
     return res.status(400).render('auth/account', {
       title: 'My account',
@@ -188,10 +189,7 @@ router.post('/account', auth.requireAuth, wrap(async (req, res) => {
 
   // Choosing your own password is what clears the "still on the default"
   // banner — so it can only go away by actually being fixed.
-  await db.run(
-    'UPDATE users SET password_hash = ?, on_default_password = 0 WHERE id = ?',
-    [await auth.hashPassword(password), req.user.id]
-  );
+  await Users.setPassword(req.user.id, await auth.hashPassword(password));
   req.user.on_default_password = 0;
 
   render({ notice: 'Your password has been changed.' });

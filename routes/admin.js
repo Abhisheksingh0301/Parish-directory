@@ -3,13 +3,17 @@
 const express = require('express');
 const config = require('../config');
 const db = require('../db');
+const Users = require('../models/user');
 const auth = require('../lib/auth');
+const tenancy = require('../lib/tenancy');
 const settings = require('../lib/settings');
 const wrap = require('../lib/async');
 
 const router = express.Router();
 
 router.use(auth.requireRole('admin'));
+// Settings and accounts belong to one church, so there has to be one.
+router.use(tenancy.requireChurch);
 
 // ---------------------------------------------------------------------------
 // Parish settings — the knobs that make this install "this church's" copy
@@ -20,7 +24,7 @@ const COLOR_KEYS = ['color_band', 'color_band_dark', 'color_member_a', 'color_me
 router.get('/settings', wrap(async (req, res) => {
   res.render('admin/settings', {
     title: 'Parish settings',
-    values: await settings.load(),
+    values: await settings.load(req.churchId),
     colorKeys: COLOR_KEYS,
     errors: [],
     notice: null
@@ -44,8 +48,14 @@ router.post('/settings', wrap(async (req, res) => {
     errors.push('Parish name is required — it prints in the footer of every page.');
   }
 
+  const memberPassword = text(req.body.default_member_password);
+  if (memberPassword.length < 8) {
+    errors.push('The member password must be at least 8 characters.');
+  }
+
   const updates = {
     parish_name: text(req.body.parish_name),
+    default_member_password: memberPassword,
     directory_title: text(req.body.directory_title) || 'Parish Directory',
     relation_options: text(req.body.relation_options),
     starting_page: String(startingPage),
@@ -62,7 +72,7 @@ router.post('/settings', wrap(async (req, res) => {
   }
 
   if (errors.length) {
-    const current = await settings.load();
+    const current = await settings.load(req.churchId);
     return res.status(400).render('admin/settings', {
       title: 'Parish settings',
       values: { ...current, ...req.body },
@@ -72,11 +82,11 @@ router.post('/settings', wrap(async (req, res) => {
     });
   }
 
-  await settings.save(updates);
+  await settings.save(req.churchId, updates);
 
   res.render('admin/settings', {
     title: 'Parish settings',
-    values: await settings.load(),
+    values: await settings.load(req.churchId),
     colorKeys: COLOR_KEYS,
     errors: [],
     notice: 'Settings saved.'
@@ -87,7 +97,7 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
   const defaults = Object.fromEntries(
     COLOR_KEYS.map((key) => [key, db.DEFAULT_SETTINGS[key]])
   );
-  await settings.save(defaults);
+  await settings.save(req.churchId, defaults);
   res.redirect('/admin/settings');
 }));
 
@@ -95,25 +105,14 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
 // User accounts
 // ---------------------------------------------------------------------------
 
-function listUsers() {
-  return db.all(
-    `SELECT u.id, u.username, u.full_name, u.role, u.is_active, u.created_at,
-            u.last_login_at, u.family_id, u.on_default_password,
-            f.family_id AS family_ref, f.head_name AS family_head
-     FROM users u
-     LEFT JOIN families f ON f.id = u.family_id
-     ORDER BY u.role, u.username COLLATE NOCASE`
-  );
-}
-
-async function renderUsers(res, extra = {}) {
+async function renderUsers(req, res, extra = {}) {
   res.render('admin/users', {
     title: 'User accounts',
-    users: await listUsers(),
-    // Family logins are made from the family, not typed in here.
+    users: await Users.listWithFamilies(req.churchId),
+    // Member logins are made from the family, not typed in here.
     roles: auth.STAFF_ROLE_LIST,
     allRoles: auth.ROLES,
-    defaultPassword: config.defaultUserPassword,
+    defaultPassword: req.settings.default_member_password,
     error: null,
     notice: null,
     form: {},
@@ -121,7 +120,7 @@ async function renderUsers(res, extra = {}) {
   });
 }
 
-router.get('/users', wrap(async (req, res) => renderUsers(res)));
+router.get('/users', wrap(async (req, res) => renderUsers(req, res)));
 
 router.post('/users', wrap(async (req, res) => {
   const form = {
@@ -132,129 +131,122 @@ router.post('/users', wrap(async (req, res) => {
 
   const fail = (error) => {
     res.status(400);
-    return renderUsers(res, { error, form });
+    return renderUsers(req, res, { error, form });
   };
 
   if (!/^[a-zA-Z0-9._-]{3,40}$/.test(form.username)) {
     return fail('Username may use letters, numbers, dot, dash and underscore (3–40 characters).');
   }
-  if (!auth.ROLES[form.role] || auth.ROLES[form.role].familyLogin) {
-    return fail('Choose a role. Family logins are created from the families list.');
+  // Not a bare "is this a real role?" check: a super administrator is a real
+  // role, and offering it here would let any church administrator create one
+  // and reach every other church in the system.
+  if (!auth.isAssignableByChurchAdmin(form.role)) {
+    return fail('Choose a role. Member logins are created from the families list.');
   }
 
   const passwordError = auth.validatePassword(req.body.password, req.body.password_confirm);
   if (passwordError) return fail(passwordError);
 
-  if (await db.get('SELECT id FROM users WHERE username = ?', [form.username])) {
+  if (await Users.usernameTaken(form.username)) {
     return fail(`The username "${form.username}" is already taken.`);
   }
 
-  await db.run(
-    'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
-    [form.username, await auth.hashPassword(req.body.password), form.full_name, form.role]
-  );
+  await Users.create({
+    username: form.username,
+    password_hash: await auth.hashPassword(req.body.password),
+    full_name: form.full_name,
+    role: form.role,
+    church_id: req.churchId
+  });
 
-  return renderUsers(res, { notice: `Account created for ${form.username}.` });
+  return renderUsers(req, res, { notice: `Account created for ${form.username}.` });
 }));
 
-/**
- * The last active administrator must not be able to demote, deactivate or
- * delete themselves out of the only account that can manage this install.
- */
-async function wouldOrphanAdmins(userId) {
-  const row = await db.get(
-    `SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND is_active = 1 AND id != ?`,
-    [userId]
-  );
-  return row.n === 0;
-}
+// The last active administrator must not be able to demote, deactivate or
+// delete themselves out of the only account that can manage this install —
+// Users.wouldOrphanAdmins is what every one of the routes below asks first.
 
 router.post('/users/:id(\\d+)/role', wrap(async (req, res, next) => {
-  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  const user = await Users.findInChurch(req.churchId, req.params.id);
   if (!user) return next();
 
   const role = req.body.role;
-  if (!auth.ROLES[role] || auth.ROLES[role].familyLogin) {
+  if (!auth.isAssignableByChurchAdmin(role)) {
     res.status(400);
-    return renderUsers(res, { error: 'Choose a valid role.' });
+    return renderUsers(req, res, { error: 'Choose a valid role.' });
   }
 
-  // A family login is defined by the family it belongs to; promoting it would
+  // A member login is defined by the family it belongs to; promoting it would
   // hand one household the whole directory.
   if (user.family_id) {
     res.status(400);
-    return renderUsers(res, {
-      error: `${user.username} is a family login — its role cannot be changed here.`
+    return renderUsers(req, res, {
+      error: `${user.username} is a member login — its role cannot be changed here.`
     });
   }
 
-  if (user.role === 'admin' && role !== 'admin' && (await wouldOrphanAdmins(user.id))) {
+  if (user.role === 'admin' && role !== 'admin' && (await Users.wouldOrphanAdmins(req.churchId, user.id))) {
     res.status(400);
-    return renderUsers(res, { error: 'This is the only administrator — promote someone else first.' });
+    return renderUsers(req, res, { error: 'This is the only administrator — promote someone else first.' });
   }
 
-  await db.run('UPDATE users SET role = ? WHERE id = ?', [role, user.id]);
-  return renderUsers(res, { notice: `${user.username} is now a ${auth.ROLES[role].label}.` });
+  await Users.setRole(user.id, role);
+  return renderUsers(req, res, { notice: `${user.username} is now a ${auth.ROLES[role].label}.` });
 }));
 
 router.post('/users/:id(\\d+)/active', wrap(async (req, res, next) => {
-  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  const user = await Users.findInChurch(req.churchId, req.params.id);
   if (!user) return next();
 
   const activate = req.body.is_active === '1';
 
-  if (!activate && user.role === 'admin' && (await wouldOrphanAdmins(user.id))) {
+  if (!activate && user.role === 'admin' && (await Users.wouldOrphanAdmins(req.churchId, user.id))) {
     res.status(400);
-    return renderUsers(res, { error: 'This is the only administrator — they cannot be deactivated.' });
+    return renderUsers(req, res, { error: 'This is the only administrator — they cannot be deactivated.' });
   }
 
-  await db.run('UPDATE users SET is_active = ? WHERE id = ?', [activate ? 1 : 0, user.id]);
+  await Users.setActive(user.id, activate);
 
   // Deactivating someone should log them out everywhere, not at their leisure.
-  if (!activate) {
-    await db.run(`DELETE FROM sessions WHERE data LIKE ?`, [`%"userId":${user.id}%`]);
-  }
+  if (!activate) await Users.signOutEverywhere(user.id);
 
-  return renderUsers(res, {
+  return renderUsers(req, res, {
     notice: `${user.username} has been ${activate ? 'reactivated' : 'deactivated'}.`
   });
 }));
 
 router.post('/users/:id(\\d+)/password', wrap(async (req, res, next) => {
-  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  const user = await Users.findInChurch(req.churchId, req.params.id);
   if (!user) return next();
 
   const passwordError = auth.validatePassword(req.body.password, req.body.password_confirm);
   if (passwordError) {
     res.status(400);
-    return renderUsers(res, { error: `${user.username}: ${passwordError}` });
+    return renderUsers(req, res, { error: `${user.username}: ${passwordError}` });
   }
 
-  await db.run(
-    'UPDATE users SET password_hash = ?, on_default_password = 0 WHERE id = ?',
-    [await auth.hashPassword(req.body.password), user.id]
-  );
+  await Users.setPassword(user.id, await auth.hashPassword(req.body.password));
 
-  return renderUsers(res, { notice: `Password reset for ${user.username}.` });
+  return renderUsers(req, res, { notice: `Password reset for ${user.username}.` });
 }));
 
 router.post('/users/:id(\\d+)/delete', wrap(async (req, res, next) => {
-  const user = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+  const user = await Users.findInChurch(req.churchId, req.params.id);
   if (!user) return next();
 
   if (user.id === req.user.id) {
     res.status(400);
-    return renderUsers(res, { error: 'You cannot delete your own account.' });
+    return renderUsers(req, res, { error: 'You cannot delete your own account.' });
   }
-  if (user.role === 'admin' && (await wouldOrphanAdmins(user.id))) {
+  if (user.role === 'admin' && (await Users.wouldOrphanAdmins(req.churchId, user.id))) {
     res.status(400);
-    return renderUsers(res, { error: 'This is the only administrator — they cannot be deleted.' });
+    return renderUsers(req, res, { error: 'This is the only administrator — they cannot be deleted.' });
   }
 
-  await db.run('DELETE FROM users WHERE id = ?', [user.id]);
-  await db.run(`DELETE FROM sessions WHERE data LIKE ?`, [`%"userId":${user.id}%`]);
+  await Users.remove(user.id);
+  await Users.signOutEverywhere(user.id);
 
-  return renderUsers(res, { notice: `${user.username}'s account has been deleted.` });
+  return renderUsers(req, res, { notice: `${user.username}'s account has been deleted.` });
 }));
 
 module.exports = router;

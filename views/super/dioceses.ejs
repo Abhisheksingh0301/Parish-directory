@@ -1,0 +1,83 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1><%= labels.diocese %>s</h1>
+  <p class="sub">
+    The top of the hierarchy. Every church belongs to one, whether or not it
+    has been put in a <%= labels.zone.toLowerCase() %> yet.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="right"><%= labels.zone %>s</th>
+          <th class="right">Churches</th>
+          <th class="right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!dioceses.length) { %>
+          <tr><td colspan="4" class="empty">None yet.</td></tr>
+        <% } %>
+        <% dioceses.forEach(function (d) { %>
+          <tr>
+            <td>
+              <form method="post" action="/super/dioceses/<%= d.id %>" class="checkline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="text" name="name" value="<%= d.name %>" required
+                       aria-label="Name of <%= d.name %>">
+                <button type="submit" class="btn ghost small">Rename</button>
+              </form>
+              <% if (!d.is_active) { %><span class="tag draft">Deactivated</span><% } %>
+            </td>
+            <td class="right"><%= d.zone_count %></td>
+            <td class="right"><%= d.church_count %></td>
+            <td class="right nowrap">
+              <form method="post" action="/super/dioceses/<%= d.id %>/active" style="display:inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="is_active" value="<%= d.is_active ? '0' : '1' %>">
+                <button type="submit" class="btn ghost small">
+                  <%= d.is_active ? 'Deactivate' : 'Reactivate' %>
+                </button>
+              </form>
+              <% if (!d.church_count) { %>
+                <form method="post" action="/super/dioceses/<%= d.id %>/delete" style="display:inline"
+                      onsubmit="return confirm('Delete <%= d.name %>?')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button type="submit" class="btn danger small">Delete</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add a <%= labels.diocese.toLowerCase() %></h2>
+  <form method="post" action="/super/dioceses">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="field">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required
+             placeholder="e.g. Diocese of Trichy">
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn">Add</button>
+    </div>
+  </form>
+  <p class="help">
+    A <%= labels.diocese.toLowerCase() %> holding churches cannot be deleted —
+    deactivate it instead, which keeps its parishes and their directories intact.
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

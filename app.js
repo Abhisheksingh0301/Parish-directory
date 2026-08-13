@@ -8,6 +8,7 @@ const logger = require('morgan');
 
 const config = require('./config');
 const auth = require('./lib/auth');
+const tenancy = require('./lib/tenancy');
 const csrf = require('./lib/csrf');
 const html = require('./lib/html');
 const settings = require('./lib/settings');
@@ -19,6 +20,8 @@ const indexRouter = require('./routes/index');
 const familiesRouter = require('./routes/families');
 const directoryRouter = require('./routes/directory');
 const adminRouter = require('./routes/admin');
+const superRouter = require('./routes/super');
+const superReportsRouter = require('./routes/super-reports');
 
 const app = express();
 
@@ -52,6 +55,8 @@ app.use(session({
 }));
 
 app.use(auth.loadUser);
+// Which church this request is about, before anything reads or writes a row.
+app.use(tenancy.resolveChurch);
 app.use(settings.middleware);
 
 /**
@@ -80,6 +85,7 @@ app.use((req, res, next) => {
   res.locals.path = req.path;
   res.locals.atLeast = (role) => auth.atLeast(req.user, role);
   res.locals.isFamilyLogin = auth.isFamilyLogin(req.user);
+  res.locals.roleLabel = (role) => (auth.ROLES[role] ? auth.ROLES[role].label : role);
   res.locals.nl2br = html.nl2br;
   next();
 });
@@ -90,11 +96,27 @@ app.use('/', authRouter);
 // Everything past this point requires a signed-in user.
 app.use(auth.requireAuth);
 
-app.use('/uploads', express.static(config.uploadDir, { maxAge: '7d' }));
+/**
+ * Photographs, served only to the church they belong to.
+ *
+ * This used to be a bare static mount, which handed every image in the
+ * installation to any signed-in user who knew a filename. Now the path names
+ * the church and the request has to be for that one — a super administrator
+ * excepted, since they may look at any of them.
+ */
+app.use('/uploads/:churchId(\\d+)', (req, res, next) => {
+  const wanted = Number(req.params.churchId);
+  const allowed = auth.isSuperAdmin(req.user) || Number(req.churchId) === wanted;
+  if (!allowed) return next(createError(403, 'That photograph is not yours to view.'));
+
+  express.static(path.join(config.uploadDir, String(wanted)), { maxAge: '7d' })(req, res, next);
+});
 app.use('/', indexRouter);
 app.use('/families', familiesRouter);
 app.use('/directory', directoryRouter);
 app.use('/admin', adminRouter);
+app.use('/super', superReportsRouter);
+app.use('/super', superRouter);
 
 app.use((req, res, next) => next(createError(404, 'That page does not exist.')));
 

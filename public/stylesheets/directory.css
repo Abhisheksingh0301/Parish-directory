@@ -251,3 +251,37 @@ body.directory-body {
   .entry { page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------------------------------------------------------------------------
+   The combined book: several churches in one document.
+
+   Each section carries its own palette as inline custom properties, which the
+   entries inside inherit — so a church's pages here look exactly like the book
+   it prints for itself. Nothing above this comment needed changing for that.
+   --------------------------------------------------------------------------- */
+
+.church-section { break-before: page; page-break-before: always; }
+.church-section:first-of-type { break-before: auto; page-break-before: auto; }
+
+.section-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 60%;
+  gap: 10px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  background: var(--band);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 14px 28px;
+}
+
+.section-title p { margin: 0; font-size: 14px; color: #5c5344; }
+.section-title p.count { font-size: 13px; color: #8d8577; }

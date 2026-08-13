@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %></title>
+<link rel="stylesheet" href="/stylesheets/directory.css">
+</head>
+<body class="directory directory-body">
+
+<div class="dir-toolbar">
+  <strong><%= title %></strong>
+  <span>
+    <%= sections.length %> <%= sections.length === 1 ? 'church' : 'churches' %>,
+    <%= totalFamilies %> <%= totalFamilies === 1 ? 'family' : 'families' %>,
+    <%= totalPages %> <%= totalPages === 1 ? 'page' : 'pages' %>.
+  </span>
+
+  <span class="spacer"></span>
+
+  <a class="ghost" href="/super/reports<%= query %>">Change selection</a>
+  <a class="ghost" href="/super">Back to the console</a>
+  <button type="button" onclick="window.print()">Print this directory</button>
+</div>
+
+<% if (!sections.length) { %>
+  <div class="page" style="min-height:0">
+    <p style="text-align:center;padding:60px 20px;color:#8d8577">
+      Nothing to print — no church in this selection has a published family.
+    </p>
+  </div>
+<% } %>
+
+<%
+  /*
+   * Each church prints in its own colours.
+   *
+   * The palette is five CSS custom properties, and custom properties inherit,
+   * so declaring them on the section rather than on <body> gives every entry
+   * inside it that parish's own scheme. A combined book therefore needs no
+   * compromise palette and no change to directory.css beyond the section
+   * wrapper itself — each church's pages look exactly like the book that
+   * church prints for itself.
+   */
+%>
+<% sections.forEach(function (section) { %>
+  <%
+    const palette = [
+      '--band: '      + section.settings.color_band,
+      '--band-dark: ' + section.settings.color_band_dark,
+      '--member-a: '  + section.settings.color_member_a,
+      '--member-b: '  + section.settings.color_member_b,
+      '--rule: '      + section.settings.color_rule
+    ].join('; ');
+  %>
+  <section class="church-section" style="<%= palette %>">
+    <div class="page">
+      <div class="section-title">
+        <h2><%= section.settings.parish_name %></h2>
+        <p>
+          <% if (section.church.city) { %><%= section.church.city %> · <% } %>
+          <% if (section.church.zone_name) { %><%= labels.zone %>: <%= section.church.zone_name %> · <% } %>
+          <%= labels.diocese %>: <%= section.church.diocese_name %>
+        </p>
+        <p class="count">
+          <%= section.families %> <%= section.families === 1 ? 'family' : 'families' %>
+        </p>
+      </div>
+    </div>
+
+    <% section.pages.forEach(function (page) { %>
+      <div class="page">
+        <div class="entries">
+          <% page.families.forEach(function (f) { %>
+            <%- include('_entry', { f: f }) %>
+          <% }); %>
+        </div>
+
+        <div class="page-foot">
+          <div class="lattice"></div>
+          <div class="foot-row">
+            <span class="parish-name"><%= section.settings.parish_name %></span>
+            <span class="folio"><%= page.folio %></span>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </section>
+<% }); %>
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Activity log</h1>
+  <p class="sub">
+    What was done from this console, and to which church.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card">
+  <p class="help" style="margin-top:0">
+    A super administrator reaches every church&rsquo;s members &mdash; their
+    names, home addresses and telephone numbers. This is the answer to
+    &ldquo;who opened our directory, and when&rdquo; if a church ever asks.
+    Page views are not recorded; opening a church, changing the hierarchy and
+    exporting data are.
+  </p>
+
+  <form method="get" action="/super/audit" class="grid-2">
+    <div class="field">
+      <label for="church">Church</label>
+      <select id="church" name="church">
+        <option value="">All</option>
+        <% churches.forEach(function (c) { %>
+          <option value="<%= c.id %>" <%= filterChurch === c.id ? 'selected' : '' %>>
+            <%= c.name %>
+          </option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="field">
+      <label for="action">Action contains</label>
+      <input type="search" id="action" name="action" value="<%= filterAction %>"
+             placeholder="export, open, deactivate">
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn ghost small">Filter</button>
+      <% if (filterChurch || filterAction) { %>
+        <a class="btn ghost small" href="/super/audit">Clear</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="nowrap">When</th>
+          <th>Who</th>
+          <th>Did what</th>
+          <th>Church</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!entries.length) { %>
+          <tr><td colspan="5" class="empty">Nothing recorded yet.</td></tr>
+        <% } %>
+        <% entries.forEach(function (e) { %>
+          <tr>
+            <td class="nowrap" style="color:var(--ink-faint);font-size:14px"><%= e.at %></td>
+            <td><%= e.username %></td>
+            <td><span class="tag"><%= e.action %></span></td>
+            <td><%= e.church_name || '—' %></td>
+            <td class="help" style="margin:0"><%= e.detail %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="help">
+  Showing the most recent <%= entries.length %>.
+</p>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,124 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>View, print and export</h1>
+  <p class="sub">
+    Pick any churches, whole <%= labels.zone.toLowerCase() %>s or whole
+    <%= labels.diocese.toLowerCase() %>s. The same selection feeds all three.
+  </p>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card">
+  <form method="get" action="/super/reports">
+    <div class="grid-2">
+      <div class="field">
+        <label for="dioceses"><%= labels.diocese %>s</label>
+        <select id="dioceses" name="dioceses" multiple size="5">
+          <% dioceses.forEach(function (d) { %>
+            <option value="<%= d.id %>" <%= chosen.chosen.dioceses.includes(d.id) ? 'selected' : '' %>>
+              <%= d.name %> (<%= d.church_count %>)
+            </option>
+          <% }); %>
+        </select>
+        <p class="help">Includes churches with no <%= labels.zone.toLowerCase() %>.</p>
+      </div>
+
+      <div class="field">
+        <label for="zones"><%= labels.zone %>s</label>
+        <select id="zones" name="zones" multiple size="5">
+          <% zones.forEach(function (z) { %>
+            <option value="<%= z.id %>" <%= chosen.chosen.zones.includes(z.id) ? 'selected' : '' %>>
+              <%= z.diocese_name %> — <%= z.name %> (<%= z.church_count %>)
+            </option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="churches">Individual churches</label>
+      <select id="churches" name="churches" multiple size="8">
+        <% allChurches.forEach(function (c) { %>
+          <option value="<%= c.id %>" <%= chosen.chosen.churches.includes(c.id) ? 'selected' : '' %>>
+            <%= c.name %><% if (c.city) { %>, <%= c.city %><% } %>
+            — <%= c.family_count %> <%= c.family_count === 1 ? 'family' : 'families' %>
+          </option>
+        <% }); %>
+      </select>
+      <p class="help">
+        These add to whatever is chosen above; hold Ctrl or Cmd to pick several.
+      </p>
+    </div>
+
+    <div class="checkline">
+      <input type="checkbox" id="all" name="all" value="1"
+             <%= chosen.chosen.all ? 'checked' : '' %>>
+      <label for="all">Every active church, ignoring the choices above</label>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Show the selection</button>
+      <a class="btn ghost" href="/super/reports">Clear</a>
+    </div>
+  </form>
+</div>
+
+<% if (chosen.empty) { %>
+  <div class="card">
+    <p class="help" style="margin:0">
+      Nothing selected yet. Choose above, and the families will be listed here
+      with links to print or export them.
+    </p>
+  </div>
+<% } else { %>
+  <div class="card">
+    <h2><%= chosen.label %></h2>
+    <p class="help" style="margin-top:0">
+      <%= chosen.churchIds.length %>
+      <%= chosen.churchIds.length === 1 ? 'church' : 'churches' %>,
+      <%= families.length %> <%= families.length === 1 ? 'family' : 'families' %>.
+    </p>
+    <div class="actions">
+      <a class="btn" href="/super/print<%= query %>">Print them as one book</a>
+      <a class="btn ghost" href="/super/export.csv<%= query %>">Export as a spreadsheet</a>
+    </div>
+    <p class="help">
+      The book gives each church its own section, in its own colours, with the
+      page numbers running through. The spreadsheet is one row per member, with
+      its <%= labels.diocese.toLowerCase() %>,
+      <%= labels.zone.toLowerCase() %> and church in the first columns.
+    </p>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Church</th>
+            <th>Family ID</th>
+            <th>Head of family</th>
+            <th class="right">Members</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% families.forEach(function (f) { %>
+            <tr>
+              <td><%= f.church ? f.church.name : '—' %></td>
+              <td><%= f.family_id %></td>
+              <td>
+                <%= f.head_name %>
+                <% if (!f.is_published) { %><span class="tag draft">Draft</span><% } %>
+              </td>
+              <td class="right"><%= f.member_count %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>
