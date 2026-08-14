@@ -69,7 +69,7 @@
   .entry{margin-bottom:34px}
 
   .entry-head{
-    display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;
+    display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:stretch;
     margin-bottom:10px;
   }
   .head-name{
@@ -88,7 +88,7 @@
   }
 
   .entry-body{
-    display:grid;grid-template-columns:1fr 0.82fr;gap:18px;align-items:start;
+    display:grid;grid-template-columns:0.82fr 1fr;gap:18px;align-items:start;
     margin-bottom:12px;
   }
 
@@ -133,14 +133,14 @@
   .members{
     width:100%;border-collapse:collapse;
     border-radius:6px;overflow:hidden;
-    font-size:17px;
+    font-size:14px;
   }
   .members th{
     background:var(--band-dark);
-    font-weight:700;padding:7px 12px;text-align:left;
+    font-weight:700;padding:6px 8px;text-align:left;
   }
   .members th.c,.members td.c{text-align:center}
-  .members td{padding:7px 12px;border:none}
+  .members td{padding:6px 8px;border:none}
   .members tbody tr:nth-child(odd)  td{background:var(--member-a)}
   .members tbody tr:nth-child(even) td{background:var(--member-b)}
   .members td[rowspan]{text-align:center;vertical-align:middle}
@@ -208,13 +208,14 @@
    - Add one object per family to the `families` array.
    - `photo` takes any image URL or file path; leave it as ""
      to show an empty photo frame.
-   - `members` rows: [name, relation, dob, mobile, links]
+   - `members` rows: [name, relation, dob, mobile, bloodGroup, qualification, occupation, links]
    - `dom` is the marriage date shown merged across the first
      two rows (leave "" to hide it).
    - Set `perPage` to how many families print on one page.
    ============================================================ */
 
-const parishName = "Your Parish Church, City";
+const parishName = "Your Parish Church";
+const parishCity = "City";
 const startingPage = 1;
 const perPage = 2;
 
@@ -230,9 +231,9 @@ const families = [
     photo: "",
     dom: "00 - Mon",
     members: [
-      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", ""],
-      ["Mrs. Spouse Name",  "W",  "00 - Mon", "",           ""],
-      ["Mr. Child Name",    "S",  "00 - Mon", "",           ""]
+      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", "O+", "B.A.",   "Teacher",      ""],
+      ["Mrs. Spouse Name",  "Spouse", "00 - Mon", "",       "B+", "B.Sc.",  "Nurse",        ""],
+      ["Mr. Child Name",    "S",  "00 - Mon", "",           "A+", "Std. X", "Student",      ""]
     ]
   },
   {
@@ -246,9 +247,9 @@ const families = [
     photo: "",
     dom: "00 - Mon",
     members: [
-      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", ""],
-      ["Mrs. Spouse Name",  "W",  "00 - Mon", "",           ""],
-      ["Ms. Child Name",    "D",  "00 - Mon", "",           ""]
+      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", "O-",  "M.A.",       "Engineer", ""],
+      ["Mrs. Spouse Name",  "Spouse", "00 - Mon", "",       "AB+", "B.Com.",     "Clerk",    ""],
+      ["Ms. Child Name",    "D",  "00 - Mon", "",           "B-",  "Std. VIII",  "Student",  ""]
     ]
   }
 ];
@@ -277,7 +278,7 @@ function renderMembers(f) {
   const rows = f.members || [];
   const domSpan = Math.min(2, rows.length);
   return rows.map((m, i) => {
-    const [name, reltn, dob, mobile, links] = m;
+    const [name, reltn, dob, mobile, bloodGroup, qualification, occupation, links] = m;
     let domCell = "";
     if (f.dom && i === 0) domCell = `<td class="c" rowspan="${domSpan}">${esc(f.dom)}</td>`;
     else if (f.dom && i < domSpan) domCell = "";
@@ -289,6 +290,9 @@ function renderMembers(f) {
       <td class="c">${esc(dob)}</td>
       ${domCell}
       <td class="c">${esc(mobile)}</td>
+      <td class="c">${esc(bloodGroup)}</td>
+      <td class="c">${esc(qualification)}</td>
+      <td class="c">${esc(occupation)}</td>
       <td class="c">${esc(links)}</td>
     </tr>`;
   }).join("");
@@ -302,25 +306,25 @@ function renderEntry(f) {
   return `
   <section class="entry">
     <div class="entry-head">
-      <div class="head-name">${esc(f.headName)}</div>
       <div class="head-id">FAMILY ID : ${esc(f.familyId)}</div>
+      <div class="head-name">${esc(f.headName)}</div>
     </div>
 
     <div class="entry-body">
+      <div class="photo-frame">${photo}</div>
+
       <table class="details">
         <tbody>
           <tr>
             <th>${homeIcon}</th>
             <td>${esc(f.address).replace(/\n/g, "<br>")}</td>
           </tr>
-          <tr><th>Hometown Address</th><td>${esc(f.hometown)}</td></tr>
+          <tr><th>Home Town Address</th><td>${esc(f.hometown)}</td></tr>
           <tr><th>Home Parish</th><td>${esc(f.homeParish)}</td></tr>
           <tr><th>Spouse Home</th><td>${esc(f.spouseHome)}</td></tr>
           <tr><th>Email ID</th><td class="email">${esc(f.email)}</td></tr>
         </tbody>
       </table>
-
-      <div class="photo-frame">${photo}</div>
     </div>
 
     <table class="members">
@@ -331,6 +335,9 @@ function renderEntry(f) {
           <th class="c">DOB</th>
           <th class="c">DOM</th>
           <th class="c">Mobile</th>
+          <th class="c">Blood Group</th>
+          <th class="c">Qualification</th>
+          <th class="c">Occupation</th>
           <th class="c">Links</th>
         </tr>
       </thead>
@@ -346,7 +353,7 @@ function renderPage(group, folio) {
     <div class="page-foot">
       <div class="lattice" style="--lattice-svg:${latticeSVG}"></div>
       <div class="foot-row">
-        <span class="parish-name">${esc(parishName)}</span>
+        <span class="parish-name">${esc(parishName)}${parishCity ? ", " + esc(parishCity) : ""}</span>
         <span class="folio">${folio}</span>
       </div>
     </div>

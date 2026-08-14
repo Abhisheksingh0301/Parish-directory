@@ -129,7 +129,7 @@ async function seed(db, auth) {
       },
       {
         name: 'Mrs. Riva Smith',
-        relation: 'Wife',
+        relation: 'Spouse',
         dob_day: 11, dob_month: 5, dob_year: 1978,
         mobile: '', links: ''
       }
@@ -215,7 +215,7 @@ async function main() {
     'members[0][mobile]': '111',
     'members[0][links]': '',
     'members[1][name]': 'Mrs. Riva Smith',
-    'members[1][relation]': 'Wife',
+    'members[1][relation]': 'Spouse',
     'members[1][dob]': '1978-05-11',
     'members[1][mobile]': '',
     'members[1][links]': ''

@@ -170,7 +170,11 @@ router.post('/churches', wrap(async (req, res) => {
   const form = {
     name: text(req.body.name),
     city: text(req.body.city),
-    diocese_id: req.body.diocese_id,
+    // Neither field is on the form any more — a church no longer has to be put
+    // into a diocese or zone to be created — but both are still honoured if
+    // sent, so a diocese/zone mismatch is still caught rather than silently
+    // ignored.
+    diocese_id: req.body.diocese_id || null,
     zone_id: req.body.zone_id || null,
     admin_username: text(req.body.admin_username),
     admin_full_name: text(req.body.admin_full_name)
@@ -197,6 +201,9 @@ router.post('/churches', wrap(async (req, res) => {
 
   try {
     const church = await db.sequelize.transaction(async (transaction) => {
+      // A diocese/zone lands here only if the caller sent one — the form no
+      // longer offers the choice, so ordinarily neither does, and the church
+      // lands in Churches.defaultDiocese() instead.
       const created = await Churches.createChurch({
         name: form.name,
         city: form.city,

@@ -80,6 +80,9 @@ const Family = sequelize.define('Family', {
   hometown: text(),
   home_parish: text(),
   spouse_home: text(),
+  // A neighbourhood-based group within this church, for local prayer
+  // meetings — not part of the diocese/zone hierarchy above the church.
+  prayer_group: text(),
   email: text(),
   photo: { type: DataTypes.TEXT, allowNull: true },
   // Date of marriage: day and month only, never a year.
@@ -102,6 +105,9 @@ const Member = sequelize.define('Member', {
   dob_month: { type: DataTypes.INTEGER, allowNull: true },
   dob_year: { type: DataTypes.INTEGER, allowNull: true },
   mobile: text(),
+  blood_group: text(),
+  qualification: text(),
+  occupation: text(),
   links: text()
 }, { tableName: 'members' });
 

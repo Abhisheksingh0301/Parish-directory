@@ -78,7 +78,10 @@
         <div class="page-foot">
           <div class="lattice"></div>
           <div class="foot-row">
-            <span class="parish-name"><%= section.settings.parish_name %></span>
+            <span class="parish-name">
+              <%= section.settings.parish_name %><%
+              %><% if (section.church.city) { %>, <%= section.church.city %><% } %>
+            </span>
             <span class="folio"><%= page.folio %></span>
           </div>
         </div>

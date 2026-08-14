@@ -391,6 +391,97 @@ async function perDioceseLabelsAndAudit({ qi, transaction }) {
   await qi.addIndex('audit_log', ['church_id'], { name: 'idx_audit_church', ...opts });
 }
 
+// ---------------------------------------------------------------------------
+// 5 — a member's blood group and education/qualification
+// ---------------------------------------------------------------------------
+
+async function memberBloodGroupAndEducation({ qi, transaction }) {
+  const opts = { transaction };
+
+  await qi.addColumn('members', 'blood_group', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, opts);
+  await qi.addColumn('members', 'education', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, opts);
+}
+
+// ---------------------------------------------------------------------------
+// 6 — "Education & qualification" splits into qualification and occupation
+// ---------------------------------------------------------------------------
+
+async function memberQualificationAndOccupation({ qi, transaction }) {
+  const opts = { transaction };
+
+  // The single free-text field migration 5 added turned out to conflate two
+  // different questions — what a member studied and what they do — so it is
+  // replaced rather than kept alongside a second field nobody asked for.
+  // Nothing has shipped with data in it yet, but the column is still removed
+  // through a migration rather than in place: a directory already running
+  // migration 5 needs the same schema everyone gets from a fresh install.
+  await qi.removeColumn('members', 'education', opts);
+  await qi.addColumn('members', 'qualification', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, opts);
+  await qi.addColumn('members', 'occupation', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, opts);
+}
+
+// ---------------------------------------------------------------------------
+// 7 — "Wife" becomes "Spouse", so the word does not assume who married in
+// ---------------------------------------------------------------------------
+
+async function wifeBecomesSpouse({ sequelize, transaction }) {
+  await sequelize.query(
+    `UPDATE members SET relation = 'Spouse' WHERE relation = 'Wife'`,
+    { transaction }
+  );
+
+  // relation_options is a comma list a parish can have customised, not a fixed
+  // set of choices, so this only touches the word "Wife" wherever it appears
+  // in one rather than replacing the whole value.
+  for (const table of ['settings', 'church_settings']) {
+    await sequelize.query(
+      `UPDATE ${table} SET value = REPLACE(value, 'Wife', 'Spouse')
+        WHERE key = 'relation_options' AND value LIKE '%Wife%'`,
+      { transaction }
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8 — a member login's own church_id, which nothing ever set
+// ---------------------------------------------------------------------------
+
+/**
+ * A household login has always been created with `family_id` set and
+ * `church_id` left null — tenancy.js only ever reads `church_id` to work out
+ * which church a signed-in request belongs to, so every member login this
+ * installation has ever handed out has been unable to reach its own family's
+ * page, failing `requireChurch` with "Your account is not attached to a
+ * church." The route is fixed alongside this migration; this repairs the rows
+ * it already created.
+ */
+async function memberLoginChurchId({ sequelize, transaction }) {
+  await sequelize.query(
+    `UPDATE users
+        SET church_id = (SELECT church_id FROM families WHERE families.id = users.family_id)
+      WHERE role = 'family' AND church_id IS NULL AND family_id IS NOT NULL`,
+    { transaction }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 9 — a family's prayer group
+// ---------------------------------------------------------------------------
+
+async function familyPrayerGroup({ qi, transaction }) {
+  await qi.addColumn('families', 'prayer_group', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, { transaction });
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -399,7 +490,12 @@ const MIGRATIONS = [
     for (const sql of RELATIONS_V2) await sequelize.query(sql, { transaction });
   },
   addChurchHierarchy,
-  perDioceseLabelsAndAudit
+  perDioceseLabelsAndAudit,
+  memberBloodGroupAndEducation,
+  memberQualificationAndOccupation,
+  wifeBecomesSpouse,
+  memberLoginChurchId,
+  familyPrayerGroup
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };

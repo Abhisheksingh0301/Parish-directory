@@ -163,9 +163,11 @@ input[type=file] { font: inherit; font-size: 14px; }
    control defaults to. */
 .address-pair .field { display: flex; flex-direction: column; }
 .address-pair textarea { min-height: 104px; flex: 1 1 auto; }
-.address-pair .help, .address-pair .same-address { margin-top: 6px; }
-.address-pair .same-address { font-size: 14px; color: var(--ink-faint); }
-textarea.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
+
+/* "Same as the address above", offered next to the hometown address and the
+   spouse's home — a checkbox and a read-only copy while it is ticked. */
+.same-address { margin-top: 6px; font-size: 14px; color: var(--ink-faint); }
+.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
 
 /* Show/hide password. The wrapper is added by password-toggle.js, so without
    JavaScript the field is a plain password box and nothing looks broken. */
@@ -197,7 +199,7 @@ textarea.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
 /* ---------- date picker (datepicker.js) ---------- */
 
 .datepicker { position: relative; }
-.datepicker input[type=text] { cursor: pointer; background: #fff; }
+.datepicker input[type=text] { background: #fff; }
 
 .dp-pop {
   position: absolute;
@@ -265,6 +267,10 @@ textarea.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
 .dp-day:disabled { color: #c9c2b6; cursor: default; }
 .dp-day.is-today { border-color: var(--band-dark); }
 .dp-day.is-selected { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.dp-day:focus-visible, .dp-nav:focus-visible, .dp-clear:focus-visible {
+  outline: 3px solid rgba(107, 79, 42, .35);
+  outline-offset: 1px;
+}
 
 .dp-foot {
   display: flex;

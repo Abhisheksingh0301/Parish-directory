@@ -55,6 +55,46 @@
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   };
 
+  var MONTH_INDEX = {}; // "aug" / "august" -> 7, case-insensitive
+  MONTHS_SHORT.forEach(function (name, i) { MONTH_INDEX[name.toLowerCase()] = i; });
+  MONTHS_LONG.forEach(function (name, i) { MONTH_INDEX[name.toLowerCase()] = i; });
+
+  /**
+   * A real, in-range date from whatever someone typed, or null while it is
+   * not yet one — day first throughout, matching both the display format
+   * this field shows ("02 - Aug - 1975") and the day/month/year order this
+   * directory already reads and writes everywhere else. Accepts that display
+   * format, a day-first numeric date ("02-08-1975", "02/08/1975"), and ISO
+   * ("1975-08-02") in case a full date is ever pasted in.
+   */
+  function parseTyped(text, min, max) {
+    var s = String(text || '').trim();
+    if (!s) return null;
+
+    var day, monthIndex, year, m;
+
+    if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s))) {
+      year = Number(m[1]); monthIndex = Number(m[2]) - 1; day = Number(m[3]);
+    } else if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s))) {
+      day = Number(m[1]); monthIndex = Number(m[2]) - 1; year = Number(m[3]);
+    } else if ((m = /^(\d{1,2})[\s-]+([A-Za-z]+)[\s,-]+(\d{4})$/.exec(s))) {
+      day = Number(m[1]); year = Number(m[3]);
+      monthIndex = MONTH_INDEX[m[2].toLowerCase()];
+      if (monthIndex === undefined) return null;
+    } else {
+      return null;
+    }
+
+    if (monthIndex < 0 || monthIndex > 11) return null;
+    var date = new Date(year, monthIndex, day);
+    // Rejects the likes of "30 Feb 1975", which Date would roll into March.
+    if (date.getFullYear() !== year || date.getMonth() !== monthIndex || date.getDate() !== day) {
+      return null;
+    }
+    if (date < startOfDay(min) || date > startOfDay(max)) return null;
+    return date;
+  }
+
   function element(tag, className, text) {
     var node = document.createElement(tag);
     if (className) node.className = className;
@@ -82,8 +122,8 @@
     var selected = parseISO(input.value);
     var today = startOfDay(new Date());
 
-    // The visible box becomes a readable, read-only summary; the hidden field
-    // keeps the name and the machine-readable value the server parses.
+    // The visible box is typeable and shows a readable summary; the hidden
+    // field keeps the name and the machine-readable value the server parses.
     var hidden = element('input');
     hidden.type = 'hidden';
     hidden.name = input.getAttribute('name') || '';
@@ -91,9 +131,8 @@
 
     input.removeAttribute('name');
     input.type = 'text';
-    input.readOnly = true;
     input.autocomplete = 'off';
-    input.placeholder = 'Pick a date';
+    input.placeholder = 'DD-MM-YYYY, or pick a date';
     input.value = selected ? display(selected) : '';
     input.setAttribute('aria-haspopup', 'dialog');
     input.setAttribute('aria-expanded', 'false');
@@ -155,14 +194,27 @@
     // may page around and change their mind without picking anything.
     var view = selected || (today > max ? max : (today < min ? min : today));
 
+    // The day the grid would move to next — a roving tabindex target, one
+    // arrow-key press from wherever the keyboard last left it. Kept distinct
+    // from `view` (which only tracks the month on show) and from `selected`
+    // (which only changes once a day is actually chosen).
+    var active = view;
+
     function inRange(date) { return date >= startOfDay(min) && date <= startOfDay(max); }
 
-    function render() {
+    function clamp(date) { return date < min ? min : (date > max ? max : date); }
+
+    function render(focusActive) {
       monthSelect.value = String(view.getMonth());
       yearSelect.value = String(view.getFullYear());
 
       var first = new Date(view.getFullYear(), view.getMonth(), 1);
       var days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+
+      // Keep the roving-tabindex day within the month now on show, preserving
+      // the day of month where the new one has it — so paging by month or
+      // year moves the same day forward rather than resetting to the 1st.
+      active = clamp(new Date(view.getFullYear(), view.getMonth(), Math.min(active.getDate(), days)));
 
       previous.disabled = !inRange(new Date(view.getFullYear(), view.getMonth(), 0));
       next.disabled = !inRange(new Date(view.getFullYear(), view.getMonth() + 1, 1));
@@ -172,11 +224,16 @@
         grid.appendChild(element('span', 'dp-blank'));
       }
 
+      var activeCell = null;
       for (var day = 1; day <= days; day += 1) {
         var date = new Date(view.getFullYear(), view.getMonth(), day);
         var cell = button('dp-day', String(day));
         cell.dataset.iso = toISO(date);
         cell.disabled = !inRange(date);
+        // Only one day is ever a Tab stop — arrow keys move it from there —
+        // or Tab would have to pass through up to 31 buttons to cross a month.
+        cell.tabIndex = date.getTime() === active.getTime() ? 0 : -1;
+        if (date.getTime() === active.getTime()) activeCell = cell;
         if (date.getTime() === today.getTime()) cell.classList.add('is-today');
         if (selected && date.getTime() === selected.getTime()) {
           cell.classList.add('is-selected');
@@ -184,6 +241,7 @@
         }
         grid.appendChild(cell);
       }
+      if (focusActive && activeCell) activeCell.focus();
 
       picked.textContent = selected ? display(selected) : 'No date yet';
       clear.hidden = !selected;
@@ -203,9 +261,12 @@
       if (open && open.input === input) return;
       closeOpen();
 
-      // Re-read in case the value was changed from outside while closed.
+      // Re-read in case the value was changed from outside while closed, and
+      // drop any leftover roving-tabindex position from a previous, possibly
+      // abandoned, visit to the grid.
       selected = parseISO(hidden.value);
       if (selected) view = selected;
+      active = view;
 
       pop.hidden = false;
       input.setAttribute('aria-expanded', 'true');
@@ -229,13 +290,44 @@
       refocus();
     }
 
+    // Click opens the calendar, same as before. Focus no longer does — the
+    // field is typed into now, and popping a calendar over it on every Tab-in
+    // would fight with that. ArrowDown is the keyboard equivalent, a standard
+    // combobox convention that does not collide with typing a date.
     input.addEventListener('click', show);
-    input.addEventListener('focus', show);
     input.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter' || event.key === ' ') {
+      if (event.key === 'ArrowDown' && !(open && open.input === input)) {
         event.preventDefault();
         show();
       }
+    });
+
+    // Typed input is read live: the moment it resolves to a real, in-range
+    // date it becomes the value the form will submit, exactly as clicking a
+    // day does. Short of that — mid-edit, or not a date at all — the hidden
+    // field stays blank rather than quietly submitting whatever it last held,
+    // so what is sent always matches what is on screen.
+    input.addEventListener('input', function () {
+      var typed = parseTyped(input.value, min, max);
+      if (!typed) {
+        selected = null;
+        hidden.value = '';
+        return;
+      }
+      selected = typed;
+      view = typed;
+      active = typed;
+      hidden.value = toISO(typed);
+      if (open && open.input === input) render();
+    });
+
+    // On the way out, tidy up: a valid date is redrawn in the display format
+    // ("2/8/1975" becomes "02 - Aug - 1975"); anything that never resolved to
+    // one is dropped rather than left looking like it might have been saved.
+    input.addEventListener('blur', function () {
+      var typed = parseTyped(input.value, min, max);
+      input.value = typed ? display(typed) : '';
+      if (!typed) hidden.value = '';
     });
 
     monthSelect.addEventListener('change', function () {
@@ -259,6 +351,44 @@
     grid.addEventListener('click', function (event) {
       var cell = event.target.closest('.dp-day');
       if (cell && !cell.disabled) choose(parseISO(cell.dataset.iso));
+    });
+
+    /**
+     * Arrow keys move a day at a time, Home/End jump to either end of the
+     * week, Page Up/Down move a month and Shift+Page Up/Down move a year —
+     * the usual keyboard shape for a calendar grid, so reaching the far end
+     * of the month never means tabbing past thirty buttons one at a time.
+     * Moving past the edge of the visible month re-renders it, same as
+     * clicking the nav buttons would.
+     */
+    var GRID_KEYS = {
+      ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7
+    };
+    grid.addEventListener('keydown', function (event) {
+      var next;
+      if (event.key in GRID_KEYS) {
+        next = new Date(active.getFullYear(), active.getMonth(), active.getDate() + GRID_KEYS[event.key]);
+      } else if (event.key === 'Home') {
+        next = new Date(active.getFullYear(), active.getMonth(), active.getDate() - active.getDay());
+      } else if (event.key === 'End') {
+        next = new Date(active.getFullYear(), active.getMonth(), active.getDate() + (6 - active.getDay()));
+      } else if (event.key === 'PageUp') {
+        next = event.shiftKey
+          ? new Date(active.getFullYear() - 1, active.getMonth(), active.getDate())
+          : new Date(active.getFullYear(), active.getMonth() - 1, active.getDate());
+      } else if (event.key === 'PageDown') {
+        next = event.shiftKey
+          ? new Date(active.getFullYear() + 1, active.getMonth(), active.getDate())
+          : new Date(active.getFullYear(), active.getMonth() + 1, active.getDate());
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      next = clamp(next);
+      active = next;
+      view = next;
+      render(true);
     });
 
     clear.addEventListener('click', function () {

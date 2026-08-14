@@ -38,6 +38,7 @@ const FIELDS = [
   'hometown',
   'home_parish',
   'spouse_home',
+  'prayer_group',
   'email'
 ];
 
@@ -130,7 +131,8 @@ async function list(churchId, { search = '', publishedOnly = false } = {}) {
       likeLower('Family.address', term),
       likeLower('Family.email', term),
       likeLower('Family.hometown', term),
-      likeLower('Family.home_parish', term)
+      likeLower('Family.home_parish', term),
+      likeLower('Family.prayer_group', term)
     ];
 
     // Members are matched with their own query rather than a correlated
@@ -297,6 +299,9 @@ async function replaceMembers(familyId, members, transaction) {
       dob_month: m.dob_month,
       dob_year: m.dob_year,
       mobile: m.mobile,
+      blood_group: m.blood_group,
+      qualification: m.qualification,
+      occupation: m.occupation,
       links: m.links
     })),
     { transaction }

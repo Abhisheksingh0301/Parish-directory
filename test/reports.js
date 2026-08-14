@@ -102,7 +102,7 @@ async function main() {
       dom_day: null, dom_month: null, is_published: true,
       members: [
         { name: head + ' one', relation: 'Head', dob_day: null, dob_month: null, dob_year: null, mobile: '1', links: '' },
-        { name: head + ' two', relation: 'Wife', dob_day: null, dob_month: null, dob_year: null, mobile: '2', links: '' }
+        { name: head + ' two', relation: 'Spouse', dob_day: null, dob_month: null, dob_year: null, mobile: '2', links: '' }
       ]
     });
     return c;

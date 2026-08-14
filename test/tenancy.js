@@ -297,7 +297,7 @@ async function main() {
     parish_name: 'Church A Renamed',
     directory_title: 'A Directory',
     default_member_password: 'church-a-members-2026',
-    relation_options: 'Head, Wife',
+    relation_options: 'Head, Spouse',
     starting_page: '1',
     per_page: '2',
     color_band: '#111111',

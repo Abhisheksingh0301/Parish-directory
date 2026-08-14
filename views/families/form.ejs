@@ -46,6 +46,27 @@
     </div>
 
     <div class="field">
+      <label>Blood group</label>
+      <select name="members[<%= index %>][blood_group]">
+        <% bloodGroupOptions.forEach(function (bg) { %>
+          <option value="<%= bg %>" <%= m.blood_group === bg ? 'selected' : '' %>><%= bg || '—' %></option>
+        <% }); %>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Qualification</label>
+      <input type="text" name="members[<%= index %>][qualification]" value="<%= m.qualification %>"
+             placeholder="B.Sc. Nursing">
+    </div>
+
+    <div class="field">
+      <label>Occupation</label>
+      <input type="text" name="members[<%= index %>][occupation]" value="<%= m.occupation %>"
+             placeholder="Staff Nurse">
+    </div>
+
+    <div class="field">
       <label>Links</label>
       <input type="text" name="members[<%= index %>][links]" value="<%= m.links %>">
     </div>
@@ -98,7 +119,11 @@
       <div class="field">
         <label for="head_name">Family head name</label>
         <input type="text" id="head_name" name="head_name" value="<%= family.head_name %>" required>
-        <p class="help">Prints in the large band at the top of the entry.</p>
+        <p class="help">
+          Prints in the large band at the top of the entry. Kept the same as
+          the first family member below — type it in either place, and the
+          other follows, until you deliberately make the two different.
+        </p>
       </div>
     </div>
 
@@ -106,8 +131,11 @@
       // The two addresses sit side by side because they are read together —
       // where the family lives now, and where the family is from. The tick
       // below comes back ticked when the two are already the same.
+      const addressText = String(family.address || '').trim();
       const hometownText = String(family.hometown || '').trim();
-      const sameAddress = !!hometownText && hometownText === String(family.address || '').trim();
+      const sameAddress = !!hometownText && hometownText === addressText;
+      const spouseHomeText = String(family.spouse_home || '').trim();
+      const sameAddressSpouse = !!spouseHomeText && spouseHomeText === addressText;
     %>
     <div class="grid-2 address-pair">
       <div class="field">
@@ -118,7 +146,7 @@
       </div>
 
       <div class="field">
-        <label for="hometown">Hometown address</label>
+        <label for="hometown">Home Town address</label>
         <textarea id="hometown" name="hometown"
                   placeholder="House name, Village"><%= family.hometown %></textarea>
         <label class="checkline same-address" hidden>
@@ -136,7 +164,18 @@
 
       <div class="field">
         <label for="spouse_home">Spouse home</label>
-        <input type="text" id="spouse_home" name="spouse_home" value="<%= family.spouse_home %>">
+        <input type="text" id="spouse_home" name="spouse_home" value="<%= family.spouse_home %>"
+               placeholder="House name, Village">
+        <p class="help">Where the spouse is originally from — not their name, which goes in the member row below.</p>
+        <label class="checkline same-address" hidden>
+          <input type="checkbox" id="same-address-spouse" <%= sameAddressSpouse ? 'checked' : '' %>>
+          Same as the address above
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="prayer_group">Prayer group</label>
+        <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>">
       </div>
 
       <div class="field">
@@ -246,12 +285,14 @@
 
 <template id="member-template">
   <% memberRow('__INDEX__', {
-       name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '', links: ''
+       name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '',
+       blood_group: '', qualification: '', occupation: '', links: ''
      }); %>
 </template>
 
 <script src="/javascripts/datepicker.js"></script>
 <script src="/javascripts/same-address.js"></script>
+<script src="/javascripts/head-name-sync.js"></script>
 <script src="/javascripts/family-form.js"></script>
 
 <%- include('../partials/footer') %>

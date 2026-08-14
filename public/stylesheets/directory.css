@@ -89,7 +89,7 @@ body.directory-body {
 
 .entry-head {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 10px;
   align-items: stretch;
   margin-bottom: 10px;
@@ -121,7 +121,7 @@ body.directory-body {
 
 .entry-body {
   display: grid;
-  grid-template-columns: 1fr 0.82fr;
+  grid-template-columns: 0.82fr 1fr;
   gap: 18px;
   align-items: start;
   margin-bottom: 12px;
@@ -183,16 +183,16 @@ body.directory-body {
   border-collapse: collapse;
   border-radius: 6px;
   overflow: hidden;
-  font-size: 17px;
+  font-size: 14px;
 }
 .members th {
   background: var(--band-dark);
   font-weight: 700;
-  padding: 7px 12px;
+  padding: 6px 8px;
   text-align: left;
 }
 .members th.c, .members td.c { text-align: center; }
-.members td { padding: 7px 12px; border: none; }
+.members td { padding: 6px 8px; border: none; }
 .members tbody tr:nth-child(odd)  td { background: var(--member-a); }
 .members tbody tr:nth-child(even) td { background: var(--member-b); }
 .members td[rowspan] { text-align: center; vertical-align: middle; }

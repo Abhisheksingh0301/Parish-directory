@@ -34,7 +34,7 @@
         <% if (!dioceses.length) { %>
           <tr>
             <td colspan="4" class="empty">
-              Nothing yet. Start by adding a <%= labels.diocese.toLowerCase() %>.
+              No <%= labels.diocese.toLowerCase() %>s yet.
             </td>
           </tr>
         <% } %>
@@ -59,15 +59,16 @@
 <div class="card">
   <h2>Getting started</h2>
   <p class="help">
-    Add your <%= labels.diocese.toLowerCase() %>s first, then their
-    <%= labels.zone.toLowerCase() %>s, then the churches inside them. A church
-    is created together with the account that will run it, so it is usable the
-    moment it exists.
+    Add a church and it comes with the account that will run it, so it is
+    usable the moment it exists — no <%= labels.diocese.toLowerCase() %> or
+    <%= labels.zone.toLowerCase() %> to set up first.
+    Organising churches into <%= labels.diocese.toLowerCase() %>s and
+    <%= labels.zone.toLowerCase() %>s is optional, for installs that want it.
   </p>
   <div class="actions">
-    <a class="btn" href="/super/dioceses">Manage <%= labels.diocese.toLowerCase() %>s</a>
+    <a class="btn" href="/super/churches">Manage churches</a>
+    <a class="btn ghost" href="/super/dioceses">Manage <%= labels.diocese.toLowerCase() %>s</a>
     <a class="btn ghost" href="/super/zones">Manage <%= labels.zone.toLowerCase() %>s</a>
-    <a class="btn ghost" href="/super/churches">Manage churches</a>
   </div>
 </div>
 

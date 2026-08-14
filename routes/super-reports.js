@@ -144,8 +144,9 @@ router.get('/export.csv', wrap(async (req, res) => {
 
   res.write([
     labels.diocese, labels.zone, 'Church', 'Family ID', 'Head of family',
-    'Address', 'Hometown', 'Home parish', 'Spouse home', 'Email',
-    'Date of marriage', 'Member', 'Relation', 'Date of birth', 'Mobile', 'Links'
+    'Address', 'Home Town', 'Home parish', 'Spouse home', 'Prayer group', 'Email',
+    'Date of marriage', 'Member', 'Relation', 'Date of birth', 'Mobile',
+    'Blood group', 'Qualification', 'Occupation', 'Links'
   ].map(cell).join(',') + '\r\n');
 
   /*
@@ -175,6 +176,7 @@ router.get('/export.csv', wrap(async (req, res) => {
         family.hometown,
         family.home_parish,
         family.spouse_home,
+        family.prayer_group,
         family.email,
         family.dom
       ];
@@ -182,11 +184,16 @@ router.get('/export.csv', wrap(async (req, res) => {
       // A family with no members still deserves a row, or it vanishes.
       const members = family.members.length
         ? family.members
-        : [{ name: '', relation: '', dob: '', mobile: '', links: '' }];
+        : [{
+          name: '', relation: '', dob: '', mobile: '',
+          blood_group: '', qualification: '', occupation: '', links: ''
+        }];
 
       for (const m of members) {
-        res.write([...base, m.name, m.relation, m.dob, m.mobile, m.links]
-          .map(cell).join(',') + '\r\n');
+        res.write([
+          ...base, m.name, m.relation, m.dob, m.mobile,
+          m.blood_group, m.qualification, m.occupation, m.links
+        ].map(cell).join(',') + '\r\n');
       }
     }
   }

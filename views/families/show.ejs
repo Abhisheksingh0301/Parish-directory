@@ -36,7 +36,7 @@
       <dt>Address</dt>
       <dd><%- family.address ? nl2br(family.address) : '&mdash;' %></dd>
 
-      <dt>Hometown address</dt>
+      <dt>Home Town address</dt>
       <dd><%- family.hometown ? nl2br(family.hometown) : '&mdash;' %></dd>
 
       <dt>Home parish</dt>
@@ -44,6 +44,9 @@
 
       <dt>Spouse home</dt>
       <dd><%= family.spouse_home || '—' %></dd>
+
+      <dt>Prayer group</dt>
+      <dd><%= family.prayer_group || '—' %></dd>
 
       <dt>Email ID</dt>
       <dd>
@@ -80,6 +83,9 @@
           <th>Relation</th>
           <th>DOB</th>
           <th>Mobile</th>
+          <th>Blood group</th>
+          <th>Qualification</th>
+          <th>Occupation</th>
           <th>Links</th>
         </tr>
       </thead>
@@ -90,6 +96,9 @@
             <td><%= m.relation || '—' %></td>
             <td class="nowrap"><%= m.dob || '—' %></td>
             <td class="nowrap"><%= m.mobile || '—' %></td>
+            <td class="nowrap"><%= m.blood_group || '—' %></td>
+            <td><%= m.qualification || '—' %></td>
+            <td><%= m.occupation || '—' %></td>
             <td><%= m.links || '—' %></td>
           </tr>
         <% }); %>

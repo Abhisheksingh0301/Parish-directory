@@ -131,80 +131,56 @@
 <div class="card">
   <h2>Add a church</h2>
 
-  <% if (!dioceses.length) { %>
-    <p class="help">
-      Add a <%= labels.diocese.toLowerCase() %> first — every church belongs to one.
-    </p>
-  <% } else { %>
-    <p class="help" style="margin-top:0">
-      The church and the account that will run it are created together, so it is
-      usable straight away.
-    </p>
+  <p class="help" style="margin-top:0">
+    The church and the account that will run it are created together, so it is
+    usable straight away.
+    <% if (dioceses.length) { %>
+      It can be moved into a <%= labels.diocese.toLowerCase() %> or
+      <%= labels.zone.toLowerCase() %> later, from the list above, if you use that.
+    <% } %>
+  </p>
 
-    <form method="post" action="/super/churches">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <form method="post" action="/super/churches">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-      <div class="grid-2">
-        <div class="field">
-          <label for="name">Church name</label>
-          <input type="text" id="name" name="name" required
-                 value="<%= form.name || '' %>" placeholder="e.g. St Mary's Church">
-        </div>
-        <div class="field">
-          <label for="city">City or town</label>
-          <input type="text" id="city" name="city" value="<%= form.city || '' %>">
-        </div>
-        <div class="field">
-          <label for="new_diocese"><%= labels.diocese %></label>
-          <select id="new_diocese" name="diocese_id" required>
-            <% dioceses.forEach(function (d) { %>
-              <option value="<%= d.id %>" <%= String(form.diocese_id) === String(d.id) ? 'selected' : '' %>>
-                <%= d.name %>
-              </option>
-            <% }); %>
-          </select>
-        </div>
-        <div class="field">
-          <label for="new_zone"><%= labels.zone %></label>
-          <select id="new_zone" name="zone_id">
-            <option value="">None yet</option>
-            <% zones.forEach(function (z) { %>
-              <option value="<%= z.id %>" <%= String(form.zone_id) === String(z.id) ? 'selected' : '' %>>
-                <%= z.diocese_name %> — <%= z.name %>
-              </option>
-            <% }); %>
-          </select>
-          <p class="help">Must belong to the <%= labels.diocese.toLowerCase() %> chosen above.</p>
-        </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="name">Church name</label>
+        <input type="text" id="name" name="name" required
+               value="<%= form.name || '' %>" placeholder="e.g. St Mary's Church">
       </div>
-
-      <h2>Its administrator</h2>
-      <div class="grid-2">
-        <div class="field">
-          <label for="admin_username">Username</label>
-          <input type="text" id="admin_username" name="admin_username" required
-                 value="<%= form.admin_username || '' %>">
-        </div>
-        <div class="field">
-          <label for="admin_full_name">Full name</label>
-          <input type="text" id="admin_full_name" name="admin_full_name"
-                 value="<%= form.admin_full_name || '' %>">
-        </div>
-        <div class="field">
-          <label for="admin_password">Password</label>
-          <input type="password" id="admin_password" name="admin_password" required>
-        </div>
-        <div class="field">
-          <label for="admin_password_confirm">Password again</label>
-          <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
-        </div>
+      <div class="field">
+        <label for="city">City or town</label>
+        <input type="text" id="city" name="city" value="<%= form.city || '' %>">
       </div>
+    </div>
 
-      <div class="actions">
-        <button type="submit" class="btn">Add the church</button>
+    <h2>Its administrator</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="admin_username">Username</label>
+        <input type="text" id="admin_username" name="admin_username" required
+               value="<%= form.admin_username || '' %>">
       </div>
-    </form>
-  <% } %>
+      <div class="field">
+        <label for="admin_full_name">Full name</label>
+        <input type="text" id="admin_full_name" name="admin_full_name"
+               value="<%= form.admin_full_name || '' %>">
+      </div>
+      <div class="field">
+        <label for="admin_password">Password</label>
+        <input type="password" id="admin_password" name="admin_password" required>
+      </div>
+      <div class="field">
+        <label for="admin_password_confirm">Password again</label>
+        <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn">Add the church</button>
+    </div>
+  </form>
 </div>
 
 <%- include('../partials/footer') %>

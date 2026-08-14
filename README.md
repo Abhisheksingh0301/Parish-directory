@@ -10,7 +10,7 @@ palette, the page layout, the relation names and the password its members are
 given are all settings an administrator edits in the browser — and each church
 has its own.
 
-Relations are whole words — `Head`, `Wife`, `Son`, `Daughter` — not the codes
+Relations are whole words — `Head`, `Spouse`, `Son`, `Daughter` — not the codes
 `HF, W, S, D` this started with. They print as typed and read without a key,
 which matters when the family filling in its own entry has never seen the
 directory's shorthand.

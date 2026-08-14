@@ -90,6 +90,9 @@ function readForm(req) {
         dob_month: dob.month,
         dob_year: dob.year,
         mobile: text(m.mobile),
+        blood_group: text(m.blood_group),
+        qualification: text(m.qualification),
+        occupation: text(m.occupation),
         links: text(m.links),
         position: i
       };
@@ -106,6 +109,7 @@ function readForm(req) {
     hometown: text(req.body.hometown),
     home_parish: text(req.body.home_parish),
     spouse_home: text(req.body.spouse_home),
+    prayer_group: text(req.body.prayer_group),
     email: text(req.body.email),
     dom_day: dom.day,
     dom_month: dom.month,
@@ -124,6 +128,8 @@ function readForm(req) {
 
   return { data, errors };
 }
+
+const BLOOD_GROUP_OPTIONS = ['', 'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
 /** Today as "2026-08-11", in the parish's own timezone rather than UTC. */
 function todayISO() {
@@ -145,6 +151,7 @@ async function formLocals(req, extra) {
     formatDayMonth: dayMonth.format,
     emailPattern: emails.HTML_PATTERN,
     relationOptions: settings.relationOptions(parishSettings),
+    bloodGroupOptions: BLOOD_GROUP_OPTIONS,
     maxPhotoMb: Math.round(maxBytes / (1024 * 1024)),
     errors: [],
     // A household editing its own entry gets a shorter form: no family ID,
@@ -192,7 +199,7 @@ router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
  * salt each would buy nothing — and hashing 12 rounds per family would make
  * inviting a parish of 300 households take minutes.
  */
-async function createLogins(families, defaultPassword) {
+async function createLogins(churchId, families, defaultPassword) {
   const hash = await auth.hashPassword(defaultPassword);
   const skipped = [];
   let created = 0;
@@ -213,6 +220,7 @@ async function createLogins(families, defaultPassword) {
       password_hash: hash,
       full_name: family.head_name,
       role: 'family',
+      church_id: churchId,
       family_id: family.id,
       on_default_password: true
     });
@@ -231,7 +239,7 @@ router.post('/logins', isAdmin, wrap(async (req, res) => {
     ));
   }
 
-  const { created, skipped } = await createLogins(pending, req.settings.default_member_password);
+  const { created, skipped } = await createLogins(req.churchId, pending, req.settings.default_member_password);
 
   const parts = [`Created ${created} family ${created === 1 ? 'login' : 'logins'}, ` +
                  `each with the default password.`];
@@ -252,13 +260,17 @@ router.get('/new', canEdit, wrap(async (req, res) => {
     hometown: '',
     home_parish: '',
     spouse_home: '',
+    prayer_group: '',
     email: '',
     photo: null,
     dom_day: null,
     dom_month: null,
     is_published: true,
     members: [
-      { name: '', relation: 'HF', dob_day: null, dob_month: null, dob_year: null, mobile: '', links: '' }
+      {
+        name: '', relation: 'Head', dob_day: null, dob_month: null, dob_year: null,
+        mobile: '', blood_group: '', qualification: '', occupation: '', links: ''
+      }
     ]
   };
 
@@ -331,7 +343,7 @@ router.post('/:id(\\d+)/login', isAdmin, wrap(async (req, res, next) => {
     return done('That login is back on the default password.');
   }
 
-  const { created, skipped } = await createLogins([family], req.settings.default_member_password);
+  const { created, skipped } = await createLogins(req.churchId, [family], req.settings.default_member_password);
   return done(created
     ? `Login created for ${family.email}, with the default password.`
     : `No login created — ${skipped[0]}.`);

@@ -2,6 +2,7 @@
 
 const { Op, fn, col, where: whereFn } = require('sequelize');
 const db = require('../db');
+const config = require('../config');
 const { uniqueSlug } = require('../lib/slug');
 
 const { sequelize, Diocese, Zone, Church, Family, User } = db;
@@ -320,16 +321,39 @@ async function allActiveIds() {
 }
 
 /**
+ * The diocese a church gets when nobody is asked to choose one.
+ *
+ * Church creation no longer makes a super administrator set up a diocese and
+ * zone before they can add their first church — most installs run one church
+ * at a time, and the hierarchy only matters once there are several. Every
+ * church still needs a diocese_id (see the note above `assertZoneBelongsToDiocese`),
+ * so this hands back the first diocese that already exists, or creates one
+ * named from the installation's seed default the first time it is needed.
+ */
+async function defaultDiocese(transaction = null) {
+  const existing = await Diocese.findOne({ order: [['id', 'ASC']], transaction });
+  if (existing) return existing;
+  return Diocese.create(
+    { name: config.seed.dioceseName, created_at: db.now() },
+    { transaction }
+  );
+}
+
+/**
  * Create a church.
  *
  * The zone is checked against the diocese before anything is written — this is
- * the invariant this module exists to hold.
+ * the invariant this module exists to hold. A diocese is optional here: leave
+ * it out and the church lands in `defaultDiocese()` instead, which is how a
+ * church gets created without anyone picking one.
  */
-async function createChurch({ name, city = '', dioceseId, zoneId = null }, transaction = null) {
+async function createChurch({ name, city = '', dioceseId = null, zoneId = null } = {}, transaction = null) {
   const trimmed = String(name || '').trim();
   if (!trimmed) throw new HierarchyError('A church needs a name.');
 
-  const diocese = await Diocese.findByPk(dioceseId, { transaction });
+  const diocese = dioceseId
+    ? await Diocese.findByPk(dioceseId, { transaction })
+    : await defaultDiocese(transaction);
   if (!diocese) throw new HierarchyError('Choose the diocese this church belongs to.');
 
   const checkedZoneId = await assertZoneBelongsToDiocese(zoneId, diocese.id, transaction);
@@ -440,6 +464,7 @@ module.exports = {
   findChurchBySlug,
   idsFor,
   allActiveIds,
+  defaultDiocese,
   createChurch,
   updateChurch,
   setChurchActive,

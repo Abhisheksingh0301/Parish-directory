@@ -17,11 +17,20 @@
 %>
 <section class="entry">
   <div class="entry-head">
-    <div class="head-name"><%= f.head_name %></div>
     <div class="head-id">FAMILY ID : <%= f.family_id %></div>
+    <div class="head-name"><%= f.head_name %></div>
   </div>
 
   <div class="entry-body">
+    <div class="photo-frame">
+      <% if (f.photo) { %>
+        <img class="photo" src="<%= f.photo_url %>"
+             alt="Photograph of the <%= f.head_name %> family">
+      <% } else { %>
+        <div class="photo-empty">Photograph</div>
+      <% } %>
+    </div>
+
     <table class="details">
       <tbody>
         <tr>
@@ -32,21 +41,12 @@
           </th>
           <td><%- nl2br(f.address) %></td>
         </tr>
-        <tr><th>Hometown Address</th><td><%- nl2br(f.hometown) %></td></tr>
+        <tr><th>Home Town Address</th><td><%- nl2br(f.hometown) %></td></tr>
         <tr><th>Home Parish</th><td><%= f.home_parish %></td></tr>
         <tr><th>Spouse Home</th><td><%= f.spouse_home %></td></tr>
         <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
       </tbody>
     </table>
-
-    <div class="photo-frame">
-      <% if (f.photo) { %>
-        <img class="photo" src="<%= f.photo_url %>"
-             alt="Photograph of the <%= f.head_name %> family">
-      <% } else { %>
-        <div class="photo-empty">Photograph</div>
-      <% } %>
-    </div>
   </div>
 
   <table class="members">
@@ -57,6 +57,9 @@
         <th class="c">DOB</th>
         <th class="c">DOM</th>
         <th class="c">Mobile</th>
+        <th class="c">Blood Group</th>
+        <th class="c">Qualification</th>
+        <th class="c">Occupation</th>
         <th class="c">Links</th>
       </tr>
     </thead>
@@ -72,6 +75,9 @@
             <td class="c d"></td>
           <% } %>
           <td class="c"><%= m.mobile %></td>
+          <td class="c"><%= m.blood_group %></td>
+          <td class="c"><%= m.qualification %></td>
+          <td class="c"><%= m.occupation %></td>
           <td class="c"><%= m.links %></td>
         </tr>
       <% }); %>
