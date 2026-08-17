@@ -51,6 +51,76 @@
     </div>
   </div>
 
+  <%
+    /*
+     * Which changes need whose approval.
+     *
+     * The recommendation for a pilot is one queue for everything: it is the
+     * simplest thing to operate, and with five or ten families the volume is
+     * small enough that there is no risk of a field being mis-classified. Once
+     * the parish has seen what a real batch of corrections looks like, the
+     * two-tier split can be switched on for the full rollout — the review
+     * screen is the same either way.
+     */
+    const routine = new Set(
+      String(values.routine_fields || '')
+        .split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean)
+    );
+    const twoTier = String(values.approval_tiers || '1') === '2';
+  %>
+
+  <div class="card">
+    <h2>Which changes require approval</h2>
+
+    <div class="field">
+      <div class="label">Approval queues</div>
+
+      <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0">
+        <input type="radio" name="approval_tiers" value="1" <%= twoTier ? '' : 'checked' %>>
+        <span>
+          <strong>One queue for everything.</strong>
+          Every change is approved on its own line, by Achen or an
+          administrator. Recommended for the pilot.
+        </span>
+      </label>
+
+      <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0;margin-top:10px">
+        <input type="radio" name="approval_tiers" value="2" <%= twoTier ? 'checked' : '' %>>
+        <span>
+          <strong>Two tiers.</strong>
+          Routine changes may be cleared by an editor, and offered as a single
+          batch; everything else is approved individually by an administrator.
+        </span>
+      </label>
+    </div>
+
+    <div class="field">
+      <div class="label">Routine fields <span class="hint">— light-touch review</span></div>
+      <p class="help" style="margin-top:0">
+        Ticked fields are routine when two tiers are switched on. Everything
+        unticked is significant. Moving a field from one tier to the other is
+        this list and nothing else — no code changes.
+      </p>
+
+      <div class="tier-grid">
+        <% tierableFields.forEach(function (field) { %>
+          <label class="checkline">
+            <input type="checkbox" name="routine_fields" value="<%= field.key %>"
+                   <%= routine.has(field.key) ? 'checked' : '' %>>
+            <span><%= field.label %> <span class="hint">— <%= field.scope %></span></span>
+          </label>
+        <% }); %>
+      </div>
+    </div>
+
+    <p class="help">
+      <strong>Never editable by a family:</strong>
+      the Family ID, and inclusion in the printed directory. These are not
+      proposals a family can make at all — they remain with the parish office,
+      and a submission carrying them is ignored.
+    </p>
+  </div>
+
   <div class="card">
     <h2>Printed layout</h2>
 

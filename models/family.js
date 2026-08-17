@@ -3,6 +3,7 @@
 const { Op, fn, col, where: whereFn } = require('sequelize');
 const db = require('../db');
 const dayMonth = require('../lib/daymonth');
+const verification = require('../lib/verification');
 
 const { sequelize, Family, Member, User } = db;
 
@@ -39,6 +40,7 @@ const FIELDS = [
   'home_parish',
   'spouse_home',
   'prayer_group',
+  'area',
   'email'
 ];
 
@@ -132,7 +134,8 @@ async function list(churchId, { search = '', publishedOnly = false } = {}) {
       likeLower('Family.email', term),
       likeLower('Family.hometown', term),
       likeLower('Family.home_parish', term),
-      likeLower('Family.prayer_group', term)
+      likeLower('Family.prayer_group', term),
+      likeLower('Family.area', term)
     ];
 
     // Members are matched with their own query rather than a correlated
@@ -266,6 +269,25 @@ async function familyIdTaken(churchId, familyId, exceptId = null) {
   return (await Family.count({ where })) > 0;
 }
 
+/**
+ * One family by the parish's own reference, within one church.
+ *
+ * This is how the Family ID and PIN sign-in finds a household: the ID is
+ * unique within a parish and nowhere else, so the church is half the lookup
+ * rather than a check afterwards. Case-insensitively, because "a-12" and
+ * "A-12" are the same reference to everybody except a database.
+ */
+async function findByRef(churchId, familyRef) {
+  const row = await Family.findOne({
+    where: {
+      ...scope(churchId),
+      [Op.and]: [whereFn(fn('lower', col('family_id')), String(familyRef || '').trim().toLowerCase())]
+    },
+    raw: true
+  });
+  return row || null;
+}
+
 /** Suggest the next numeric family ID for this church, keeping the ID width. */
 async function nextFamilyId(churchId) {
   const rows = await Family.findAll({
@@ -285,27 +307,62 @@ async function nextFamilyId(churchId) {
   return next.padStart(Math.max(widest.length, next.length), '0');
 }
 
-async function replaceMembers(familyId, members, transaction) {
-  await Member.destroy({ where: { family_id: familyId }, transaction });
-  if (!members.length) return;
+const MEMBER_COLUMNS = [
+  'name', 'relation', 'dob_day', 'dob_month', 'dob_year',
+  'mobile', 'blood_group', 'qualification', 'occupation', 'links'
+];
 
-  await Member.bulkCreate(
-    members.map((m, i) => ({
-      family_id: familyId,
-      position: i,
-      name: m.name,
-      relation: m.relation,
-      dob_day: m.dob_day,
-      dob_month: m.dob_month,
-      dob_year: m.dob_year,
-      mobile: m.mobile,
-      blood_group: m.blood_group,
-      qualification: m.qualification,
-      occupation: m.occupation,
-      links: m.links
-    })),
-    { transaction }
-  );
+function memberValues(m, position) {
+  const values = { position };
+  for (const column of MEMBER_COLUMNS) values[column] = m[column];
+  return values;
+}
+
+/**
+ * Write the member list, keeping the rows that were already there.
+ *
+ * This used to delete every member and insert the list again, which was
+ * simpler and was fine while nothing outside the family referred to a member.
+ * A pending change does: it names the member whose mobile number is proposed,
+ * and it may sit in the queue for a fortnight while the parish office edits
+ * the same family for other reasons. Recreating the rows would renumber them,
+ * and the approval would land on somebody else — or on nobody.
+ *
+ * So a member the form sends back with its own id is updated in place; one
+ * without is new; one that has stopped being sent has been removed. An id the
+ * form invents for a member of another family is ignored rather than obeyed,
+ * because the ids that count are the ones already in this family.
+ */
+async function replaceMembers(familyId, members, transaction) {
+  const existing = await Member.findAll({
+    attributes: ['id'],
+    where: { family_id: familyId },
+    transaction,
+    raw: true
+  });
+  const known = new Set(existing.map((r) => r.id));
+
+  const kept = new Set();
+  const fresh = [];
+
+  for (let i = 0; i < members.length; i += 1) {
+    const m = members[i];
+    const id = Number(m.id);
+
+    if (Number.isInteger(id) && known.has(id)) {
+      kept.add(id);
+      await Member.update(memberValues(m, i), { where: { id, family_id: familyId }, transaction });
+    } else {
+      fresh.push({ ...memberValues(m, i), family_id: familyId });
+    }
+  }
+
+  const gone = [...known].filter((id) => !kept.has(id));
+  if (gone.length) {
+    await Member.destroy({ where: { id: { [Op.in]: gone }, family_id: familyId }, transaction });
+  }
+
+  if (fresh.length) await Member.bulkCreate(fresh, { transaction });
 }
 
 function writableFields(data) {
@@ -352,10 +409,48 @@ async function update(churchId, id, data) {
   });
 }
 
+/**
+ * Delete a family, and everything that only exists because it does.
+ *
+ * The children are deleted here rather than left to the database, and the
+ * reason is worth writing down.
+ *
+ * `members` was created with ON DELETE CASCADE in migration 1, but adding a
+ * column to it in SQLite rebuilds the table, and the rebuild does not carry
+ * the cascade across — so on any directory that has run migration 5 the
+ * constraint is NO ACTION, and `DELETE FROM families` fails outright with a
+ * foreign key error rather than taking its members with it. Deleting a family
+ * has been quietly impossible since.
+ *
+ * Repairing that would mean rebuilding `members` in place, which is the exact
+ * operation the header of db/migrations.js warns about. Doing it in one
+ * transaction here fixes every existing directory without touching the schema,
+ * works the same on every engine whatever its constraints happen to say, and
+ * covers the two tables added since — a proposal waiting on a family that no
+ * longer exists can never be reviewed.
+ */
 async function remove(churchId, id) {
-  // The members go with it: Family hasMany Member with ON DELETE CASCADE.
-  const removed = await Family.destroy({ where: { ...scope(churchId), id } });
-  return removed > 0;
+  const { church_id: owner } = scope(churchId);
+
+  return sequelize.transaction(async (transaction) => {
+    const family = await Family.findOne({
+      attributes: ['id'],
+      where: { church_id: owner, id },
+      transaction,
+      raw: true
+    });
+    if (!family) return false;
+
+    const where = { family_id: family.id };
+    await db.PendingChange.destroy({ where, transaction });
+    await db.Submission.destroy({ where, transaction });
+    await Member.destroy({ where, transaction });
+    // The household's own login, which reaches this family and nothing else.
+    await User.destroy({ where, transaction });
+
+    await Family.destroy({ where: { church_id: owner, id: family.id }, transaction });
+    return true;
+  });
 }
 
 async function stats(churchId) {
@@ -448,12 +543,176 @@ async function upcoming(churchId, days = 30) {
   return [...birthdays, ...anniversaries].sort((a, b) => a.inDays - b.inDays);
 }
 
+// ---------------------------------------------------------------------------
+// Where each family has got to in the verification exercise
+// ---------------------------------------------------------------------------
+
+/**
+ * Move a family along the chain.
+ *
+ * The chain itself and the forward-only rule live in lib/verification.js; this
+ * only writes the answer. Passing the current status in avoids a second read
+ * when the caller already has the row.
+ */
+async function setStatus(churchId, id, wanted, { current = null, transaction = null } = {}) {
+  let from = current;
+  if (from === null) {
+    const row = await Family.findOne({
+      attributes: ['verify_status'],
+      where: { ...scope(churchId), id },
+      transaction,
+      raw: true
+    });
+    if (!row) return null;
+    from = row.verify_status;
+  }
+
+  const to = verification.nextStatus(from, wanted);
+  if (to === from) return to;
+
+  const values = { verify_status: to, verify_status_at: db.now() };
+  if (to === 'invitation_sent') values.invited_at = db.now();
+  if (to === 'printed') values.printed_at = db.now();
+
+  await Family.update(values, { where: { ...scope(churchId), id }, transaction });
+  return to;
+}
+
+/** The same, for a whole batch — the office marking invitations sent or a run printed. */
+async function setStatusMany(churchId, ids, wanted) {
+  if (!ids.length) return 0;
+
+  const rows = await Family.findAll({
+    attributes: ['id', 'verify_status'],
+    where: { ...scope(churchId), id: { [Op.in]: ids.map(Number) } },
+    raw: true
+  });
+
+  let moved = 0;
+  for (const row of rows) {
+    const to = verification.nextStatus(row.verify_status, wanted);
+    if (to === row.verify_status) continue;
+    await setStatus(churchId, row.id, wanted, { current: row.verify_status });
+    moved += 1;
+  }
+  return moved;
+}
+
+/** Narrow a status view to one Area or one Prayer Group. */
+function areaWhere({ area = '', prayerGroup = '' } = {}) {
+  const where = {};
+  if (String(area).trim()) {
+    where[Op.and] = [whereFn(fn('lower', col('area')), String(area).trim().toLowerCase())];
+  }
+  if (String(prayerGroup).trim()) {
+    const clause = whereFn(fn('lower', col('prayer_group')), String(prayerGroup).trim().toLowerCase());
+    where[Op.and] = where[Op.and] ? [...where[Op.and], clause] : [clause];
+  }
+  return where;
+}
+
+/**
+ * How many families sit at each status, so the dashboard can say "17 families
+ * still not started" and have that number click through to their names.
+ *
+ * Every status is present in the answer even at zero — a missing key would
+ * read on the dashboard as a step that does not exist.
+ */
+async function statusCounts(churchId, filter = {}) {
+  const rows = await Family.findAll({
+    attributes: ['verify_status', [fn('COUNT', col('id')), 'n']],
+    where: { ...scope(churchId), ...areaWhere(filter) },
+    group: ['verify_status'],
+    raw: true
+  });
+
+  const counts = Object.fromEntries(verification.STATUS_KEYS.map((key) => [key, 0]));
+  let total = 0;
+  for (const row of rows) {
+    const key = verification.isStatus(row.verify_status) ? row.verify_status : 'not_started';
+    counts[key] += Number(row.n);
+    total += Number(row.n);
+  }
+  return { counts, total };
+}
+
+/**
+ * The families behind one of those numbers, in printed-directory order.
+ *
+ * This is also the printable follow-up sheet an Area Representative carries:
+ * Family ID, family head, a contact number and the current status. The number
+ * is the first one any member of the household has recorded, because a sheet
+ * with an empty phone column is no use to the person walking the Area.
+ */
+async function listByStatus(churchId, { status = '', area = '', prayerGroup = '' } = {}) {
+  const where = { ...scope(churchId), ...areaWhere({ area, prayerGroup }) };
+  if (verification.isStatus(status)) where.verify_status = status;
+
+  const rows = await Family.findAll({
+    where,
+    attributes: [
+      'id', 'family_id', 'head_name', 'area', 'prayer_group', 'email',
+      'verify_status', 'verify_status_at', 'is_published'
+    ],
+    include: [{
+      model: Member,
+      as: 'members',
+      required: false,
+      attributes: ['mobile', 'position']
+    }],
+    order: [[{ model: Member, as: 'members' }, 'position', 'ASC']]
+  });
+
+  return rows
+    .map((row) => {
+      const { members, ...family } = row.get({ plain: true });
+      const contact = (members || []).map((m) => String(m.mobile || '').trim()).find(Boolean);
+      return {
+        ...family,
+        contact: contact || '',
+        status_label: verification.statusLabel(family.verify_status)
+      };
+    })
+    .sort(byFamilyId);
+}
+
+/** The Areas and Prayer Groups this church actually uses, for the filter menus. */
+async function groupings(churchId) {
+  const rows = await Family.findAll({
+    attributes: ['area', 'prayer_group'],
+    where: scope(churchId),
+    raw: true
+  });
+
+  const tidy = (key) => [...new Set(rows.map((r) => String(r[key] || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  return { areas: tidy('area'), prayerGroups: tidy('prayer_group') };
+}
+
+/** Every family id in this church, for a batch the office is about to mark. */
+async function idsIn(churchId, filter = {}) {
+  const where = { ...scope(churchId), ...areaWhere(filter) };
+  if (verification.isStatus(filter.status)) where.verify_status = filter.status;
+  if (filter.publishedOnly) where.is_published = true;
+
+  const rows = await Family.findAll({ attributes: ['id'], where, raw: true });
+  return rows.map((r) => r.id);
+}
+
 module.exports = {
   list,
   emails,
   withoutLogins,
+  setStatus,
+  setStatusMany,
+  statusCounts,
+  listByStatus,
+  groupings,
+  idsIn,
   listWithMembers,
   findById,
+  findByRef,
   familyIdTaken,
   nextFamilyId,
   create,

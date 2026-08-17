@@ -22,8 +22,16 @@
         <% if (churchId) { %>
           <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
           <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
+          <% if (atLeast('editor')) { %>
+            <a href="/review" class="<%= path.startsWith('/review') ? 'active' : '' %>">
+              Review<% if (typeof pendingCount !== 'undefined' && pendingCount) { %>
+                <span class="badge"><%= pendingCount %></span>
+              <% } %>
+            </a>
+          <% } %>
           <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
           <% if (atLeast('admin')) { %>
+            <a href="/admin/audit"    class="<%= path === '/admin/audit' ? 'active' : '' %>">Audit log</a>
             <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
             <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
           <% } %>

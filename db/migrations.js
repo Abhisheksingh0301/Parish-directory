@@ -36,6 +36,8 @@ const CHURCH_SETTING_KEYS = [
   'starting_page',
   'per_page',
   'relation_options',
+  'approval_tiers',
+  'routine_fields',
   'color_band',
   'color_band_dark',
   'color_member_a',
@@ -482,6 +484,141 @@ async function familyPrayerGroup({ qi, transaction }) {
   }, { transaction });
 }
 
+// ---------------------------------------------------------------------------
+// 10 — family self-verification: proposals, a review queue, and where each
+//      family has got to
+// ---------------------------------------------------------------------------
+
+/**
+ * Nothing a family submits changes the parish master record on its own.
+ *
+ * Until now a family login's edit saved straight to its own row. That is the
+ * one change of substance the Parish asked for: the submission is written to
+ * a separate pending store instead, and the master record is left untouched
+ * until Achen or an authorised administrator approves it line by line.
+ *
+ * Three things are added:
+ *
+ *   submissions       one family's proposal, made at one moment, by whoever
+ *                     was signed in — which may be an Area Representative or
+ *                     the Parish office entering it on the family's behalf
+ *   pending_changes   one line of that proposal: one field, its existing value,
+ *                     its proposed value, and its own outcome. A reviewer can
+ *                     accept a new mobile number and reject a proposed address
+ *                     in the same submission, so the outcome cannot live on
+ *                     the submission
+ *   families.*        where this family has got to in the verification chain,
+ *                     its Area, and the moments the office marked it invited
+ *                     or printed
+ *
+ * `payload` is the machine-readable half of a change — which member, which
+ * column, and the value in the shape the database wants. `existing_value` and
+ * `proposed_value` are the human halves, rendered once at submission time in
+ * the Directory's own format, so the review screen and the export both read
+ * what will actually be printed rather than re-deriving it.
+ */
+async function familyVerificationWorkflow({ qi, sequelize, transaction }) {
+  const opts = { transaction };
+
+  await qi.createTable('submissions', {
+    id: ID,
+    church_id: { type: DataTypes.INTEGER, allowNull: false },
+    family_id: { type: DataTypes.INTEGER, allowNull: false },
+    submitted_by: { type: DataTypes.INTEGER, allowNull: true },
+    // Copied in, like the audit log's, so the record survives the account.
+    submitted_by_name: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    // 'family' when the household submitted it themselves, 'assisted' when an
+    // Area Representative or the office did it for them. An assisted entry is
+    // never mistaken for one the family made itself.
+    submitted_via: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'family' },
+    submitted_at: TIMESTAMP,
+    // open while any line is still undecided, closed once none is.
+    status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'open' }
+  }, opts);
+
+  await qi.addIndex('submissions', ['church_id', 'status'], {
+    name: 'idx_submissions_church', ...opts
+  });
+  await qi.addIndex('submissions', ['family_id'], { name: 'idx_submissions_family', ...opts });
+
+  await qi.createTable('pending_changes', {
+    id: ID,
+    submission_id: { type: DataTypes.INTEGER, allowNull: false },
+    // Repeated from the submission rather than joined: every query the review
+    // queue makes is "this church's undecided lines", and the export is one
+    // flat sheet.
+    church_id: { type: DataTypes.INTEGER, allowNull: false },
+    family_id: { type: DataTypes.INTEGER, allowNull: false },
+    // 'family', 'member', 'member_add' or 'member_remove'.
+    kind: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'family' },
+    field: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    label: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    tier: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'significant' },
+    existing_value: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    proposed_value: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    payload: { type: DataTypes.TEXT, allowNull: false, defaultValue: '{}' },
+    status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'pending' },
+    reviewed_by: { type: DataTypes.INTEGER, allowNull: true },
+    reviewed_by_name: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    reviewed_at: { type: DataTypes.STRING, allowNull: true },
+    // A rejection may carry a short reason, which the family sees the next
+    // time it signs in — so a rejected correction is not silently lost.
+    reason: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    // The moment the approved value reached the parish record, which is a
+    // different question from when it was approved.
+    applied_at: { type: DataTypes.STRING, allowNull: true }
+  }, opts);
+
+  await qi.addIndex('pending_changes', ['church_id', 'status'], {
+    name: 'idx_pending_church_status', ...opts
+  });
+  await qi.addIndex('pending_changes', ['submission_id'], {
+    name: 'idx_pending_submission', ...opts
+  });
+  await qi.addIndex('pending_changes', ['family_id'], { name: 'idx_pending_family', ...opts });
+
+  /*
+   * The Area, which is not the Prayer Group.
+   *
+   * A Prayer Group is a neighbourhood group that meets; an Area is the
+   * division the Parish gives an Area Representative to follow up. The status
+   * views filter by either, and the printable follow-up sheet is per Area,
+   * so it needs a column of its own.
+   */
+  await qi.addColumn('families', 'area', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: ''
+  }, opts);
+
+  await qi.addColumn('families', 'verify_status', {
+    type: DataTypes.TEXT, allowNull: false, defaultValue: 'not_started'
+  }, opts);
+  await qi.addColumn('families', 'verify_status_at', {
+    type: DataTypes.STRING, allowNull: true
+  }, opts);
+  await qi.addColumn('families', 'invited_at', {
+    type: DataTypes.STRING, allowNull: true
+  }, opts);
+  await qi.addColumn('families', 'printed_at', {
+    type: DataTypes.STRING, allowNull: true
+  }, opts);
+
+  await qi.addIndex('families', ['church_id', 'verify_status'], {
+    name: 'idx_families_verify', ...opts
+  });
+
+  /*
+   * A family that already has a login has already been reached, so it starts
+   * at "Invitation Sent" rather than pretending nobody has spoken to it. An
+   * existing directory is otherwise all "Not Started", which is the truth.
+   */
+  await sequelize.query(
+    `UPDATE families
+        SET verify_status = 'invitation_sent'
+      WHERE id IN (SELECT family_id FROM users WHERE role = 'family' AND family_id IS NOT NULL)`,
+    { transaction }
+  );
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -495,7 +632,8 @@ const MIGRATIONS = [
   memberQualificationAndOccupation,
   wifeBecomesSpouse,
   memberLoginChurchId,
-  familyPrayerGroup
+  familyPrayerGroup,
+  familyVerificationWorkflow
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };

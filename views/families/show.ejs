@@ -22,9 +22,94 @@
   <div class="card">
     <p style="margin:0">
       This is your family&rsquo;s entry in the <%= settings.directory_title %>.
-      Please check it, fill in anything missing and correct anything wrong —
-      it is printed exactly as it stands here.
+      Please check it, fill in anything missing and correct anything wrong.
+      Nothing you send changes this record on its own — the parish office
+      approves each correction first, and it is printed exactly as it stands
+      here once they have.
     </p>
+  </div>
+<% } %>
+
+<%
+  /*
+   * What has become of this family's corrections.
+   *
+   * Shown to the family as well as to staff, and the rejections carry the
+   * reason the reviewer gave — so a correction that was turned down is not
+   * silently lost, and the household knows to ask about it rather than
+   * assuming the form did not work.
+   */
+  const waiting = proposals.waiting;
+  const rejected = proposals.rejected.filter(function (c) { return c.reason; }).slice(0, 8);
+  const approved = proposals.approved.slice(0, 8);
+%>
+
+<% if (waiting.length) { %>
+  <div class="card">
+    <h2>
+      <%= isOwnEntry ? 'Sent to the parish office' : 'Waiting for review' %>
+      <span class="hint">— <%= waiting.length %></span>
+    </h2>
+
+    <p class="help" style="margin-top:-8px">
+      <% if (isOwnEntry) { %>
+        These corrections have been received. They are not in the directory yet;
+        they appear here once the parish office has approved them.
+      <% } else { %>
+        This family has proposed these changes. The record above is unchanged
+        until they are approved.
+      <% } %>
+    </p>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Field</th><th>Existing value</th><th>Proposed value</th></tr>
+        </thead>
+        <tbody>
+          <% waiting.forEach(function (c) { %>
+            <tr>
+              <td><%= c.label %></td>
+              <td style="color:var(--ink-faint)"><%= c.existing_value || '—' %></td>
+              <td><%= c.proposed_value || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (!isOwnEntry && canEdit) { %>
+      <div class="actions">
+        <a href="/review/<%= family.id %>" class="btn">Review these changes</a>
+      </div>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (rejected.length || approved.length) { %>
+  <div class="card">
+    <h2>What the parish office decided</h2>
+
+    <% if (rejected.length) { %>
+      <div class="alert error" style="margin-bottom:14px">
+        <strong>Not applied:</strong>
+        <ul>
+          <% rejected.forEach(function (c) { %>
+            <li>
+              <strong><%= c.label %></strong> — <%= c.proposed_value || 'cleared' %>.
+              <%= c.reason %>
+            </li>
+          <% }); %>
+        </ul>
+      </div>
+    <% } %>
+
+    <% if (approved.length) { %>
+      <p class="help" style="margin-top:0">
+        Applied to the directory:
+        <%= approved.map(function (c) { return c.label; }).join('; ') %>.
+      </p>
+    <% } %>
   </div>
 <% } %>
 
@@ -48,6 +133,9 @@
       <dt>Prayer group</dt>
       <dd><%= family.prayer_group || '—' %></dd>
 
+      <dt>Area</dt>
+      <dd><%= family.area || '—' %></dd>
+
       <dt>Email ID</dt>
       <dd>
         <% if (family.email) { %>
@@ -57,6 +145,9 @@
 
       <dt>Date of marriage</dt>
       <dd><%= family.dom || '—' %></dd>
+
+      <dt>Verification</dt>
+      <dd><span class="tag"><%= statusLabel %></span></dd>
     </dl>
   </div>
 
@@ -134,11 +225,26 @@
         <dd><%= login.last_login_at || 'never' %></dd>
       </dl>
 
-      <form method="post" action="/families/<%= family.id %>/login"
-            onsubmit="return confirm('Put <%= login.username %> back to the default password?')">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="btn ghost small">Reset to the default password</button>
-      </form>
+      <div class="actions" style="margin-top:0">
+        <form method="post" action="/families/<%= family.id %>/login"
+              onsubmit="return confirm('Put <%= login.username %> back to the default password?')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit" class="btn ghost small">Reset to the default password</button>
+        </form>
+
+        <form method="post" action="/families/<%= family.id %>/pin"
+              onsubmit="return confirm('Issue a new PIN? Any PIN already handed to this family stops working.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit" class="btn ghost small">Issue a new PIN and slip</button>
+        </form>
+      </div>
+
+      <p class="help">
+        There are no password reset links anywhere in this application — a
+        family that has forgotten its password has it reset here, by the parish
+        administrator. That is what makes a household with no email address
+        workable.
+      </p>
     <% } else if (family.email) { %>
       <p class="help" style="margin-top:0">
         No login yet. Creating one lets this family sign in as
@@ -151,9 +257,15 @@
       </form>
     <% } else { %>
       <p class="help" style="margin-top:0">
-        This family has no email address, so it cannot be given a login.
-        Add one under <a href="/families/<%= family.id %>/edit">Edit</a>.
+        This family has no email address — which excludes it from nothing. Issue
+        a verification slip and it signs in with its Family ID
+        (<strong><%= family.family_id %></strong>) and the PIN printed on the
+        slip. No email address is involved at any step.
       </p>
+      <form method="post" action="/families/<%= family.id %>/pin">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn">Issue a Family ID and PIN slip</button>
+      </form>
     <% } %>
   </div>
 <% } %>

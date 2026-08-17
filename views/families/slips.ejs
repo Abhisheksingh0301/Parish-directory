@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %> · <%= settings.parish_name %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+<style>
+  /*
+   * Verification slips: one per family, cut apart and handed out.
+   *
+   * The PIN is shown here and nowhere else, ever. It is stored only as a
+   * bcrypt hash, so this page is the one moment it exists in readable form —
+   * print it before leaving, and issue a new PIN if a slip is lost.
+   */
+  body { background: #fff; color: #000; margin: 0; font-size: 12pt; }
+  .sheet { max-width: 780px; margin: 0 auto; padding: 24px; }
+  .slips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .slip { border: 1px dashed #777; padding: 12px 14px; break-inside: avoid; }
+  .slip h3 { margin: 0 0 2px; font-size: 12.5pt; }
+  .slip .ref { color: #444; font-size: 10pt; margin: 0 0 8px; }
+  .slip .pin { font-size: 20pt; letter-spacing: .18em; font-weight: 700; margin: 0; }
+  .slip .how { font-size: 9.5pt; color: #333; margin: 8px 0 0; line-height: 1.35; }
+  .warn { border: 1px solid #999; background: #f4f0e8; padding: 12px 14px; margin: 0 0 18px; font-size: 11pt; }
+  .no-print { margin-bottom: 16px; }
+  @media print {
+    .no-print, .warn { display: none; }
+    .sheet { padding: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="no-print">
+    <button type="button" class="btn" onclick="window.print()">Print these slips</button>
+    <a href="/families/status" class="btn ghost">Back to verification status</a>
+  </div>
+
+  <div class="warn">
+    <strong>Print this page now.</strong> Each PIN is shown here once and is
+    stored only in scrambled form, so it cannot be looked up again. If a slip is
+    lost, issue that family a new PIN from its own page — the old one stops
+    working the moment a new one is issued.
+  </div>
+
+  <% if (skipped.length) { %>
+    <div class="warn">
+      <strong>No slip for <%= skipped.length %>:</strong>
+      <ul style="margin:6px 0 0"><% skipped.forEach(function (why) { %><li><%= why %></li><% }); %></ul>
+    </div>
+  <% } %>
+
+  <% if (!slips.length) { %>
+    <p>No slips were issued.</p>
+  <% } else { %>
+    <div class="slips">
+      <% slips.forEach(function (slip) { %>
+        <div class="slip">
+          <h3><%= slip.head_name %></h3>
+          <p class="ref">
+            <%= settings.parish_name %> · Family ID <strong><%= slip.family_id %></strong><%
+            %><% if (slip.area) { %> · <%= slip.area %><% } %>
+          </p>
+          <p class="pin"><%= slip.pin %></p>
+          <p class="how">
+            To check and correct your family&rsquo;s entry, sign in with your
+            <strong>Family ID</strong> and this <strong>PIN</strong>. No email
+            address is needed. Anything you correct is sent to the parish office
+            for approval before it appears in the printed directory.
+          </p>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+</body>
+</html>

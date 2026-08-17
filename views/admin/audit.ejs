@@ -1,0 +1,65 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Audit log</h1>
+  <p class="sub">
+    What happened in this parish, newest first. Every line records who, what and
+    when. Nothing in this application edits or deletes a line of it.
+  </p>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <a href="/review/export.csv" class="btn ghost">Export the change queue</a>
+  </div>
+</div>
+
+<form method="get" action="/admin/audit" class="card filter-bar">
+  <label>
+    Event
+    <select name="action" onchange="this.form.submit()">
+      <% events.forEach(function (event) { %>
+        <option value="<%= event.value %>" <%= action === event.value ? 'selected' : '' %>>
+          <%= event.label %>
+        </option>
+      <% }); %>
+    </select>
+  </label>
+  <noscript><button type="submit" class="btn ghost small">Filter</button></noscript>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <% if (!entries.length) { %>
+    <div class="empty">Nothing has been recorded under this filter yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="nowrap">When</th>
+            <th class="nowrap">Who</th>
+            <th class="nowrap">What</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% entries.forEach(function (entry) { %>
+            <tr>
+              <td class="nowrap" style="color:var(--ink-faint)"><%= entry.at %></td>
+              <td class="nowrap"><%= entry.username %></td>
+              <td class="nowrap"><code><%= entry.action %></code></td>
+              <td><%= entry.detail || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<p class="help" style="color:var(--ink-faint);font-size:14px">
+  A submission, its review, its outcome and the moment the approved value
+  reached the parish record are all recorded here. The log keeps its own copy of
+  the operator&rsquo;s name, so a record survives the account being deleted — an
+  audit line that disappears along with its account is not an audit line.
+</p>
+
+<%- include('../partials/footer') %>

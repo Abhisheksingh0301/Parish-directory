@@ -12,6 +12,8 @@ const tenancy = require('./lib/tenancy');
 const csrf = require('./lib/csrf');
 const html = require('./lib/html');
 const settings = require('./lib/settings');
+const wrap = require('./lib/async');
+const Pending = require('./models/pending');
 const createSqliteStore = require('./lib/session-store');
 const { acceptPhoto } = require('./lib/upload');
 
@@ -19,6 +21,7 @@ const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
 const familiesRouter = require('./routes/families');
 const directoryRouter = require('./routes/directory');
+const reviewRouter = require('./routes/review');
 const adminRouter = require('./routes/admin');
 const superRouter = require('./routes/super');
 const superReportsRouter = require('./routes/super-reports');
@@ -90,6 +93,21 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * How many proposals are waiting, for the badge on the Review tab.
+ *
+ * One indexed COUNT per page for staff who can actually act on it, and nothing
+ * at all for a household login or for a super administrator who has not
+ * borrowed a church. A queue nobody can see the size of is a queue that grows.
+ */
+app.use(wrap(async (req, res, next) => {
+  res.locals.pendingCount = 0;
+  if (req.churchId && auth.atLeast(req.user, 'editor')) {
+    res.locals.pendingCount = await Pending.openCount(req.churchId);
+  }
+  next();
+}));
+
 // Sign-in, first-run setup and the account page manage their own access.
 app.use('/', authRouter);
 
@@ -114,6 +132,7 @@ app.use('/uploads/:churchId(\\d+)', (req, res, next) => {
 app.use('/', indexRouter);
 app.use('/families', familiesRouter);
 app.use('/directory', directoryRouter);
+app.use('/review', reviewRouter);
 app.use('/admin', adminRouter);
 app.use('/super', superReportsRouter);
 app.use('/super', superRouter);

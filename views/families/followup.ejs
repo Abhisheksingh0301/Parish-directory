@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %> · <%= settings.parish_name %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+<style>
+  /*
+   * The sheet the Area Representative actually carries.
+   *
+   * Deliberately plain: black on white, one table, wide enough columns to write
+   * in by hand. It is printed, folded and taken to somebody's door, so it does
+   * not need the application's palette and must not waste a line on it.
+   */
+  body { background: #fff; color: #000; font-size: 12pt; margin: 0; }
+  .sheet { max-width: 780px; margin: 0 auto; padding: 24px; }
+  .sheet h1 { font-size: 19pt; margin: 0 0 2px; }
+  .sheet .meta { color: #444; font-size: 10.5pt; margin: 0 0 18px; }
+  .sheet table { width: 100%; border-collapse: collapse; font-size: 11pt; }
+  .sheet th, .sheet td { border: 1px solid #999; padding: 6px 8px; text-align: left; }
+  .sheet th { background: #eee; font-size: 9.5pt; text-transform: uppercase; letter-spacing: .05em; }
+  .sheet td.note { width: 150px; }
+  .no-print { margin-bottom: 16px; }
+  @media print {
+    .no-print { display: none; }
+    .sheet { padding: 0; max-width: none; }
+    thead { display: table-header-group; }
+    tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="no-print">
+    <button type="button" class="btn" onclick="window.print()">Print this sheet</button>
+    <a href="/families/status" class="btn ghost">Back</a>
+  </div>
+
+  <h1><%= settings.parish_name %></h1>
+  <p class="meta">
+    Directory verification follow-up<%
+    %><% if (filter.area) { %> — Area: <strong><%= filter.area %></strong><% } %><%
+    %><% if (filter.prayerGroup) { %> — Prayer Group: <strong><%= filter.prayerGroup %></strong><% } %><%
+    %><% if (filter.status) { %> — <%= statusLabel %><% } %>.
+    <%= families.length %> famil<%= families.length === 1 ? 'y' : 'ies' %>.
+    Printed <%= printedOn %>.
+  </p>
+
+  <% if (!families.length) { %>
+    <p>No family matches this selection.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px">Family ID</th>
+          <th>Family head</th>
+          <th style="width:120px">Contact</th>
+          <th style="width:130px">Status</th>
+          <th class="note">Seen / notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% families.forEach(function (f) { %>
+          <tr>
+            <td><%= f.family_id %></td>
+            <td><%= f.head_name %></td>
+            <td><%= f.contact || '' %></td>
+            <td><%= f.status_label %></td>
+            <td class="note"></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>
+    <%= family.head_name %>
+    <span class="tag"><%= family.family_id %></span>
+  </h1>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <a href="/review" class="btn ghost">Back to the queue</a>
+    <a href="/families/<%= family.id %>" class="btn ghost">The record as it stands</a>
+  </div>
+</div>
+
+<%- include('../partials/messages') %>
+
+<% if (!changes.length) { %>
+  <div class="card">
+    <div class="empty">This family has nothing waiting for review.</div>
+  </div>
+<% } else { %>
+  <div class="card review-block">
+    <h2>Proposed changes <span class="hint">— <%= changes.length %></span></h2>
+
+    <form id="batch-<%= family.id %>" method="post" action="/review/decide">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="back" value="/review/<%= family.id %>">
+    </form>
+
+    <%- include('_lines', {
+          changes: changes,
+          batchForm: 'batch-' + family.id,
+          back: '/review/' + family.id,
+          mayClear: mayClear,
+          tiers: tiers,
+          twoTier: twoTier
+        }) %>
+
+    <div class="actions">
+      <button type="submit" class="btn" form="batch-<%= family.id %>" name="outcome" value="approve">
+        Approve the ticked changes
+      </button>
+      <button type="submit" class="btn ghost" form="batch-<%= family.id %>" name="outcome" value="reject">
+        Reject the ticked changes
+      </button>
+      <input type="text" form="batch-<%= family.id %>" name="reason" maxlength="300"
+             placeholder="Reason, if rejecting" aria-label="Reason for rejecting the ticked changes"
+             style="max-width:280px">
+    </div>
+  </div>
+<% } %>
+
+<%
+  /*
+   * What has already been settled for this family. The point of showing it here
+   * is that a reviewer opening a second submission can see what was decided on
+   * the first, and why — including the reason given for a rejection, which the
+   * family has also been shown.
+   */
+  const settled = history.approved.concat(history.rejected)
+    .sort(function (a, b) { return String(b.reviewed_at).localeCompare(String(a.reviewed_at)); })
+    .slice(0, 30);
+%>
+
+<% if (settled.length) { %>
+  <div class="card">
+    <h2>Already decided <span class="hint">— most recent first</span></h2>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Proposed value</th>
+            <th class="nowrap">Outcome</th>
+            <th class="nowrap">Reviewed by</th>
+            <th class="nowrap">Master record updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% settled.forEach(function (change) { %>
+            <tr>
+              <td><%= change.label %></td>
+              <td><%= change.proposed_value || '—' %></td>
+              <td class="nowrap">
+                <% if (change.status === 'approved') { %>
+                  <span class="tag ok">Approved</span>
+                <% } else { %>
+                  <span class="tag draft">Rejected</span>
+                  <% if (change.reason) { %><br><span class="hint"><%= change.reason %></span><% } %>
+                <% } %>
+              </td>
+              <td class="nowrap"><%= change.reviewed_by_name || '—' %><br>
+                <span class="hint"><%= change.reviewed_at || '' %></span>
+              </td>
+              <td class="nowrap"><%= change.applied_at || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

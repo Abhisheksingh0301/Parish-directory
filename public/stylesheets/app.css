@@ -475,10 +475,124 @@ body.auth {
 .auth-card .parish { margin: 0 0 22px; color: var(--ink-faint); font-size: 14px; }
 .auth-card .btn { width: 100%; padding: 11px; }
 
+/* ---------- verification: the chain, the queue, the filters ---------- */
+
+/*
+ * The verification chain, as eight tiles that are also links. The count and the
+ * step name sit in one box because the pair is the sentence — "17 Not Started"
+ * — and the box is clickable so the number opens the names behind it.
+ */
+.chain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 8px;
+}
+.chain-step {
+  display: block;
+  padding: 12px 12px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-warm);
+  text-decoration: none;
+  color: var(--ink);
+}
+.chain-step:hover { border-color: var(--rule); background: #fff; }
+.chain-step.is-empty { opacity: .55; }
+.chain-step.is-current { border-color: var(--ink); background: #fff; }
+.chain-step .n { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
+.chain-step .k {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: 3px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.filter-bar select { min-width: 170px; }
+
+/* The badge on the Review tab: a queue nobody can see the size of grows. */
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/*
+ * The review table. The existing value is set back and the proposed value
+ * forward, so which of the two columns is the proposal is legible without
+ * reading the header — a reviewer clearing a hundred lines reads the shape of
+ * the row, not its heading.
+ */
+.table.diff td.was { color: var(--ink-faint); }
+.table.diff td.now { font-weight: 600; }
+.table.diff tr.composition td.now,
+.table.diff tr.composition td.was { font-style: normal; }
+.table.diff tr.composition { background: rgba(206, 196, 179, .18); }
+.table.diff td { vertical-align: top; }
+
+.line-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.line-actions input[type=text] { width: 150px; padding: 5px 8px; font-size: 13px; }
+
+.review-block + .review-block { margin-top: 18px; }
+.batch-routine {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.batch-routine .help { margin: 0; font-size: 13px; color: var(--ink-faint); }
+
+.photo-box.small { max-width: 128px; padding: 4px; }
+
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 18px;
+}
+.tier-grid .checkline { font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* Visible to a screen reader, not on the page. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 860px) {
   .detail-grid { grid-template-columns: 1fr; }
+  .filter-bar select { min-width: 0; width: 100%; }
+  .line-actions { justify-content: flex-start; }
   .member-row { grid-template-columns: 1fr 1fr; }
   .member-row .drop { grid-column: 1 / -1; }
   .table-wrap { overflow-x: auto; }

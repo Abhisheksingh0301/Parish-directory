@@ -83,12 +83,21 @@ const Family = sequelize.define('Family', {
   // A neighbourhood-based group within this church, for local prayer
   // meetings — not part of the diocese/zone hierarchy above the church.
   prayer_group: text(),
+  // The division an Area Representative follows up, which is a different
+  // question from which prayer group a family attends.
+  area: text(),
   email: text(),
   photo: { type: DataTypes.TEXT, allowNull: true },
   // Date of marriage: day and month only, never a year.
   dom_day: { type: DataTypes.INTEGER, allowNull: true },
   dom_month: { type: DataTypes.INTEGER, allowNull: true },
   is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  // Where this family has got to in the verification chain. The keys are
+  // lib/verification.js's STATUSES; nothing else may be written here.
+  verify_status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'not_started' },
+  verify_status_at: { type: DataTypes.STRING, allowNull: true },
+  invited_at: { type: DataTypes.STRING, allowNull: true },
+  printed_at: { type: DataTypes.STRING, allowNull: true },
   created_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now },
   updated_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now }
 }, { tableName: 'families' });
@@ -163,6 +172,56 @@ const AuditLog = sequelize.define('AuditLog', {
   detail: text()
 }, { tableName: 'audit_log' });
 
+// ---------------------------------------------------------------------------
+// Proposals, waiting to be approved
+// ---------------------------------------------------------------------------
+
+/**
+ * One family's proposal, made at one moment.
+ *
+ * `submitted_by_name` and `submitted_via` are copied in for the same reason
+ * the audit log copies a username: the answer to "who submitted this, and was
+ * it the family or somebody acting for them" has to survive the account.
+ */
+const Submission = sequelize.define('Submission', {
+  id,
+  church_id: { type: DataTypes.INTEGER, allowNull: false },
+  family_id: { type: DataTypes.INTEGER, allowNull: false },
+  submitted_by: { type: DataTypes.INTEGER, allowNull: true },
+  submitted_by_name: text(),
+  submitted_via: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'family' },
+  submitted_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now },
+  status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'open' }
+}, { tableName: 'submissions' });
+
+/**
+ * One line of a proposal — one field, approved or rejected on its own.
+ *
+ * The outcome cannot live on the submission: a reviewer accepts a new mobile
+ * number and rejects a proposed address in the same breath, and the rest of
+ * the record is left untouched.
+ */
+const PendingChange = sequelize.define('PendingChange', {
+  id,
+  submission_id: { type: DataTypes.INTEGER, allowNull: false },
+  church_id: { type: DataTypes.INTEGER, allowNull: false },
+  family_id: { type: DataTypes.INTEGER, allowNull: false },
+  kind: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'family' },
+  field: text(),
+  label: text(),
+  tier: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'significant' },
+  existing_value: text(),
+  proposed_value: text(),
+  // The machine-readable half: which member, which column, what value.
+  payload: { type: DataTypes.TEXT, allowNull: false, defaultValue: '{}' },
+  status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'pending' },
+  reviewed_by: { type: DataTypes.INTEGER, allowNull: true },
+  reviewed_by_name: text(),
+  reviewed_at: { type: DataTypes.STRING, allowNull: true },
+  reason: text(),
+  applied_at: { type: DataTypes.STRING, allowNull: true }
+}, { tableName: 'pending_changes' });
+
 const Session = sequelize.define('Session', {
   sid: { type: DataTypes.TEXT, primaryKey: true },
   expires: { type: DataTypes.INTEGER, allowNull: false },
@@ -198,6 +257,17 @@ User.belongsTo(Church, { foreignKey: 'church_id', as: 'church' });
 Church.hasMany(ChurchSetting, { foreignKey: 'church_id', as: 'settings', onDelete: 'CASCADE' });
 ChurchSetting.belongsTo(Church, { foreignKey: 'church_id', as: 'church' });
 
+// A deleted family takes its outstanding proposals with it — a queue item
+// pointing at a row that no longer exists cannot be reviewed.
+Family.hasMany(Submission, { foreignKey: 'family_id', as: 'submissions', onDelete: 'CASCADE' });
+Submission.belongsTo(Family, { foreignKey: 'family_id', as: 'family' });
+
+Submission.hasMany(PendingChange, { foreignKey: 'submission_id', as: 'changes', onDelete: 'CASCADE' });
+PendingChange.belongsTo(Submission, { foreignKey: 'submission_id', as: 'submission' });
+
+Family.hasMany(PendingChange, { foreignKey: 'family_id', as: 'pendingChanges', onDelete: 'CASCADE' });
+PendingChange.belongsTo(Family, { foreignKey: 'family_id', as: 'family' });
+
 module.exports = {
   now,
   Diocese,
@@ -209,5 +279,7 @@ module.exports = {
   Setting,
   ChurchSetting,
   AuditLog,
+  Submission,
+  PendingChange,
   Session
 };

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/head-assets') %>
+<title><%= title %> · <%= settings.parish_name %></title>
+<link rel="stylesheet" href="/stylesheets/app.css">
+</head>
+<body class="auth">
+
+<div class="auth-card">
+  <h1><%= settings.directory_title %></h1>
+  <p class="parish">Sign in with your Family ID</p>
+
+  <%- include('../partials/messages') %>
+
+  <form method="post" action="/family-login" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <% if (churches.length > 1) { %>
+      <div class="field">
+        <label for="church_id">Parish</label>
+        <select id="church_id" name="church_id" required>
+          <option value="">Choose your parish</option>
+          <% churches.forEach(function (c) { %>
+            <option value="<%= c.id %>" <%= String(church_id) === String(c.id) ? 'selected' : '' %>>
+              <%= c.name %><%= c.city ? ', ' + c.city : '' %>
+            </option>
+          <% }); %>
+        </select>
+      </div>
+    <% } else if (churches.length === 1) { %>
+      <input type="hidden" name="church_id" value="<%= churches[0].id %>">
+    <% } %>
+
+    <div class="field">
+      <label for="family_ref">Family ID</label>
+      <input type="text" id="family_ref" name="family_ref" value="<%= family_ref %>"
+             inputmode="text" autofocus required
+             placeholder="0001">
+      <p class="help">The number printed at the top of your verification slip.</p>
+    </div>
+
+    <div class="field">
+      <label for="pin">PIN</label>
+      <input type="password" id="pin" name="pin" inputmode="numeric"
+             autocomplete="one-time-code" required>
+      <p class="help">The six digits on the same slip.</p>
+    </div>
+
+    <button type="submit" class="btn">Sign in</button>
+  </form>
+
+  <p class="help" style="margin-top:18px">
+    Have you an email address on file with the parish?
+    <a href="/login">Sign in with that instead</a>.
+    <br>
+    Lost your slip, or never had one? Ask the parish office or your Area
+    Representative — they can issue a new PIN, or enter your corrections for you.
+  </p>
+</div>
+
+<script src="/javascripts/password-toggle.js"></script>
+</body>
+</html>

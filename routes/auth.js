@@ -3,6 +3,8 @@
 const express = require('express');
 const db = require('../db');
 const Users = require('../models/user');
+const Family = require('../models/family');
+const Churches = require('../models/church');
 const auth = require('../lib/auth');
 const wrap = require('../lib/async');
 
@@ -143,6 +145,89 @@ router.post('/login', wrap(async (req, res) => {
 
   // Only ever bounce back to a path on this site.
   res.redirect(returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/');
+}));
+
+// ---------------------------------------------------------------------------
+// Signing in with a Family ID and a PIN
+//
+// No family is excluded for want of an email address. A household that has one
+// signs in with it above; a household that has not signs in here, with the
+// Family ID the parish has always used and the short PIN printed on the
+// verification slip handed to it. No email address is involved at any step.
+//
+// The parish is asked for because a Family ID is the parish's own numbering
+// and is unique inside it and nowhere else — two parishes may both number a
+// family 0001, and neither may see the other's records.
+// ---------------------------------------------------------------------------
+
+async function parishOptions() {
+  const churches = await Churches.listChurches({});
+  return churches.filter((c) => c.is_active);
+}
+
+function renderFamilyLogin(res, status, locals) {
+  return res.status(status).render('auth/family-login', {
+    title: 'Family sign in',
+    family_ref: '',
+    church_id: '',
+    error: null,
+    ...locals
+  });
+}
+
+router.get('/family-login', wrap(async (req, res) => {
+  if (req.user) return res.redirect('/');
+
+  const churches = await parishOptions();
+  return renderFamilyLogin(res, 200, {
+    churches,
+    church_id: churches.length === 1 ? String(churches[0].id) : String(req.query.church || '')
+  });
+}));
+
+router.post('/family-login', wrap(async (req, res) => {
+  const churchId = Number(req.body.church_id);
+  const familyRef = String(req.body.family_ref || '').trim();
+  const pin = String(req.body.pin || '');
+  const churches = await parishOptions();
+
+  const key = attemptKey(req, `${churchId}:${familyRef}`);
+  const fail = (error, status = 401) => renderFamilyLogin(res, status, {
+    churches,
+    family_ref: familyRef,
+    church_id: req.body.church_id || '',
+    error
+  });
+
+  if (isLockedOut(key)) {
+    return fail('Too many attempts. Please wait 15 minutes and try again.', 429);
+  }
+  if (!Number.isInteger(churchId) || !familyRef || !pin) {
+    return fail('Choose your parish, and enter your Family ID and PIN.', 400);
+  }
+  if (!churches.some((c) => c.id === churchId)) {
+    return fail('That parish is not open for sign-in.', 400);
+  }
+
+  const family = await Family.findByRef(churchId, familyRef);
+  const user = family ? await Users.findByFamily(family.id) : null;
+
+  /*
+   * One message for every kind of failure. A form that said "no such Family
+   * ID" would confirm which numbers a parish uses to anybody who asked, and
+   * the Family ID is printed on the front of every entry in the book.
+   */
+  if (!user || !user.is_active || user.role !== 'family' ||
+      !(await auth.verifyPassword(pin, user.password_hash))) {
+    recordFailure(key);
+    return fail('That Family ID and PIN did not match.');
+  }
+
+  attempts.delete(key);
+  await Users.recordLogin(user.id);
+  await startSession(req, user);
+
+  res.redirect(`/families/${family.id}`);
 }));
 
 router.post('/logout', (req, res) => {

@@ -10,6 +10,7 @@
       <button type="submit" class="btn ghost">Search</button>
       <% if (search) { %><a href="/families" class="btn ghost">Clear</a><% } %>
     </form>
+    <a href="/families/status" class="btn ghost">Verification status</a>
     <% if (canEdit) { %><a href="/families/new" class="btn">Add a family</a><% } %>
   </div>
 </div>
@@ -105,6 +106,7 @@
             <th>Family head</th>
             <th>Address</th>
             <th class="nowrap">Members</th>
+            <th class="nowrap">Verification</th>
             <th class="nowrap">DOM</th>
             <% if (isAdmin) { %><th class="nowrap">Login</th><% } %>
             <th></th>
@@ -120,6 +122,9 @@
               </td>
               <td style="color:var(--ink-faint)"><%= f.address.split('\n')[0] %></td>
               <td class="nowrap"><%= f.member_count %></td>
+              <td class="nowrap">
+                <span class="tag"><%= statusLabel(f.verify_status) %></span>
+              </td>
               <td class="nowrap"><%= f.dom || '—' %></td>
               <% if (isAdmin) { %>
                 <td class="nowrap">

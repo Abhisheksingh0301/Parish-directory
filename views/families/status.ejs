@@ -1,0 +1,158 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Verification status</h1>
+  <p class="sub">
+    Where every family has got to, from the invitation to the printed book.
+    Narrow it to one Area or Prayer Group and the same filter produces the
+    follow-up sheet the Area Representative carries.
+  </p>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <a href="/families/status/print<%= query %>" class="btn ghost">Printable follow-up sheet</a>
+    <a href="/review" class="btn ghost">Review queue</a>
+  </div>
+</div>
+
+<%- include('../partials/messages') %>
+
+<form method="get" action="/families/status" class="card filter-bar">
+  <label>
+    Status
+    <select name="status">
+      <option value="">Every status</option>
+      <% statuses.forEach(function (step) { %>
+        <option value="<%= step.key %>" <%= filter.status === step.key ? 'selected' : '' %>>
+          <%= step.label %> (<%= counts[step.key] %>)
+        </option>
+      <% }); %>
+    </select>
+  </label>
+
+  <% if (groupings.areas.length) { %>
+    <label>
+      Area
+      <select name="area">
+        <option value="">All areas</option>
+        <% groupings.areas.forEach(function (a) { %>
+          <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
+        <% }); %>
+      </select>
+    </label>
+  <% } %>
+
+  <% if (groupings.prayerGroups.length) { %>
+    <label>
+      Prayer Group
+      <select name="group">
+        <option value="">All prayer groups</option>
+        <% groupings.prayerGroups.forEach(function (g) { %>
+          <option value="<%= g %>" <%= filter.prayerGroup === g ? 'selected' : '' %>><%= g %></option>
+        <% }); %>
+      </select>
+    </label>
+  <% } %>
+
+  <button type="submit" class="btn ghost small">Apply</button>
+  <% if (query) { %><a href="/families/status" class="btn ghost small">Clear</a><% } %>
+</form>
+
+<div class="card">
+  <h2>The chain <span class="hint">— <%= total %> famil<%= total === 1 ? 'y' : 'ies' %> in this view</span></h2>
+
+  <div class="chain">
+    <% statuses.forEach(function (step) { %>
+      <%
+        const stepQuery = [
+          'status=' + encodeURIComponent(step.key),
+          filter.area ? 'area=' + encodeURIComponent(filter.area) : '',
+          filter.prayerGroup ? 'group=' + encodeURIComponent(filter.prayerGroup) : ''
+        ].filter(Boolean).join('&');
+      %>
+      <a class="chain-step <%= counts[step.key] ? '' : 'is-empty' %> <%= filter.status === step.key ? 'is-current' : '' %>"
+         href="/families/status?<%= stepQuery %>">
+        <span class="n"><%= counts[step.key] %></span>
+        <span class="k"><%= step.label %></span>
+      </a>
+    <% }); %>
+  </div>
+</div>
+
+<% if (isAdmin) { %>
+  <div class="card">
+    <h2>Marking a batch</h2>
+
+    <div class="actions" style="margin-top:0">
+      <form method="post" action="/families/invitations<%= query %>"
+            onsubmit="return confirm('Mark the <%= families.length %> famil<%= families.length === 1 ? 'y' : 'ies' %> in this view as invited?')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn ghost" <%= families.length ? '' : 'disabled' %>>
+          Mark these <%= families.length %> as invited
+        </button>
+      </form>
+
+      <form method="post" action="/families/pins"
+            onsubmit="return confirm('Issue a new PIN to every family in this parish? Any PIN already handed out stops working.')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <% families.forEach(function (f) { %>
+          <input type="hidden" name="family_ids" value="<%= f.id %>">
+        <% }); %>
+        <button type="submit" class="btn ghost" <%= families.length ? '' : 'disabled' %>>
+          Print verification slips with Family ID and PIN
+        </button>
+      </form>
+
+      <form method="post" action="/families/printed"
+            onsubmit="return confirm('Mark every family in the printed book as Printed?')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn ghost">Mark the printed book as printed</button>
+      </form>
+    </div>
+
+    <p class="help">
+      <strong>Invitation Sent</strong> records that the parish office sent the
+      invitations. The application sends no email itself — messages go out from
+      the parish&rsquo;s own account — so this is a record of the office&rsquo;s
+      action, not a delivery receipt. Families without an email address are
+      reached with a <strong>verification slip</strong>: their Family ID and a
+      short PIN, which is all they need to sign in.
+    </p>
+  </div>
+<% } %>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <% if (!families.length) { %>
+    <div class="empty">No family matches this view.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:90px">ID</th>
+            <th>Family head</th>
+            <th>Area</th>
+            <th>Prayer Group</th>
+            <th class="nowrap">Contact</th>
+            <th class="nowrap">Status</th>
+            <th class="nowrap">Since</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% families.forEach(function (f) { %>
+            <tr>
+              <td class="nowrap"><strong><%= f.family_id %></strong></td>
+              <td><a href="/families/<%= f.id %>"><%= f.head_name %></a></td>
+              <td><%= f.area || '—' %></td>
+              <td><%= f.prayer_group || '—' %></td>
+              <td class="nowrap"><%= f.contact || '—' %></td>
+              <td class="nowrap"><span class="tag"><%= f.status_label %></span></td>
+              <td class="nowrap" style="color:var(--ink-faint)"><%= f.verify_status_at || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

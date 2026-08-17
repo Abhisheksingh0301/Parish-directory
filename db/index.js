@@ -13,6 +13,7 @@ const { QueryTypes, DataTypes, Op } = require('sequelize');
 const config = require('../config');
 const { sequelize, applyDialectPragmas } = require('./sequelize');
 const models = require('./models');
+const verification = require('../lib/verification');
 const { MIGRATIONS, CHURCH_SETTING_KEYS } = require('./migrations');
 
 /**
@@ -31,6 +32,20 @@ const DEFAULT_SETTINGS = {
   // one church's staff could read the string that opened every other church's
   // new member accounts. DEFAULT_USER_PASSWORD is now only the starting value.
   default_member_password: config.defaultUserPassword,
+  /*
+   * How many approval queues this church runs.
+   *
+   * '1' — one queue for everything, which is what a pilot should start with:
+   * with five to ten families the volume is small, there is no risk of a field
+   * being mis-classified, and every line is approved individually.
+   *
+   * '2' — routine changes (below) reviewed as a batch by an editor, everything
+   * else individually by an administrator. The same review screen either way;
+   * the tier only decides who may clear a line and whether batch approval is
+   * offered, so switching it on is a setting rather than a rebuild.
+   */
+  approval_tiers: '1',
+  routine_fields: verification.DEFAULT_ROUTINE_FIELDS,
   color_band: '#cec4b3',
   color_band_dark: '#b6ab97',
   color_member_a: '#d9d2c4',

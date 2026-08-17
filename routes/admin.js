@@ -7,6 +7,8 @@ const Users = require('../models/user');
 const auth = require('../lib/auth');
 const tenancy = require('../lib/tenancy');
 const settings = require('../lib/settings');
+const audit = require('../lib/audit');
+const verification = require('../lib/verification');
 const wrap = require('../lib/async');
 
 const router = express.Router();
@@ -21,11 +23,24 @@ router.use(tenancy.requireChurch);
 
 const COLOR_KEYS = ['color_band', 'color_band_dark', 'color_member_a', 'color_member_b', 'color_rule'];
 
+/** Everything the settings page needs beyond the stored values themselves. */
+function settingsLocals() {
+  return {
+    colorKeys: COLOR_KEYS,
+    // The field list is a parish setting rather than something fixed in the
+    // code, so moving a field from one tier to the other is something the
+    // parish does itself.
+    tierableFields: verification.TIERABLE_FIELDS,
+    tiers: verification.TIERS,
+    neverEditable: verification.NEVER_EDITABLE
+  };
+}
+
 router.get('/settings', wrap(async (req, res) => {
   res.render('admin/settings', {
     title: 'Parish settings',
     values: await settings.load(req.churchId),
-    colorKeys: COLOR_KEYS,
+    ...settingsLocals(),
     errors: [],
     notice: null
   });
@@ -53,11 +68,23 @@ router.post('/settings', wrap(async (req, res) => {
     errors.push('The member password must be at least 8 characters.');
   }
 
+  /*
+   * Which fields are routine, kept as the parish typed them but filtered to
+   * fields that actually exist. A misspelling silently promoting a field to
+   * "significant" would be a change nobody could see on this page.
+   */
+  const known = new Set(verification.TIERABLE_FIELDS.map((f) => f.key));
+  const routine = [].concat(req.body.routine_fields || [])
+    .map((key) => String(key).trim().toLowerCase())
+    .filter((key) => known.has(key));
+
   const updates = {
     parish_name: text(req.body.parish_name),
     default_member_password: memberPassword,
     directory_title: text(req.body.directory_title) || 'Parish Directory',
     relation_options: text(req.body.relation_options),
+    approval_tiers: req.body.approval_tiers === '2' ? '2' : '1',
+    routine_fields: routine.join(', '),
     starting_page: String(startingPage),
     per_page: String(perPage)
   };
@@ -75,8 +102,8 @@ router.post('/settings', wrap(async (req, res) => {
     const current = await settings.load(req.churchId);
     return res.status(400).render('admin/settings', {
       title: 'Parish settings',
-      values: { ...current, ...req.body },
-      colorKeys: COLOR_KEYS,
+      values: { ...current, ...req.body, routine_fields: routine.join(', ') },
+      ...settingsLocals(),
       errors,
       notice: null
     });
@@ -87,9 +114,50 @@ router.post('/settings', wrap(async (req, res) => {
   res.render('admin/settings', {
     title: 'Parish settings',
     values: await settings.load(req.churchId),
-    colorKeys: COLOR_KEYS,
+    ...settingsLocals(),
     errors: [],
     notice: 'Settings saved.'
+  });
+}));
+
+// ---------------------------------------------------------------------------
+// The audit log, as this parish reads it
+// ---------------------------------------------------------------------------
+
+/**
+ * What happened to us, and who did it.
+ *
+ * The same log the console shows, narrowed to this church in the query rather
+ * than filtered afterwards — a parish administrator cannot read another
+ * parish's history by removing the filter, because there is no query here that
+ * reaches one.
+ *
+ * There is no screen anywhere in this application that edits or deletes a log
+ * line, and this page is deliberately not the exception.
+ */
+const AUDIT_EVENTS = [
+  { value: '', label: 'Everything' },
+  { value: 'family.submitted', label: 'Changes submitted' },
+  { value: 'family.approved', label: 'Changes approved' },
+  { value: 'family.rejected', label: 'Changes rejected' },
+  { value: 'family.invited', label: 'Invitations marked sent' },
+  { value: 'family.pin_issued', label: 'Verification slips issued' },
+  { value: 'family.printed', label: 'Marked as printed' },
+  { value: 'family.imported', label: 'Data imported' },
+  { value: 'export', label: 'Exports' },
+  { value: 'church', label: 'Parish structure' }
+];
+
+router.get('/audit', wrap(async (req, res) => {
+  const action = AUDIT_EVENTS.some((e) => e.value && e.value === req.query.action)
+    ? String(req.query.action)
+    : '';
+
+  res.render('admin/audit', {
+    title: 'Audit log',
+    entries: await audit.list({ churchId: req.churchId, action, limit: 400 }),
+    events: AUDIT_EVENTS,
+    action
   });
 }));
 

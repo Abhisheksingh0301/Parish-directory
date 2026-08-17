@@ -1,0 +1,146 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Review queue</h1>
+  <p class="sub">
+    Nothing a family submits has changed the directory. Each line below is a
+    proposal, and it reaches the parish record only when it is approved here.
+  </p>
+  <div class="spacer"></div>
+  <div class="actions" style="margin:0">
+    <a href="/review/export.csv<%= query %>" class="btn ghost">Export the queue</a>
+    <a href="/families/status" class="btn ghost">Verification status</a>
+  </div>
+</div>
+
+<%- include('../partials/messages') %>
+
+<% if (twoTier || groupings.areas.length || groupings.prayerGroups.length) { %>
+  <form method="get" action="/review" class="card filter-bar">
+    <% if (twoTier) { %>
+      <label>
+        Queue
+        <select name="tier">
+          <option value="">Everything waiting</option>
+          <% Object.entries(tiers).forEach(function ([key, tier]) { %>
+            <option value="<%= key %>" <%= filter.tier === key ? 'selected' : '' %>><%= tier.label %></option>
+          <% }); %>
+        </select>
+      </label>
+    <% } %>
+
+    <% if (groupings.areas.length) { %>
+      <label>
+        Area
+        <select name="area">
+          <option value="">All areas</option>
+          <% groupings.areas.forEach(function (a) { %>
+            <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
+          <% }); %>
+        </select>
+      </label>
+    <% } %>
+
+    <% if (groupings.prayerGroups.length) { %>
+      <label>
+        Prayer Group
+        <select name="group">
+          <option value="">All prayer groups</option>
+          <% groupings.prayerGroups.forEach(function (g) { %>
+            <option value="<%= g %>" <%= filter.prayerGroup === g ? 'selected' : '' %>><%= g %></option>
+          <% }); %>
+        </select>
+      </label>
+    <% } %>
+
+    <button type="submit" class="btn ghost small">Apply</button>
+    <% if (query) { %><a href="/review" class="btn ghost small">Clear</a><% } %>
+  </form>
+<% } %>
+
+<% if (!blocks.length) { %>
+  <div class="card">
+    <div class="empty">
+      Nothing is waiting for review.
+      <% if (recentlyApproved.length) { %>
+        <br>The last approvals were applied to the parish record.
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<% blocks.forEach(function (block) { %>
+  <%
+    const routineIds = block.changes.filter(function (c) {
+      return c.tier === 'routine' && mayClear.includes('routine');
+    }).map(function (c) { return c.id; });
+    const batchForm = 'batch-' + block.family.id;
+  %>
+
+  <div class="card review-block">
+    <h2>
+      <a href="/families/<%= block.family.id %>"><%= block.family.head_name %></a>
+      <span class="hint">
+        — Family ID <%= block.family.family_id %><%
+        %><% if (block.family.area) { %>, <%= block.family.area %><% } %><%
+        %><% if (block.family.prayer_group) { %>, <%= block.family.prayer_group %><% } %>
+      </span>
+    </h2>
+
+    <p class="help" style="margin-top:-8px">
+      <%= block.changes.length %> proposed <%= block.changes.length === 1 ? 'change' : 'changes' %>,
+      submitted <%= block.submitted_at %> by <strong><%= block.submitted_by_name %></strong><%
+      %><% if (block.submitted_via === 'assisted') { %>
+        <span class="tag draft">Assisted entry</span>
+      <% } %>.
+    </p>
+
+    <form id="<%= batchForm %>" method="post" action="/review/decide">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="back" value="/review<%= query %>">
+    </form>
+
+    <%- include('_lines', {
+          changes: block.changes,
+          batchForm: batchForm,
+          back: '/review' + query,
+          mayClear: mayClear,
+          tiers: tiers,
+          twoTier: twoTier
+        }) %>
+
+    <div class="actions">
+      <button type="submit" class="btn" form="<%= batchForm %>" name="outcome" value="approve">
+        Approve the ticked changes
+      </button>
+      <button type="submit" class="btn ghost" form="<%= batchForm %>" name="outcome" value="reject">
+        Reject the ticked changes
+      </button>
+      <input type="text" form="<%= batchForm %>" name="reason" maxlength="300"
+             placeholder="Reason, if rejecting" aria-label="Reason for rejecting the ticked changes"
+             style="max-width:280px">
+      <span class="spacer"></span>
+      <a href="/review/<%= block.family.id %>" class="btn ghost small">Open this family</a>
+    </div>
+
+    <% if (twoTier && routineIds.length) { %>
+      <form method="post" action="/review/decide" class="batch-routine">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="back" value="/review<%= query %>">
+        <% routineIds.forEach(function (id) { %>
+          <input type="hidden" name="change_ids" value="<%= id %>">
+        <% }); %>
+        <button type="submit" class="btn ghost small" name="outcome" value="approve">
+          Approve all <%= routineIds.length %> routine
+          <%= routineIds.length === 1 ? 'change' : 'changes' %> together
+        </button>
+        <span class="help">
+          Routine changes are reviewed in a single batch; significant ones stay
+          on their own line above.
+        </span>
+      </form>
+    <% } %>
+  </div>
+<% }); %>
+
+<%- include('../partials/footer') %>

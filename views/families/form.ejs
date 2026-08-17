@@ -6,6 +6,16 @@
   function memberRow(index, m) {
 %>
   <div class="member-row" data-member-row>
+    <%
+      /*
+       * A saved member carries its id back. Without it a correction to "the
+       * second row's mobile number" would have to be matched by position, and
+       * a pending change waiting in the review queue would land on whoever
+       * happened to be second by the time it was approved.
+       */
+    %>
+    <input type="hidden" name="members[<%= index %>][id]" value="<%= m.id || '' %>">
+
     <div class="field">
       <label>Name</label>
       <input type="text" name="members[<%= index %>][name]" value="<%= m.name %>"
@@ -96,6 +106,17 @@
   <% relationOptions.forEach(function (code) { %><option value="<%= code %>"><% }); %>
 </datalist>
 
+<%
+  // Offered rather than enforced: an Area or a Prayer Group that does not exist
+  // yet has to be typeable, or the first family in a new one cannot be entered.
+%>
+<datalist id="area-names">
+  <% groupings.areas.forEach(function (name) { %><option value="<%= name %>"><% }); %>
+</datalist>
+<datalist id="prayer-group-names">
+  <% groupings.prayerGroups.forEach(function (name) { %><option value="<%= name %>"><% }); %>
+</datalist>
+
 <form method="post"
       action="<%= isNew ? '/families' : '/families/' + family.id %>"
       enctype="multipart/form-data">
@@ -175,7 +196,18 @@
 
       <div class="field">
         <label for="prayer_group">Prayer group</label>
-        <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>">
+        <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>"
+               list="prayer-group-names">
+      </div>
+
+      <div class="field">
+        <label for="area">Area</label>
+        <input type="text" id="area" name="area" value="<%= family.area || '' %>"
+               list="area-names">
+        <p class="help">
+          The division an Area Representative follows up. Verification status
+          can be read, and the follow-up sheet printed, one Area at a time.
+        </p>
       </div>
 
       <div class="field">
@@ -260,8 +292,23 @@
     </div>
   </div>
 
+  <% if (isOwnEntry) { %>
+    <div class="card">
+      <h2>What happens when you send this</h2>
+      <p class="help" style="margin:0">
+        Nothing you send changes the parish directory on its own. Your
+        corrections go to the parish office as a proposal, and each one is
+        looked at and approved before it reaches the record that is printed.
+        You will see what was approved — and the reason for anything that was
+        not — the next time you sign in.
+      </p>
+    </div>
+  <% } %>
+
   <div class="actions">
-    <button type="submit" class="btn"><%= isNew ? 'Create family' : 'Save changes' %></button>
+    <button type="submit" class="btn">
+      <%= isNew ? 'Create family' : (isOwnEntry ? 'Send our corrections' : 'Save changes') %>
+    </button>
     <a href="<%= isNew ? '/families' : '/families/' + family.id %>" class="btn ghost">Cancel</a>
 
     <% if (!isNew) { %>
@@ -285,7 +332,7 @@
 
 <template id="member-template">
   <% memberRow('__INDEX__', {
-       name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '',
+       id: '', name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '',
        blood_group: '', qualification: '', occupation: '', links: ''
      }); %>
 </template>

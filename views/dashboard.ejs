@@ -19,6 +19,87 @@
   </div>
 </div>
 
+<%
+  /*
+   * The verification chain, counted. Each tile clicks through to the list of
+   * exactly those families, which is the point — a number nobody can open is
+   * a number nobody trusts.
+   */
+  const filterQuery = [
+    filter.area ? 'area=' + encodeURIComponent(filter.area) : '',
+    filter.prayerGroup ? 'group=' + encodeURIComponent(filter.prayerGroup) : ''
+  ].filter(Boolean).join('&');
+%>
+
+<div class="card">
+  <h2>
+    Verification status
+    <span class="hint">
+      — <%= statusTotal %> famil<%= statusTotal === 1 ? 'y' : 'ies' %><%
+      %><% if (filter.area) { %> in <%= filter.area %><% } %><%
+      %><% if (filter.prayerGroup) { %> in <%= filter.prayerGroup %><% } %>
+    </span>
+  </h2>
+
+  <% if (groupings.areas.length || groupings.prayerGroups.length) { %>
+    <form method="get" action="/" class="filter-bar">
+      <% if (groupings.areas.length) { %>
+        <label>
+          Area
+          <select name="area" onchange="this.form.submit()">
+            <option value="">All areas</option>
+            <% groupings.areas.forEach(function (a) { %>
+              <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
+            <% }); %>
+          </select>
+        </label>
+      <% } %>
+      <% if (groupings.prayerGroups.length) { %>
+        <label>
+          Prayer Group
+          <select name="group" onchange="this.form.submit()">
+            <option value="">All prayer groups</option>
+            <% groupings.prayerGroups.forEach(function (g) { %>
+              <option value="<%= g %>" <%= filter.prayerGroup === g ? 'selected' : '' %>><%= g %></option>
+            <% }); %>
+          </select>
+        </label>
+      <% } %>
+      <noscript><button type="submit" class="btn ghost small">Apply</button></noscript>
+    </form>
+  <% } %>
+
+  <div class="chain">
+    <% statuses.forEach(function (step, i) { %>
+      <a class="chain-step <%= statusCounts[step.key] ? '' : 'is-empty' %>"
+         href="/families/status?status=<%= step.key %><%= filterQuery ? '&' + filterQuery : '' %>">
+        <span class="n"><%= statusCounts[step.key] %></span>
+        <span class="k"><%= step.label %></span>
+      </a>
+    <% }); %>
+  </div>
+
+  <div class="actions">
+    <a href="/families/status<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
+      Every family and its status
+    </a>
+    <a href="/families/status/print<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
+      Printable follow-up sheet
+    </a>
+    <% if (waiting) { %>
+      <a href="/review" class="btn">
+        Review <%= waiting %> waiting <%= waiting === 1 ? 'change' : 'changes' %>
+      </a>
+    <% } %>
+  </div>
+
+  <p class="help">
+    <strong>Invitation Sent</strong> records that the parish office sent the
+    invitations. The application sends no email itself, so this is a record of
+    the parish&rsquo;s action and not a delivery receipt from a mail server.
+  </p>
+</div>
+
 <div class="grid-2">
   <div class="card">
     <h2>Coming up <span class="hint">— next 30 days</span></h2>

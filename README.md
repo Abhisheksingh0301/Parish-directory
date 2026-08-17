@@ -124,10 +124,11 @@ its own with `npm run test:tenancy`, and the same for `test:smoke`,
 |---|---|
 | `npm start` | Run the app |
 | `npm run dev` | Run it, restarting on file changes |
-| `npm test` | All 128 checks |
+| `npm test` | All 197 checks |
 | `npm run superadmin` | Create, reset or list super administrators |
 | `npm run backup` | Snapshot the database and photographs |
 | `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
+| `npm run import-families -- --church <slug> --file <x.csv>` | Load a parish's existing families from its own spreadsheet. Run it with `--dry-run` first |
 
 ---
 
@@ -235,6 +236,143 @@ chain that replaces it needs no email at any step:
 
 ---
 
+## Family verification, and the approval queue
+
+**Nothing a family submits changes the parish record on its own.** A family
+login may edit every field of its own entry with no restriction on what it
+proposes — but the submission is written to a pending store, and the master
+record is left exactly as the parish office left it until Achen or an
+authorised administrator has approved it.
+
+### The workflow
+
+    Existing parish data → Import → Family verification → Family submits changes
+      → Achen or Admin review → Approval → Master record updated
+      → Final verification → Print-ready PDF and CSV export
+
+### Reviewing
+
+**Review** shows one block per family: the field, its existing value, its
+proposed value, and an action on each line.
+
+- **Only changed fields are listed.** A reviewer reads three lines, not the
+  whole record.
+- **Each line is approved or rejected on its own.** A new mobile number can be
+  accepted and a proposed address rejected in the same submission; the rest of
+  the record is untouched.
+- **Photographs are shown side by side**, the existing one against the proposed.
+- **Family composition reads in plain words** — *Member added: Anu Dsouza,
+  Daughter* — rather than as a comparison of table rows.
+- **Dates are shown in the directory's own format**, so the reviewer is
+  comparing what will actually be printed.
+- **A rejection may carry a short reason**, which the family sees the next time
+  it signs in, so a rejected correction is not silently lost.
+
+Two fields are never a family's to propose: the **Family ID** and **inclusion
+in the printed directory**. Both stay with the parish office and are dropped
+from a submission before it is read.
+
+### One queue, or two
+
+Under **Settings → Which changes require approval**:
+
+| | |
+|---|---|
+| **One queue** *(default)* | Every change is approved on its own line, by an administrator. Recommended for a pilot: with five or ten families the volume is small and no field can be mis-classified. |
+| **Two tiers** | *Routine* changes — mobile, email, occupation, qualification, photograph by default — may be cleared by an editor and approved as a batch. Everything else is approved individually by an administrator. |
+
+It is the same review screen either way; the tier only decides who may clear a
+line and whether batch approval is offered. Which fields are routine is a
+parish setting, not something fixed in the code.
+
+### Families with no email address
+
+No family is excluded for want of one. Three provisions, and a family may use
+whichever suits:
+
+1. **Family ID and PIN.** Issue a verification slip from the family's page, or
+   for a whole batch from **Verification status**. The household signs in at
+   `/family-login` with its Family ID and the six digits on the slip. No email
+   address is involved at any step. The PIN is shown once and stored only as a
+   hash — if a slip is lost, issue a new one.
+2. **Assisted entry.** An Area Representative or the office signs in and submits
+   on the family's behalf. It enters the same queue, and the audit trail records
+   who submitted it, so an assisted entry is never mistaken for one the family
+   made itself.
+3. **Paper.** The family corrects a printed slip by hand and the office keys it
+   in — same queue, same approval step.
+
+### Verification status
+
+The dashboard counts each step of the chain, and every count clicks through to
+the families behind it:
+
+    Not Started → Invitation Sent → Family Reviewing → Changes Submitted
+      → Under Parish Review → Approved → Ready for Printing → Printed
+
+Every status view narrows to one **Area** or **Prayer Group**, and the same
+filter produces a **printable follow-up sheet** — Family ID, family head,
+contact number and current status — which is the sheet the Area Representative
+actually carries.
+
+*One honest note on Invitation Sent:* this application sends no email itself, so
+that status is recorded when the parish office marks a batch as sent. It is an
+accurate record of the parish's action, not a delivery receipt from a mail
+server, and it should not be read as one.
+
+### The audit trail
+
+**Audit log** is readable per parish, newest first, and filterable by event
+type. The verification workflow records who submitted a change and when, who
+reviewed it and when, the outcome with the reason where one was given, and the
+moment the approved value reached the parish record. Every export is recorded
+too. The log keeps its own copy of the operator's name, so a record survives the
+account being deleted — and no screen anywhere in this application edits or
+deletes a log line.
+
+### Exporting the queue
+
+**Export the queue** gives a CSV of Family ID, Family, Field, Existing Value,
+Proposed Value, Submitted By, Submitted On, Reviewed By, Status and Reason. It
+doubles as the working paper for a review meeting: the queue can be read on
+paper and cleared on screen afterwards.
+
+---
+
+## Importing the parish's existing families
+
+The objective is that no family keys in what the parish already holds. Every
+family should find its existing record already on screen, with only the
+corrections left to make.
+
+```bash
+npm run import-families -- --church st-marys --file parish.csv --dry-run
+npm run import-families -- --church st-marys --file parish.csv --rejects bad.csv
+```
+
+**One row per member**, with the Family ID grouping a family's rows together.
+Column headings are matched by name in any letter case and with any punctuation,
+and several spellings of each are recognised — run it with `--dry-run` and no
+arguments to see the list.
+
+- **A dry run first.** It reports everything it would create and every row it
+  cannot read, without writing anything at all.
+- **Safe to run more than once.** A Family ID already in the church is reported
+  as skipped, never duplicated and never overwritten.
+- **A rejects file** lists precisely the rows that could not be read, and why,
+  in the same columns — correct them in the spreadsheet and import again. A
+  family with one unreadable row is held back whole, so the corrected sheet
+  brings in the complete family rather than the missing half of one.
+- **Nothing is discarded silently.** A date of birth with no year keeps its day
+  and month and prints correctly; a column this directory has no home for is
+  reported rather than dropped.
+- **No logins are created.** Accounts are a separate, deliberate step — a few
+  hundred families should not quietly become a few hundred live accounts.
+- **Imported families are drafts**, so half a parish cannot enter the printed
+  book before anybody has looked at it.
+
+---
+
 ## Viewing, printing and exporting across churches
 
 Under **Reports**, a super administrator picks any churches, any zones or any
@@ -325,6 +463,8 @@ disk.
 bin/www              start-up: opens and migrates the database, then listens
 bin/superadmin.js    create or recover the super administrator account
 bin/backup.js        consistent snapshot of the database and photographs
+bin/import-hierarchy.js  dioceses, zones and churches, from a CSV
+bin/import-families.js   a parish's existing families, from its own sheet
 app.js               middleware chain and route mounting
 config/              .env loading, paths, session secret, database choice
 db/
@@ -335,22 +475,30 @@ db/
 models/
   church.js          diocese → zone → church, and the invariant between them
   family.js          families and members; every function takes a church
+  pending.js         proposals: the diff, the queue, and applying an approval
   user.js            accounts; the only place that knows how to find one
 lib/
   auth.js            roles, password hashing, route guards
+  verification.js    the fields, the two tiers, and the status chain
   tenancy.js         which church a request is about
+  audit.js           what the operator did, and to whom
   selection.js       "which churches?" for the cross-church reports
   settings.js        per-church settings over installation defaults
   slug.js            church web addresses
   upload.js          photographs, one folder per church
   csrf.js            per-session CSRF token
   daymonth.js        the two date types: parse, format, validate
+  import-dates.js    reading a date out of somebody else's spreadsheet
+  csv.js             reading and writing the sheets a parish actually has
   email.js           stricter than type=email, which passes "steve@gmail"
   relations.js       who is a parent, who is a child, and who is too old
   session-store.js   sessions in the same database
-routes/              auth, dashboard, families, directory, admin, super, reports
+routes/              auth, dashboard, families, review, directory, admin,
+                     super, reports
 views/directory/     the printable directory; _entry.ejs is shared by both books
-test/                smoke, console, tenancy, reports — run with `npm test`
+views/review/        the approval queue; _lines.ejs is shared by both screens
+test/                smoke, console, tenancy, reports, verification
+                     — run with `npm test`
 ```
 
 ### Changing the database engine
