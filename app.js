@@ -143,6 +143,17 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   const status = err.status || 500;
   if (status >= 500) console.error(err);
 
+  /*
+   * A download that fails halfway cannot be turned into an error page — the
+   * status line and half a spreadsheet have already gone. Rendering over it
+   * would throw inside the handler that exists to catch throws, so the
+   * connection is cut instead: a truncated file the browser reports as failed,
+   * rather than a zip with an HTML page pasted into the middle of it.
+   */
+  if (res.headersSent) {
+    return req.socket.destroy();
+  }
+
   res.status(status).render('error', {
     title: status === 404 ? 'Page not found' : 'Something went wrong',
     message: err.message,

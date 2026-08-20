@@ -83,12 +83,20 @@
     <div class="actions">
       <a class="btn" href="/super/print<%= query %>">Print them as one book</a>
       <a class="btn ghost" href="/super/export.csv<%= query %>">Export as a spreadsheet</a>
+      <a class="btn ghost" href="/super/export.zip<%= query %>">Download with photographs</a>
     </div>
     <p class="help">
       The book gives each church its own section, in its own colours, with the
       page numbers running through. The spreadsheet is one row per member, with
       its <%= labels.diocese.toLowerCase() %>,
       <%= labels.zone.toLowerCase() %> and church in the first columns.
+    </p>
+    <p class="help">
+      The download adds the photographs to that spreadsheet, each named after
+      the family it belongs to, in one archive. Across many churches that is
+      hundreds of megabytes and several minutes &mdash; it begins at once and
+      nothing is stored on the server while it runs, so a browser that looks
+      idle is still receiving it. Every download is recorded in the audit log.
     </p>
   </div>
 
