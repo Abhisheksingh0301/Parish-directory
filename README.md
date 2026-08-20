@@ -91,6 +91,7 @@ instead:
 
 ```bash
 node bin/superadmin.js create bishop@example.com
+npm run superadmin -- create abc@xyz.com --password '1212121212'
 ```
 
 **The username must be an email address** — the same rule family logins already
