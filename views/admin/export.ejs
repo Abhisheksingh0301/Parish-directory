@@ -1,0 +1,74 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Download your data</h1>
+  <p class="sub">
+    Everything this parish has entered, in a form you can keep, print from or
+    take to another system. The records are yours; this page is how you get a
+    copy of them without asking anyone.
+  </p>
+</div>
+
+<div class="stats" style="margin-bottom:22px">
+  <div class="stat"><div class="n"><%= stats.families %></div><div class="k">Families</div></div>
+  <div class="stat"><div class="n"><%= stats.members %></div><div class="k">People</div></div>
+  <div class="stat"><div class="n"><%= photos %></div><div class="k">Photographs</div></div>
+  <div class="stat">
+    <div class="n"><%= stats.families - stats.published %></div>
+    <div class="k">Drafts, not printed</div>
+  </div>
+</div>
+
+<form method="get" action="/admin/export.zip" class="card" id="download-form">
+  <h2>What to include</h2>
+
+  <div class="field">
+    <label>
+      <input type="checkbox" name="drafts" value="0" id="skip-drafts">
+      Leave out drafts &mdash; only the
+      <strong><%= stats.published %></strong> entries that go into the printed book
+    </label>
+    <p class="help">
+      Drafts are included by default. Leave them in for a copy you are keeping;
+      take them out for a copy you are handing to a printer.
+    </p>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn">Spreadsheet and photographs (.zip)</button>
+    <button type="submit" class="btn ghost" formaction="/admin/export.csv">
+      Spreadsheet only (.csv)
+    </button>
+  </div>
+
+  <p class="help">
+    The archive holds <code>families.csv</code> and a <code>photos</code>
+    folder. Each photograph is named after the family it belongs to, and the
+    last column of the spreadsheet gives that name &mdash; so a row and a face
+    can be matched without opening the application.
+  </p>
+</form>
+
+<div class="card">
+  <h2>Before you send it anywhere</h2>
+  <p class="help" style="margin-top:0">
+    This file is every address, telephone number and date of birth in the
+    parish, together with the photographs. It carries no password of any kind.
+    Treat it the way the parish would treat the printed directory before it is
+    handed out &mdash; and delete the copy in your downloads folder once it has
+    reached wherever it was going.
+  </p>
+  <p class="help">
+    The spreadsheet has one row per person, with the family&rsquo;s details
+    repeated on each of their rows. That is the shape that sorts and filters in
+    Excel; a file with one row per family cannot hold the members at all.
+  </p>
+  <p class="help">
+    A download of a few thousand photographs takes minutes and runs to hundreds
+    of megabytes. It starts immediately and nothing is stored on the server
+    while it runs &mdash; but if the browser looks idle, it is still working.
+    Clicking again starts a second one.
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

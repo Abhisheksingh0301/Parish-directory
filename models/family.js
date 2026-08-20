@@ -467,6 +467,19 @@ async function stats(churchId) {
 }
 
 /**
+ * How many families have a photograph on record.
+ *
+ * Counted from the rows, not from the folder on disk: the export names each
+ * image after its family, so a file with no row pointing at it is not part of
+ * this parish's data and would not go into the archive either.
+ */
+async function photoCount(churchId) {
+  return Family.count({
+    where: { ...scope(churchId), photo: { [Op.ne]: null } }
+  });
+}
+
+/**
  * Upcoming birthdays and anniversaries within `days` of today, wrapping around
  * the end of the year. Purely day+month — no ages, because we don't store years.
  *
@@ -719,5 +732,6 @@ module.exports = {
   update,
   remove,
   stats,
+  photoCount,
   upcoming
 };

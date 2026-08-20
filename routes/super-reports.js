@@ -4,6 +4,7 @@ const express = require('express');
 const Churches = require('../models/church');
 const Family = require('../models/family');
 const selection = require('../lib/selection');
+const exporter = require('../lib/export');
 const settings = require('../lib/settings');
 const relations = require('../lib/relations');
 const tenancy = require('../lib/tenancy');
@@ -111,12 +112,14 @@ router.get('/print', wrap(async (req, res) => {
 // Export
 // ---------------------------------------------------------------------------
 
-/** One CSV field: quoted, with embedded quotes doubled. */
-function cell(value) {
-  const text = value === null || value === undefined ? '' : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
+/**
+ * The selection as a spreadsheet.
+ *
+ * The columns, the byte order mark and the row-per-member shape live in
+ * lib/export.js, because the church's own export and the archive below have to
+ * produce exactly the same file — a parish comparing the two and finding
+ * different columns has no reason to trust either.
+ */
 router.get('/export.csv', wrap(async (req, res) => {
   const chosen = await selection.resolve(req.query);
   const labels = settings.labels(await settings.loadPlatform());
@@ -133,72 +136,52 @@ router.get('/export.csv', wrap(async (req, res) => {
     detail: `${chosen.label} (${chosen.churchIds.length} church(es))`
   });
 
-  /*
-   * A UTF-8 byte order mark, first.
-   *
-   * Excel assumes the system codepage for a CSV without one and mangles every
-   * non-ASCII name — which, in an Indian parish directory, is most of them.
-   * Three bytes, and the difference between a usable file and a support call.
-   */
-  res.write('﻿');
-
-  res.write([
-    labels.diocese, labels.zone, 'Church', 'Family ID', 'Head of family',
-    'Address', 'Home Town', 'Home parish', 'Spouse home', 'Prayer group', 'Email',
-    'Date of marriage', 'Member', 'Relation', 'Date of birth', 'Mobile',
-    'Blood group', 'Qualification', 'Occupation', 'Links'
-  ].map(cell).join(',') + '\r\n');
-
-  /*
-   * One row per member, with the family and church columns repeated. That is
-   * the shape that pivots in a spreadsheet, which is what an export is for —
-   * a family-per-row file cannot represent members at all without inventing
-   * numbered columns.
-   *
-   * Written church by church rather than assembled in memory: a whole-system
-   * export is on the order of a hundred and sixty thousand rows.
-   */
-  for (const churchId of chosen.churchIds) {
-    const church = await Churches.findChurch(churchId);
-    if (!church) continue;
-
-    const families = await Family.listWithMembers(churchId, { publishedOnly: false });
-
-    for (const family of families) {
-      const base = [
-        church.diocese_name,
-        // An unzoned church exports an empty cell, not the word "None".
-        church.zone_name || '',
-        church.name,
-        family.family_id,
-        family.head_name,
-        family.address,
-        family.hometown,
-        family.home_parish,
-        family.spouse_home,
-        family.prayer_group,
-        family.email,
-        family.dom
-      ];
-
-      // A family with no members still deserves a row, or it vanishes.
-      const members = family.members.length
-        ? family.members
-        : [{
-          name: '', relation: '', dob: '', mobile: '',
-          blood_group: '', qualification: '', occupation: '', links: ''
-        }];
-
-      for (const m of members) {
-        res.write([
-          ...base, m.name, m.relation, m.dob, m.mobile,
-          m.blood_group, m.qualification, m.occupation, m.links
-        ].map(cell).join(',') + '\r\n');
-      }
-    }
-  }
-
+  await exporter.writeRows(exporter.streamTo(res), chosen.churchIds, { labels });
   res.end();
+}));
+
+/**
+ * The selection as a spreadsheet *and* its photographs, in one archive.
+ *
+ * The photographs are the reason this exists. A CSV describes a directory; it
+ * does not contain one, and a parish moving to another system or handing a
+ * diocese its records needs the faces as well as the names.
+ *
+ * Sized honestly: this is every image of every church chosen, so a whole
+ * installation is gigabytes and minutes. It streams — nothing is staged on
+ * disk, and the download starts as soon as the rows are counted — but the page
+ * that links here says so, because an operator who thinks it has hung will
+ * click it again and pay for it twice.
+ */
+router.get('/export.zip', wrap(async (req, res) => {
+  const chosen = await selection.resolve(req.query);
+  const labels = settings.labels(await settings.loadPlatform());
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${selection.filename(chosen.label, 'zip')}"`
+  );
+  // An export is a point in time, and a proxy holding one is a proxy handing
+  // somebody else a church's addresses.
+  res.setHeader('Cache-Control', 'no-store');
+
+  await audit.record(req, 'export.bundle', {
+    churchId: chosen.churchIds.length === 1 ? chosen.churchIds[0] : null,
+    detail: `${chosen.label} (${chosen.churchIds.length} church(es)), with photographs`
+  });
+
+  const result = await exporter.bundle(res, chosen.churchIds, {
+    labels,
+    label: chosen.label
+  });
+  res.end();
+
+  if (result.missing) {
+    console.warn(
+      `Export of ${chosen.label}: ${result.missing} photograph(s) on record were not on disk.`
+    );
+  }
 }));
 
 module.exports = router;

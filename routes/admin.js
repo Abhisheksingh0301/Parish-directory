@@ -4,11 +4,14 @@ const express = require('express');
 const config = require('../config');
 const db = require('../db');
 const Users = require('../models/user');
+const Family = require('../models/family');
 const auth = require('../lib/auth');
 const tenancy = require('../lib/tenancy');
 const settings = require('../lib/settings');
 const audit = require('../lib/audit');
 const verification = require('../lib/verification');
+const exporter = require('../lib/export');
+const { slugify } = require('../lib/slug');
 const wrap = require('../lib/async');
 
 const router = express.Router();
@@ -167,6 +170,104 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
   );
   await settings.save(req.churchId, defaults);
   res.redirect('/admin/settings');
+}));
+
+// ---------------------------------------------------------------------------
+// Taking the parish's own data out
+// ---------------------------------------------------------------------------
+
+/**
+ * A church's copy of its own directory.
+ *
+ * The console has been able to export across churches since reports were
+ * added; a parish had no way to get its own records out at all, which is the
+ * wrong way round — the data is theirs, and "may we have a copy?" should not
+ * have to go through whoever runs the server.
+ *
+ * Two forms, and the only difference is the photographs:
+ *
+ *   export.csv   the spreadsheet — opened in Excel, mailed to whoever asked
+ *   export.zip   the same spreadsheet and every photograph, each named after
+ *                the family it belongs to, which is what a printer or another
+ *                system actually needs
+ *
+ * Drafts are included by default: they are the parish's own unfinished
+ * entries, and an export that quietly dropped them would be a backup with
+ * holes in it. `?drafts=0` leaves them out, for the copy that goes to a
+ * printer rather than into a filing cabinet.
+ *
+ * Admin only, like the rest of this router. An export is every address and
+ * telephone number in the parish in one file, which is a different thing from
+ * being able to read them a page at a time.
+ */
+
+/** The download's name: the parish, and the day it was taken. */
+function downloadName(church, extension) {
+  const day = new Date().toISOString().slice(0, 10);
+  return `${slugify(church.name, 'parish')}-${day}.${extension}`;
+}
+
+router.get('/export', wrap(async (req, res) => {
+  const [stats, photos] = await Promise.all([
+    Family.stats(req.churchId),
+    Family.photoCount(req.churchId)
+  ]);
+
+  res.render('admin/export', {
+    title: 'Download your data',
+    stats,
+    photos
+  });
+}));
+
+router.get('/export.csv', wrap(async (req, res) => {
+  const includeDrafts = req.query.drafts !== '0';
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName(req.church, 'csv')}"`);
+  // A parish's whole address book. Nothing between here and the browser has
+  // any business keeping a copy.
+  res.setHeader('Cache-Control', 'no-store');
+
+  await audit.record(req, 'export.csv', {
+    churchId: req.churchId,
+    detail: `${req.church.name}${includeDrafts ? '' : ', printed entries only'}`
+  });
+
+  await exporter.writeRows(exporter.streamTo(res), [req.churchId], {
+    labels: res.locals.labels,
+    includeDrafts
+  });
+  res.end();
+}));
+
+router.get('/export.zip', wrap(async (req, res) => {
+  const includeDrafts = req.query.drafts !== '0';
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName(req.church, 'zip')}"`);
+  res.setHeader('Cache-Control', 'no-store');
+
+  await audit.record(req, 'export.bundle', {
+    churchId: req.churchId,
+    detail: `${req.church.name}, with photographs${includeDrafts ? '' : ', printed entries only'}`
+  });
+
+  const result = await exporter.bundle(res, [req.churchId], {
+    labels: res.locals.labels,
+    label: req.church.name,
+    includeDrafts
+  });
+  res.end();
+
+  // A photograph on record but not on disk means a file was lost behind the
+  // application's back. The export still completed, so this is a note for
+  // whoever reads the logs, not an error for the person downloading.
+  if (result.missing) {
+    console.warn(
+      `Export of ${req.church.name}: ${result.missing} photograph(s) on record were not on disk.`
+    );
+  }
 }));
 
 // ---------------------------------------------------------------------------
