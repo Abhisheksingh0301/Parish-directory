@@ -389,6 +389,42 @@ An empty selection produces nothing — never everything.
 
 ---
 
+## Downloading the data, with the photographs
+
+**Download** on the administrator's menu gives a parish its own records back.
+The console has the same two downloads under Reports, for any selection of
+churches.
+
+- **Spreadsheet only** (`.csv`) — one row per person, the family's details
+  repeated on each of their rows. That is the shape that sorts and filters in
+  Excel; one row per family cannot hold the members at all.
+- **Spreadsheet and photographs** (`.zip`) — the same sheet, plus every
+  photograph, each named after the family it belongs to. The sheet's last
+  column gives that name, so a row and a face can be matched without opening
+  the application. A `README.txt` in the archive says the same thing to
+  whoever receives it.
+
+Drafts are included by default — they are the parish's own unfinished entries,
+and an export that dropped them silently would be a backup with holes in it.
+The tick box leaves them out for a copy going to a printer.
+
+A photograph on record whose file has gone missing leaves an empty cell rather
+than a name pointing at nothing, and the export still completes; the count of
+missing files goes to the server log.
+
+Both downloads are recorded in the audit log. Nothing is staged on disk: the
+archive streams as it is built, so a whole installation costs one photograph of
+memory rather than all of them. It also takes minutes and runs to hundreds of
+megabytes — the page says so, because an operator who thinks it has hung will
+click it again.
+
+The archive is written by `lib/zip.js`, which stores rather than compresses
+(every file in it is already a compressed image) and switches to ZIP64 per
+entry when one is needed — forty thousand photographs is past what a classic
+archive can describe.
+
+---
+
 ## Loading the hierarchy from a spreadsheet
 
 Typing two hundred churches into a form is not a reasonable way to start.
@@ -490,6 +526,8 @@ lib/
   daymonth.js        the two date types: parse, format, validate
   import-dates.js    reading a date out of somebody else's spreadsheet
   csv.js             reading and writing the sheets a parish actually has
+  export.js          the columns, shared by every download, and the archive
+  zip.js             writing a .zip straight down a response
   email.js           stricter than type=email, which passes "steve@gmail"
   relations.js       who is a parent, who is a child, and who is too old
   session-store.js   sessions in the same database
@@ -497,7 +535,7 @@ routes/              auth, dashboard, families, review, directory, admin,
                      super, reports
 views/directory/     the printable directory; _entry.ejs is shared by both books
 views/review/        the approval queue; _lines.ejs is shared by both screens
-test/                smoke, console, tenancy, reports, verification
+test/                smoke, console, tenancy, reports, verification, export
                      — run with `npm test`
 ```
 
