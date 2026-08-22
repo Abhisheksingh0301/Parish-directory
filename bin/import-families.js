@@ -55,66 +55,9 @@ const Churches = require('../models/church');
 const audit = require('../lib/audit');
 const { readDate } = require('../lib/import-dates');
 
-// ---------------------------------------------------------------------------
-// The column mapping
-// ---------------------------------------------------------------------------
-
-/**
- * Header names this will recognise, and what each becomes.
- *
- * Aliases rather than one fixed spelling, because the mapping is written
- * against the parish's actual sheet and no two parishes name these columns the
- * same way. Matching ignores case, spaces and punctuation, so "Family ID",
- * "family_id" and "FAMILY  ID." are one column.
- */
-const COLUMNS = {
-  family_id: ['family id', 'familyid', 'id', 'family no', 'family number', 'house no'],
-  head_name: ['family head', 'head of family', 'head name', 'head', 'family head name'],
-  address: ['address', 'present address', 'residential address'],
-  hometown: ['home town', 'home town address', 'hometown', 'native place'],
-  home_parish: ['home parish', 'native parish'],
-  spouse_home: ['spouse home', 'spouse house', 'wife home'],
-  prayer_group: ['prayer group', 'prayergroup', 'unit', 'kootayma'],
-  area: ['area', 'ward', 'zone within parish'],
-  email: ['email', 'email id', 'e mail', 'mail id'],
-  dom: ['date of marriage', 'dom', 'wedding date', 'marriage date', 'wedding anniversary'],
-  member_name: ['member', 'member name', 'name', 'person'],
-  relation: ['relation', 'relationship', 'relation to head'],
-  dob: ['date of birth', 'dob', 'birth date', 'birthday'],
-  mobile: ['mobile', 'phone', 'mobile no', 'contact', 'contact number', 'phone number'],
-  blood_group: ['blood group', 'bloodgroup', 'blood'],
-  qualification: ['qualification', 'education', 'educational qualification'],
-  occupation: ['occupation', 'job', 'profession', 'work'],
-  links: ['links', 'notes', 'remarks']
-};
-
-const normalise = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-
-const HEADER_LOOKUP = new Map();
-for (const [field, aliases] of Object.entries(COLUMNS)) {
-  for (const alias of aliases) HEADER_LOOKUP.set(normalise(alias), field);
-}
-
-/** Which column of the sheet holds which field, and which columns it ignores. */
-function mapHeader(headerRow) {
-  const map = {};
-  const unknown = [];
-
-  headerRow.forEach((raw, index) => {
-    const key = normalise(raw);
-    if (!key) return;
-
-    const field = HEADER_LOOKUP.get(key);
-    if (!field) {
-      unknown.push(String(raw).trim());
-      return;
-    }
-    // First occurrence wins: a sheet with two "Name" columns means the first.
-    if (map[field] === undefined) map[field] = index;
-  });
-
-  return { map, unknown };
-}
+// The column list this reads a sheet with is shared with the template the
+// parish downloads, so a heading offered there is a heading read back here.
+const { COLUMNS, mapHeader } = require('../lib/import-columns');
 
 // ---------------------------------------------------------------------------
 // Reading the sheet

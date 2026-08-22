@@ -11,6 +11,8 @@ const settings = require('../lib/settings');
 const audit = require('../lib/audit');
 const verification = require('../lib/verification');
 const exporter = require('../lib/export');
+const importColumns = require('../lib/import-columns');
+const importTemplate = require('../lib/import-template');
 const { slugify } = require('../lib/slug');
 const wrap = require('../lib/async');
 
@@ -268,6 +270,51 @@ router.get('/export.zip', wrap(async (req, res) => {
       `Export of ${req.church.name}: ${result.missing} photograph(s) on record were not on disk.`
     );
   }
+}));
+
+// ---------------------------------------------------------------------------
+// The other direction — the sheet a parish fills in before importing
+// ---------------------------------------------------------------------------
+
+/*
+ * Loading a parish's existing families is `npm run import-families`, run at
+ * the command line by whoever installed this. That is deliberate: several
+ * hundred families arriving at once is not something to do from a web form on
+ * a first attempt, and the dry run and rejects file are what make it safe.
+ *
+ * But the parish office, not the installer, is the one who has to produce the
+ * spreadsheet — and it had nothing to produce it from. So the sheet itself is
+ * downloadable here, in the church's own login, with the columns and the rules
+ * on the page beside it. The office fills it in and hands it over; the import
+ * is still a deliberate, supervised step.
+ */
+
+router.get('/import', wrap(async (req, res) => {
+  res.render('admin/import', {
+    title: 'Import members from a spreadsheet',
+    fields: importColumns.FIELDS,
+    // Not `labels`: that name already belongs to the diocese/zone vocabulary
+    // every view is given.
+    columnLabels: importColumns.LABELS,
+    aliases: importColumns.COLUMNS,
+    required: importColumns.REQUIRED,
+    relations: settings.relationOptions(req.settings)
+  });
+}));
+
+router.get('/import-template.csv', wrap(async (req, res) => {
+  // Headings only, for a parish that would rather not delete somebody else's
+  // examples out of its own sheet before starting.
+  const withExamples = req.query.examples !== '0';
+
+  const name = `${slugify(req.church.name, 'parish')}-members-template.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+
+  res.send(importTemplate.build({
+    relations: settings.relationOptions(req.settings),
+    withExamples
+  }));
 }));
 
 // ---------------------------------------------------------------------------

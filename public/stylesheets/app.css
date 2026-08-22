@@ -44,14 +44,23 @@ a:hover { color: var(--ink); }
   background: var(--band);
   border-bottom: 2px solid var(--rule);
 }
+/*
+ * Three columns, not a wrapping row.
+ *
+ * This was one flex row with `flex-wrap`, which meant a nav that outgrew the
+ * space pushed the name and Sign out onto a line of their own underneath. Who
+ * you are signed in as, and how to stop being signed in, are the two controls
+ * that must never move: as a grid they hold their column and it is the
+ * navigation in the middle that gives way.
+ */
 .topbar-inner {
   max-width: 1100px;
   margin: 0 auto;
   padding: 12px 20px;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
+  gap: 12px 18px;
 }
 .brand {
   font-weight: 700;
@@ -60,7 +69,12 @@ a:hover { color: var(--ink); }
   text-transform: uppercase;
   text-decoration: none;
   color: var(--ink);
-  margin-right: auto;
+  /* A long parish name is trimmed rather than allowed to squeeze the nav. */
+  min-width: 0;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .brand small {
   display: block;
@@ -69,18 +83,79 @@ a:hover { color: var(--ink); }
   letter-spacing: .06em;
   text-transform: none;
   color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.nav { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-.nav a {
+.nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.nav a,
+.nav summary {
   padding: 7px 13px;
   border-radius: 6px;
   text-decoration: none;
   color: var(--ink-soft);
   font-weight: 600;
   font-size: 15px;
+  white-space: nowrap;
 }
 .nav a:hover { background: rgba(255, 255, 255, .5); color: var(--ink); }
 .nav a.active { background: var(--paper); color: var(--ink); }
+
+/* ---------- the folded-away tiers: Manage, and System while acting ---------- */
+
+.nav-menu { position: relative; }
+.nav-menu > summary {
+  cursor: pointer;
+  list-style: none;          /* the disclosure triangle, replaced below */
+  user-select: none;
+}
+.nav-menu > summary::-webkit-details-marker { display: none; }
+.nav-menu > summary::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 7px;
+  vertical-align: 2px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transform-origin: 60% 60%;
+}
+.nav-menu > summary:hover { background: rgba(255, 255, 255, .5); color: var(--ink); }
+.nav-menu > summary.active,
+.nav-menu[open] > summary { background: var(--paper); color: var(--ink); }
+.nav-menu[open] > summary::after { transform: rotate(-135deg); }
+.nav-menu > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+.nav-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .16);
+}
+.nav-menu-items a {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.nav-menu-items a:hover { background: var(--band); color: var(--ink); }
+.nav-menu-items a.active { background: var(--band); color: var(--ink); }
 
 .whoami {
   font-size: 13px;
@@ -88,8 +163,16 @@ a:hover { color: var(--ink); }
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-self: end;
 }
 .whoami strong { color: var(--ink); }
+.whoami > a {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whoami form { flex: none; }
 
 /* ---------- layout ---------- */
 
@@ -458,7 +541,9 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
 body.auth {
   margin: 0;
   min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
+  /* A column, so the "Powered & Secured By" plate stacks under the card
+     rather than being laid out beside it. */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 30px 16px;
   background: var(--canvas);
   color: var(--ink);
@@ -474,6 +559,125 @@ body.auth {
 .auth-card h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: .02em; }
 .auth-card .parish { margin: 0 0 22px; color: var(--ink-faint); font-size: 14px; }
 .auth-card .btn { width: 100%; padding: 11px; }
+
+/* ---------- "Powered & Secured By", under the sign-in card ---------- */
+
+/*
+ * In the directory's own palette, not the navy and gold of the site this came
+ * from. Every colour below is one of the variables at the top of this file —
+ * `--paper-warm` over `--line` is the same panel the dashboard and the
+ * verification chain are built from — so the plate belongs to the page rather
+ * than sitting on top of it.
+ *
+ * The one invented value is `--indus-accent`, and it is not invented far: it
+ * is the warm brown this stylesheet already gives every link, standing in for
+ * the brand's gold, which at 1.5:1 on this background could not be read.
+ *
+ * The stack is centred on the card above it and is the same width, so the
+ * sign-in screen reads as one column rather than a card with something
+ * floating beneath it.
+ */
+.indus-badge {
+  --indus-accent: #6b4f2a;
+
+  width: 100%;
+  max-width: 440px;
+  margin: 18px auto 0;
+  padding: 18px 20px 20px;
+  border-radius: var(--radius);
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .3);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.indus-badge .plabel {
+  font-size: 10.5px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+.indus-badge .logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.indus-badge .owlwrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.indus-badge .owlname {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  line-height: 1;
+  color: var(--ink);
+}
+.indus-badge .owlname .def { color: var(--indus-accent); }
+.indus-badge .owl {
+  height: 72px;
+  width: auto;
+  filter: drop-shadow(0 3px 10px rgba(44, 39, 33, .22));
+}
+/* Typed rather than part of the artwork — see the partial for why. */
+.indus-badge .owltag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  line-height: 1;
+  /* --ink-soft rather than --ink-faint: at 8px this is the smallest type on
+     the screen, and --ink-faint lands at 4.43:1, a whisker under AA. */
+  color: var(--ink-soft);
+}
+.indus-badge .owltag .last { color: var(--indus-accent); }
+.indus-badge .divider {
+  width: 1px;
+  height: 66px;
+  background: linear-gradient(180deg, transparent, var(--rule), transparent);
+}
+/* The network mark is dark on transparent, so it keeps a card of its own. */
+.indus-badge .induschip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.indus-badge .indus {
+  display: block;
+  height: 30px;
+  width: auto;
+  max-width: 100%;
+}
+
+/*
+ * Narrow screens. The plate is 440px wide and its contents need about 390 of
+ * that, so it is a phone rather than a tablet that runs out of room: the rule
+ * drops out, the marks come down a size, and the network chip is sized by its
+ * width with `height: auto` so it can never be squashed out of proportion to
+ * fit. Below this the row simply wraps, which is why nothing here is load
+ * bearing.
+ */
+@media (max-width: 460px) {
+  .indus-badge { padding: 16px 14px 18px; }
+  .indus-badge .logos { gap: 16px; }
+  .indus-badge .divider { display: none; }
+  .indus-badge .owl { height: 64px; }
+  .indus-badge .induschip { padding: 9px 12px; max-width: 100%; }
+  .indus-badge .indus { width: 100%; max-width: 190px; height: auto; }
+}
 
 /* ---------- verification: the chain, the queue, the filters ---------- */
 
@@ -590,6 +794,23 @@ body.auth {
 /* ---------- responsive ---------- */
 
 @media (max-width: 860px) {
+  /*
+   * Two rows on purpose. Three columns on a phone leaves the navigation a
+   * sliver between two things that will not shrink, so the bar becomes the
+   * brand and the identity on top — still never displaced — with the
+   * navigation given the full width underneath.
+   */
+  .topbar-inner { grid-template-columns: minmax(0, 1fr) auto; }
+  .nav {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .whoami { grid-row: 1; grid-column: 2; }
+  .brand { grid-row: 1; grid-column: 1; max-width: none; }
+  /* Dropping off the right edge of a narrow screen: hang it from the left. */
+  .nav-menu-items { right: auto; left: 0; }
+
   .detail-grid { grid-template-columns: 1fr; }
   .filter-bar select { min-width: 0; width: 100%; }
   .line-actions { justify-content: flex-start; }

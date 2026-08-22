@@ -112,12 +112,13 @@ the system would be indefensible.
 npm test
 ```
 
-128 end-to-end checks across four suites — smoke, console, tenancy and
-reports — each booting the app over HTTP against a throwaway database in your
-system temp folder. They override `DATA_DIR`, so your own `data/` folder is
-left alone. The last line should read `ALL CHECKS PASSED`. Run one suite on
-its own with `npm run test:tenancy`, and the same for `test:smoke`,
-`test:console` and `test:reports`.
+259 end-to-end checks across seven suites — smoke, console, tenancy, reports,
+verification, export and import-template — each booting the app over HTTP
+against a throwaway database in your system temp folder. They override
+`DATA_DIR`, so your own `data/` folder is left alone. The last line should read
+`ALL CHECKS PASSED`. Run one suite on its own with `npm run test:tenancy`, and
+the same for `test:smoke`, `test:console`, `test:reports`,
+`test:verification`, `test:export` and `test:import-template`.
 
 ### Every command
 
@@ -125,7 +126,7 @@ its own with `npm run test:tenancy`, and the same for `test:smoke`,
 |---|---|
 | `npm start` | Run the app |
 | `npm run dev` | Run it, restarting on file changes |
-| `npm test` | All 197 checks |
+| `npm test` | All 259 checks |
 | `npm run superadmin` | Create, reset or list super administrators |
 | `npm run backup` | Snapshot the database and photographs |
 | `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
@@ -173,6 +174,48 @@ A member login is not a directory account. It reaches exactly one family — its
 own — and never the list, the dashboard or the printed book, so giving a
 household a login does not hand it everybody else's address and telephone
 number.
+
+### The sign-in screens
+
+Every door into the application — `/login`, `/family-login` and the one-time
+`/setup` — carries the **Powered & Secured By** badge for IndusDefender and
+IndusNetwork, from `views/partials/indus-badge.ejs`.
+
+It is in this directory's palette, not the navy and gold of the site it came
+from: the plate is `--paper-warm` over `--line`, the same panel the rest of the
+application is built from, so it belongs to the page instead of being a window
+cut into it. Every colour is one of the variables at the top of `app.css`, bar
+one — the warm brown `#6b4f2a` this stylesheet already gives every link, which
+stands in for the brand gold. The gold itself reads at 1.5:1 on this background
+and cannot be used; the substitute reads at 6.9:1.
+
+"Protect. Prevent. Prevail." is typed rather than shown. It is baked into the
+supplied artwork in near-white, which was right on a navy panel and invisible
+on this one, so the shield is cropped free of it and the words are set in the
+palette's own colours — which also lets "Prevail." keep its accent.
+
+The two logos live in `public/images/` as ordinary cached files rather than
+inline data URIs, at twice their display size — 42 KB and 29 KB, down from the
+409 KB and 95 KB originals, which would otherwise have been re-sent as base64
+on every visit to the sign-in page.
+
+### What the top bar shows
+
+Daily work stays in the open — Dashboard, Families, Review, Print directory.
+The administration screens fold into one **Manage** menu (Settings, Users,
+Import members, Download your data, Audit log), because they are visited
+occasionally and nine flat links wrapped the bar onto a second line, displacing
+the name and Sign out.
+
+A super administrator sees **System**, **Churches** and **Reports** flat while
+they are in their own console — that is their whole application. Once they have
+borrowed a parish those three fold into a **System** menu instead, and the
+parish's own navigation takes the top level.
+
+Both menus are `<details>` elements, so they work with JavaScript off;
+`public/javascripts/nav-menu.js` only adds Escape, click-away, and closing one
+when the other opens. The bar itself is a three-column grid rather than a
+wrapping row, so the identity holds its place however many links appear.
 
 ---
 
@@ -345,6 +388,23 @@ paper and cleared on screen afterwards.
 The objective is that no family keys in what the parish already holds. Every
 family should find its existing record already on screen, with only the
 corrections left to make.
+
+### The template the parish fills in — **Manage → Import members**
+
+`/admin/import` is where the parish office gets the sheet. It offers the blank
+spreadsheet as a download — **with example rows** or **headings only** — beside
+the columns, the accepted alternative spellings for each, this church's own
+relation codes and the date rules. Administrators only, one church at a time.
+
+The headings are generated from the importer's own column list
+(`lib/import-columns.js`, shared with `bin/import-families.js`), so a heading
+the template prints is a heading the import reads back; the two cannot drift.
+They are also the export's headings, so a file downloaded from **Download your
+data**, edited, can be handed straight back.
+
+The load itself stays at the command line. Several hundred families arriving at
+once is not a thing to do from a web form on a first attempt — the dry run and
+the rejects file are what make it safe:
 
 ```bash
 npm run import-families -- --church st-marys --file parish.csv --dry-run
@@ -526,6 +586,9 @@ lib/
   csrf.js            per-session CSRF token
   daymonth.js        the two date types: parse, format, validate
   import-dates.js    reading a date out of somebody else's spreadsheet
+  import-columns.js  the columns a family sheet may have, shared by the
+                     importer and the template the parish downloads
+  import-template.js the blank sheet, built from that list
   csv.js             reading and writing the sheets a parish actually has
   export.js          the columns, shared by every download, and the archive
   zip.js             writing a .zip straight down a response
@@ -536,8 +599,8 @@ routes/              auth, dashboard, families, review, directory, admin,
                      super, reports
 views/directory/     the printable directory; _entry.ejs is shared by both books
 views/review/        the approval queue; _lines.ejs is shared by both screens
-test/                smoke, console, tenancy, reports, verification, export
-                     — run with `npm test`
+test/                smoke, console, tenancy, reports, verification, export,
+                     import-template — run with `npm test`
 ```
 
 ### Changing the database engine

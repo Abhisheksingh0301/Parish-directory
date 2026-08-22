@@ -14,6 +14,30 @@
       <small><%= church ? church.name : settings.parish_name %></small>
     </a>
 
+<%
+  /*
+   * The navigation, in two tiers.
+   *
+   * Everything used to sit flat in one row, which held while there were four
+   * links and stopped holding at nine: the row wrapped, and the name and Sign
+   * out — the two things that must always be findable — were pushed onto a
+   * second line below the fold of the bar.
+   *
+   * So the administration screens fold into one "Manage" menu. They are the
+   * settings-and-housekeeping tier, visited occasionally; Dashboard, Families,
+   * Review and Print directory are the daily work and stay in the open.
+   *
+   * The system screens do the same, but only for a super administrator who is
+   * *acting inside a church*. When they are in their own console those three
+   * are their whole application and hiding them would be perverse; once they
+   * have borrowed a parish they are the secondary tier and the parish's own
+   * navigation is primary.
+   *
+   * Each menu is a <details>, so it opens and closes with no JavaScript at
+   * all. nav-menu.js only adds the courtesies — Escape, clicking away, and not
+   * leaving two menus open at once.
+   */
+%>
     <nav class="nav">
       <% if (isFamilyLogin) { %>
         <a href="/families/<%= currentUser.family_id %>"
@@ -31,17 +55,32 @@
           <% } %>
           <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
           <% if (atLeast('admin')) { %>
-            <a href="/admin/audit"    class="<%= path === '/admin/audit' ? 'active' : '' %>">Audit log</a>
-            <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
-            <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
-            <a href="/admin/export"   class="<%= path.startsWith('/admin/export') ? 'active' : '' %>">Download</a>
+            <details class="nav-menu">
+              <summary class="<%= path.startsWith('/admin') ? 'active' : '' %>">Manage</summary>
+              <div class="nav-menu-items">
+                <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
+                <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+                <a href="/admin/import"   class="<%= path.startsWith('/admin/import') ? 'active' : '' %>">Import members</a>
+                <a href="/admin/export"   class="<%= path.startsWith('/admin/export') ? 'active' : '' %>">Download your data</a>
+                <a href="/admin/audit"    class="<%= path === '/admin/audit' ? 'active' : '' %>">Audit log</a>
+              </div>
+            </details>
           <% } %>
         <% } %>
 
-        <% if (isSuperAdmin) { %>
+        <% if (isSuperAdmin && !churchId) { %>
           <a href="/super"           class="<%= path === '/super' ? 'active' : '' %>">System</a>
           <a href="/super/churches"  class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
           <a href="/super/reports"   class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+        <% } else if (isSuperAdmin) { %>
+          <details class="nav-menu">
+            <summary class="<%= path.startsWith('/super') ? 'active' : '' %>">System</summary>
+            <div class="nav-menu-items">
+              <a href="/super"          class="<%= path === '/super' ? 'active' : '' %>">Console</a>
+              <a href="/super/churches" class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
+              <a href="/super/reports"  class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+            </div>
+          </details>
         <% } %>
       <% } %>
     </nav>

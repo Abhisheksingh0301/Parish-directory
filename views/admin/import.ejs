@@ -1,0 +1,170 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Import members from a spreadsheet</h1>
+  <p class="sub">
+    The parish already holds its families somewhere &mdash; a register, a
+    ledger, somebody&rsquo;s spreadsheet. Nobody should type it in twice.
+    Download the sheet below, fill it in, and hand it to whoever looks after
+    this installation to load.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Get the template</h2>
+  <p class="help" style="margin-top:0">
+    A comma-separated file, which Excel, LibreOffice and Google Sheets all open
+    by double-clicking. Fill it in there and save it back as
+    <code>.csv</code> &mdash; save it as <code>.xlsx</code> and it can no
+    longer be read.
+  </p>
+
+  <div class="actions">
+    <a class="btn" href="/admin/import-template.csv">Template with example rows</a>
+    <a class="btn ghost" href="/admin/import-template.csv?examples=0">
+      Headings only
+    </a>
+  </div>
+
+  <p class="help">
+    The example rows are there to be read and then deleted. The headings-only
+    file is the same sheet with nothing under them.
+  </p>
+</div>
+
+<div class="card">
+  <h2>The one rule that matters</h2>
+  <p class="help" style="margin-top:0">
+    <strong>One row per person, not one row per family.</strong> A family of
+    five is five rows carrying the same <strong>Family ID</strong>, and that
+    column is what ties them together. It is the only column the import
+    refuses a sheet without.
+  </p>
+  <p class="help">
+    The family&rsquo;s own details &mdash; address, prayer group, date of
+    marriage &mdash; are read from the <em>first</em> row carrying that Family
+    ID. Leave them blank on the rest of the household, or repeat them; the
+    sheet is not wrong either way.
+  </p>
+  <p class="help">
+    Two families must never share a Family ID, and a Family ID already in this
+    parish is reported as already there and left untouched &mdash; a correction
+    the office has made by hand is never undone by an import somebody runs
+    twice.
+  </p>
+</div>
+
+<div class="card">
+  <h2>The columns</h2>
+  <p class="help" style="margin-top:0">
+    Column order does not matter, and neither does letter case, spacing or
+    punctuation in the headings &mdash; &ldquo;Family ID&rdquo;,
+    &ldquo;family_id&rdquo; and &ldquo;FAMILY&nbsp;&nbsp;ID.&rdquo; are one
+    column. If the parish sheet already calls a column something else, check
+    the alternatives here before renaming anything: it is probably recognised
+    as it stands. A column that is recognised by no heading at all is reported
+    when the sheet is read, never dropped in silence.
+  </p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Heading in the template</th>
+        <th>Also accepted as</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% fields.forEach((field) => { %>
+        <tr>
+          <td>
+            <strong><%= columnLabels[field] %></strong>
+            <% if (required.includes(field)) { %>
+              <span class="tag">required</span>
+            <% } %>
+          </td>
+          <td class="help">
+            <%= aliases[field].filter((a) => a !== columnLabels[field].toLowerCase()).join(', ') %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Filling in the awkward columns</h2>
+
+  <p class="help" style="margin-top:0">
+    <strong>Relation.</strong> Use this parish&rsquo;s own codes, the same ones
+    the member editor offers:
+    <% if (relations.length) { %>
+      <% relations.forEach((relation, i) => { %><code><%= relation %></code><%= i < relations.length - 1 ? ', ' : '' %><% }) %>.
+    <% } else { %>
+      none are set &mdash; add them on the
+      <a href="/admin/settings">Settings</a> page first.
+    <% } %>
+    Change them on Settings and the template you download changes with them.
+  </p>
+
+  <p class="help">
+    <strong>Dates.</strong> Write them however the register has them.
+    <code>02-Aug-1975</code>, <code>2/8/1975</code>, <code>1975-08-02</code>
+    and <code>Aug 1975</code> are all read, and where two numbers are
+    ambiguous the <em>day comes first</em> &mdash; <code>03/04/1978</code> is
+    the third of April. A date of birth with no year keeps its day and month,
+    and the birthday still prints. A date that cannot be read at all is
+    reported as a rejected row rather than quietly blanked.
+  </p>
+
+  <p class="help">
+    <strong>Date of marriage.</strong> This directory prints the day and month
+    only. Write the year if the register has it; it is read and then dropped,
+    not refused.
+  </p>
+
+  <p class="help">
+    <strong>Head of family.</strong> If it is blank, the first member listed
+    for that family is taken as the head, and the import says so. A family with
+    no head and no members is refused &mdash; a printed entry has to have a
+    title.
+  </p>
+
+  <p class="help">
+    <strong>Address.</strong> A line break inside the cell is fine &mdash; the
+    two-line address you get from pressing Alt+Enter in Excel survives intact.
+  </p>
+
+  <p class="help">
+    <strong>Photographs</strong> are not part of this. They are added to each
+    family afterwards, from the family&rsquo;s own page.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Handing the sheet over</h2>
+  <p class="help" style="margin-top:0">
+    The load itself is run at the command line by whoever installed this, once,
+    against this parish:
+  </p>
+  <p class="help">
+    <code>npm run import-families -- --church <%= church.slug %> --file parish.csv --dry-run</code>
+  </p>
+  <p class="help">
+    The dry run writes nothing. It reports every family it would create and
+    every row it cannot read, so the sheet is corrected before anything enters
+    the directory. Running it again without <code>--dry-run</code> does the
+    load; adding <code>--rejects bad.csv</code> writes out exactly the rows
+    that failed, with the reason in the last column, ready to be fixed and
+    imported again.
+  </p>
+  <p class="help">
+    A family with any unreadable row is held back whole, so a single bad date
+    never leaves a family half-imported. Everything that does arrive arrives as
+    a <strong>draft</strong> &mdash; nothing enters the printed book until
+    somebody has looked at it &mdash; and <strong>no logins are created</strong>.
+    Accounts stay a separate, deliberate step on
+    <a href="/admin/users">User accounts</a>.
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

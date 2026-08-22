@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "node --watch ./bin/www",
-    "test": "node ./test/smoke.js && node ./test/console.js && node ./test/tenancy.js && node ./test/reports.js && node ./test/verification.js && node ./test/export.js",
+    "test": "node ./test/smoke.js && node ./test/console.js && node ./test/tenancy.js && node ./test/reports.js && node ./test/verification.js && node ./test/export.js && node ./test/import-template.js",
     "superadmin": "node ./bin/superadmin.js",
     "test:smoke": "node ./test/smoke.js",
     "test:console": "node ./test/console.js",
@@ -16,7 +16,8 @@
     "import-hierarchy": "node ./bin/import-hierarchy.js",
     "import-families": "node ./bin/import-families.js",
     "test:verification": "node ./test/verification.js",
-    "test:export": "node ./test/export.js"
+    "test:export": "node ./test/export.js",
+    "test:import-template": "node ./test/import-template.js"
   },
   "engines": {
     "node": ">=18"

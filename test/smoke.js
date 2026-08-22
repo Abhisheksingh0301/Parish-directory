@@ -160,6 +160,30 @@ async function main() {
     res.status === 302 && res.location === '/login',
     `${res.status} -> ${res.location}`);
 
+  console.log('\n--- "Powered & Secured By", on every door into the application ---');
+  /*
+   * Attribution that appears on one of the two sign-in screens and not the
+   * other is worse than none: a member who signs in with a Family ID would
+   * see a different application from one who signs in with an email address.
+   * Both marks, on both doors, and the images actually served.
+   */
+  for (const door of ['/login', '/family-login']) {
+    const page = await request('GET', door);
+    check(`${door} carries the badge`,
+      page.status === 200
+      && page.body.includes('Powered &amp; Secured By')
+      && page.body.includes('Indus<span class="def">Defender</span>')
+      && page.body.includes('/images/indus-network.png'),
+      `status ${page.status}`);
+  }
+
+  for (const asset of ['/images/indus-defender.png', '/images/indus-network.png']) {
+    const file = await request('GET', asset);
+    check(`${asset} is served`,
+      file.status === 200 && file.body.length > 1000,
+      `status ${file.status}, ${file.body.length} bytes`);
+  }
+
   console.log('\n--- signing in ---');
   res = await request('POST', '/login', {
     _csrf: loginToken, username: 'tester', password: PASSWORD
@@ -186,6 +210,36 @@ async function main() {
       page.status === 200 && !missing.length,
       page.status !== 200 ? `status ${page.status}` : `missing: ${missing.join(', ')}`);
   }
+
+  console.log('\n--- the top bar, which has to hold as screens are added ---');
+  /*
+   * The bar was one wrapping row, and the ninth link pushed the name and Sign
+   * out onto a line of their own. The fix was to fold the administration
+   * screens into one menu and pin the identity to its own column, so the guard
+   * is a count: the top level stays small, and everything folded away is still
+   * reachable from the markup rather than having quietly disappeared.
+   */
+  res = await request('GET', '/admin/settings');
+  const bar = res.body.slice(res.body.indexOf('<nav class="nav">'), res.body.indexOf('</nav>'));
+  // What is on the bar itself: the folded-away panels do not take up room.
+  const openBar = bar.replace(/<div class="nav-menu-items">[\s\S]*?<\/div>/g, '');
+  const topLevel = (openBar.match(/<(a|summary)\b/g) || []).length;
+
+  check('an administrator sees a handful of top-level items, not a wrapping row',
+    topLevel > 0 && topLevel <= 6, `${topLevel} items at the top level`);
+
+  check('the administration screens are folded into one menu',
+    bar.includes('<summary class="active">Manage</summary>'),
+    'no Manage menu, or it is not marked as the section in use');
+
+  for (const href of ['/admin/settings', '/admin/users', '/admin/import', '/admin/export', '/admin/audit']) {
+    check(`${href} is still reachable from the bar`, bar.includes(`href="${href}"`));
+  }
+
+  check('and the identity is not inside the navigation that wraps',
+    res.body.indexOf('</nav>') < res.body.indexOf('class="whoami"')
+    && res.body.includes('Sign out'),
+    'Sign out was not found after the navigation');
 
   console.log('\n--- search, which reaches across to the members table ---');
   res = await request('GET', '/families?q=Riva');
