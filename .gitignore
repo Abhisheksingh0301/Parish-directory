@@ -5,7 +5,7 @@ node_modules/
 # re-included from underneath a plain data/ rule.
 data/*
 !data/seed/
-#.env
+.env
 npm-debug.log*
 *.db
 *.db-journal
