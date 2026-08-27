@@ -33,6 +33,18 @@ app.set('view engine', 'ejs');
 app.set('trust proxy', config.trustProxy ? 1 : false);
 app.disable('x-powered-by');
 
+/**
+ * The public URL prefix, in front of every link and asset a page writes.
+ *
+ * Set here rather than beside the other view helpers below because the error
+ * page needs it too, and an error can be raised before those helpers run — a
+ * rejected upload or an expired form both render a page from above this line.
+ */
+app.use((req, res, next) => {
+  res.locals.base = config.basePath;
+  next();
+});
+
 app.use(logger(config.isProduction ? 'combined' : 'dev'));
 app.use(express.json());
 // extended: true so the family form can post members[0][name] as a nested object.

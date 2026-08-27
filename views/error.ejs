@@ -3,7 +3,7 @@
 <head>
 <%- include('partials/head-assets') %>
 <title><%= title %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
 <body class="auth">
 
@@ -16,7 +16,7 @@
                 padding:12px;font-size:12px;overflow:auto;max-height:320px"><%= error.stack %></pre>
   <% } %>
 
-  <a href="/" class="btn" style="margin-top:8px">Back to the directory</a>
+  <a href="<%= base %>/" class="btn" style="margin-top:8px">Back to the directory</a>
 </div>
 
 </body>

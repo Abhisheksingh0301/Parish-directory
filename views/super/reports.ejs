@@ -11,7 +11,7 @@
 <%- include('../partials/messages') %>
 
 <div class="card">
-  <form method="get" action="/super/reports">
+  <form method="get" action="<%= base %>/super/reports">
     <div class="grid-2">
       <div class="field">
         <label for="dioceses"><%= labels.diocese %>s</label>
@@ -60,7 +60,7 @@
 
     <div class="actions">
       <button type="submit" class="btn">Show the selection</button>
-      <a class="btn ghost" href="/super/reports">Clear</a>
+      <a class="btn ghost" href="<%= base %>/super/reports">Clear</a>
     </div>
   </form>
 </div>
@@ -81,9 +81,9 @@
       <%= families.length %> <%= families.length === 1 ? 'family' : 'families' %>.
     </p>
     <div class="actions">
-      <a class="btn" href="/super/print<%= query %>">Print them as one book</a>
-      <a class="btn ghost" href="/super/export.csv<%= query %>">Export as a spreadsheet</a>
-      <a class="btn ghost" href="/super/export.zip<%= query %>">Download with photographs</a>
+      <a class="btn" href="<%= base %>/super/print<%= query %>">Print them as one book</a>
+      <a class="btn ghost" href="<%= base %>/super/export.csv<%= query %>">Export as a spreadsheet</a>
+      <a class="btn ghost" href="<%= base %>/super/export.zip<%= query %>">Download with photographs</a>
     </div>
     <p class="help">
       The book gives each church its own section, in its own colours, with the

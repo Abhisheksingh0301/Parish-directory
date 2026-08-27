@@ -15,7 +15,7 @@
 <%- include('../partials/messages') %>
 
 <div class="card">
-  <form method="get" action="/super/churches" class="grid-2">
+  <form method="get" action="<%= base %>/super/churches" class="grid-2">
     <div class="field">
       <label for="q">Search by name or city</label>
       <input type="search" id="q" name="q" value="<%= search %>" placeholder="Name or city">
@@ -34,13 +34,13 @@
     <div class="actions">
       <button type="submit" class="btn ghost small">Filter</button>
       <% if (search || filterDiocese || filterZone) { %>
-        <a class="btn ghost small" href="/super/churches">Clear</a>
+        <a class="btn ghost small" href="<%= base %>/super/churches">Clear</a>
       <% } %>
     </div>
   </form>
 </div>
 
-<form method="post" action="/super/churches/reassign">
+<form method="post" action="<%= base %>/super/churches/reassign">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
   <div class="card" style="padding:0;overflow:hidden">
@@ -67,7 +67,7 @@
                        aria-label="Select <%= c.name %>">
               </td>
               <td>
-                <a href="/super/churches/<%= c.id %>"><strong><%= c.name %></strong></a>
+                <a href="<%= base %>/super/churches/<%= c.id %>"><strong><%= c.name %></strong></a>
                 <% if (!c.is_active) { %><span class="tag draft">Deactivated</span><% } %>
                 <% if (c.city) { %><div class="help"><%= c.city %></div><% } %>
               </td>
@@ -76,7 +76,7 @@
               <td class="right"><%= c.family_count %></td>
               <td class="right nowrap">
                 <% if (c.is_active) { %>
-                  <form method="post" action="/super/churches/<%= c.id %>/act" style="display:inline">
+                  <form method="post" action="<%= base %>/super/churches/<%= c.id %>/act" style="display:inline">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button type="submit" class="btn small">Open</button>
                   </form>
@@ -140,7 +140,7 @@
     <% } %>
   </p>
 
-  <form method="post" action="/super/churches">
+  <form method="post" action="<%= base %>/super/churches">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="grid-2">

@@ -19,7 +19,7 @@
   </div>
 </div>
 
-<form method="get" action="/admin/export.zip" class="card" id="download-form">
+<form method="get" action="<%= base %>/admin/export.zip" class="card" id="download-form">
   <h2>What to include</h2>
 
   <div class="field">
@@ -36,7 +36,7 @@
 
   <div class="actions">
     <button type="submit" class="btn">Spreadsheet and photographs (.zip)</button>
-    <button type="submit" class="btn ghost" formaction="/admin/export.csv">
+    <button type="submit" class="btn ghost" formaction="<%= base %>/admin/export.csv">
       Spreadsheet only (.csv)
     </button>
   </div>

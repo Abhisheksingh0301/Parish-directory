@@ -13,7 +13,7 @@
     A member login signs in with the household&rsquo;s own email address and reaches
     only that family&rsquo;s entry — never the list, the dashboard or the printed
     book. They are created in bulk from the
-    <a href="/families">families list</a>, not here.
+    <a href="<%= base %>/families">families list</a>, not here.
   </p>
 
   <div class="field" style="margin-bottom:0">
@@ -51,7 +51,7 @@
               <% } %>
               <% if (u.family_id) { %>
                 <div style="color:var(--ink-faint);font-size:14px">
-                  Family <a href="/families/<%= u.family_id %>"><%= u.family_ref %> — <%= u.family_head %></a>
+                  Family <a href="<%= base %>/families/<%= u.family_id %>"><%= u.family_ref %> — <%= u.family_head %></a>
                 </div>
               <% } %>
             </td>
@@ -60,7 +60,7 @@
               <% if (u.family_id) { %>
                 <span style="color:var(--ink-faint)"><%= allRoles[u.role].label %> login</span>
               <% } else { %>
-                <form method="post" action="/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
+                <form method="post" action="<%= base %>/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <select name="role" aria-label="Role for <%= u.username %>">
                     <% roles.forEach(function (r) { %>
@@ -79,7 +79,7 @@
             </td>
 
             <td class="right nowrap">
-              <form method="post" action="/admin/users/<%= u.id %>/active" style="display:inline">
+              <form method="post" action="<%= base %>/admin/users/<%= u.id %>/active" style="display:inline">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="is_active" value="<%= u.is_active ? '0' : '1' %>">
                 <button type="submit" class="btn ghost small">
@@ -87,7 +87,7 @@
                 </button>
               </form>
 
-              <form method="post" action="/admin/users/<%= u.id %>/delete" style="display:inline"
+              <form method="post" action="<%= base %>/admin/users/<%= u.id %>/delete" style="display:inline"
                     onsubmit="return confirm('Delete the account <%= u.username %>?')">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn danger small">Delete</button>
@@ -97,7 +97,7 @@
 
           <tr>
             <td colspan="4" style="padding-top:0">
-              <form method="post" action="/admin/users/<%= u.id %>/password"
+              <form method="post" action="<%= base %>/admin/users/<%= u.id %>/password"
                     style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <span style="color:var(--ink-faint)">Reset password:</span>
@@ -118,7 +118,7 @@
 <div class="card">
   <h2>Add a user</h2>
 
-  <form method="post" action="/admin/users">
+  <form method="post" action="<%= base %>/admin/users">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="grid-2">

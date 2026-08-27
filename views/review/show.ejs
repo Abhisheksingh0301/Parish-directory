@@ -7,8 +7,8 @@
   </h1>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <a href="/review" class="btn ghost">Back to the queue</a>
-    <a href="/families/<%= family.id %>" class="btn ghost">The record as it stands</a>
+    <a href="<%= base %>/review" class="btn ghost">Back to the queue</a>
+    <a href="<%= base %>/families/<%= family.id %>" class="btn ghost">The record as it stands</a>
   </div>
 </div>
 
@@ -22,7 +22,7 @@
   <div class="card review-block">
     <h2>Proposed changes <span class="hint">— <%= changes.length %></span></h2>
 
-    <form id="batch-<%= family.id %>" method="post" action="/review/decide">
+    <form id="batch-<%= family.id %>" method="post" action="<%= base %>/review/decide">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="back" value="/review/<%= family.id %>">
     </form>

@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 <style>
   /*
    * The sheet the Area Representative actually carries.
@@ -34,7 +34,7 @@
 <div class="sheet">
   <div class="no-print">
     <button type="button" class="btn" onclick="window.print()">Print this sheet</button>
-    <a href="/families/status" class="btn ghost">Back</a>
+    <a href="<%= base %>/families/status" class="btn ghost">Back</a>
   </div>
 
   <h1><%= settings.parish_name %></h1>

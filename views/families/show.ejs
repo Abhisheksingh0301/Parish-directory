@@ -7,9 +7,9 @@
   </h1>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <% if (!isOwnEntry) { %><a href="/families" class="btn ghost">Back to families</a><% } %>
+    <% if (!isOwnEntry) { %><a href="<%= base %>/families" class="btn ghost">Back to families</a><% } %>
     <% if (canEdit) { %>
-      <a href="/families/<%= family.id %>/edit" class="btn">
+      <a href="<%= base %>/families/<%= family.id %>/edit" class="btn">
         <%= isOwnEntry ? 'Complete our entry' : 'Edit' %>
       </a>
     <% } %>
@@ -80,7 +80,7 @@
 
     <% if (!isOwnEntry && canEdit) { %>
       <div class="actions">
-        <a href="/review/<%= family.id %>" class="btn">Review these changes</a>
+        <a href="<%= base %>/review/<%= family.id %>" class="btn">Review these changes</a>
       </div>
     <% } %>
   </div>
@@ -226,13 +226,13 @@
       </dl>
 
       <div class="actions" style="margin-top:0">
-        <form method="post" action="/families/<%= family.id %>/login"
+        <form method="post" action="<%= base %>/families/<%= family.id %>/login"
               onsubmit="return confirm('Put <%= login.username %> back to the default password?')">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="btn ghost small">Reset to the default password</button>
         </form>
 
-        <form method="post" action="/families/<%= family.id %>/pin"
+        <form method="post" action="<%= base %>/families/<%= family.id %>/pin"
               onsubmit="return confirm('Issue a new PIN? Any PIN already handed to this family stops working.')">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="btn ghost small">Issue a new PIN and slip</button>
@@ -251,7 +251,7 @@
         <strong><%= family.email %></strong> with the default password
         (<code><%= defaultPassword %></code>) and complete their own entry.
       </p>
-      <form method="post" action="/families/<%= family.id %>/login">
+      <form method="post" action="<%= base %>/families/<%= family.id %>/login">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn">Create a login for this family</button>
       </form>
@@ -262,7 +262,7 @@
         (<strong><%= family.family_id %></strong>) and the PIN printed on the
         slip. No email address is involved at any step.
       </p>
-      <form method="post" action="/families/<%= family.id %>/pin">
+      <form method="post" action="<%= base %>/families/<%= family.id %>/pin">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn">Issue a Family ID and PIN slip</button>
       </form>

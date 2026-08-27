@@ -47,7 +47,7 @@
             <td class="right"><%= d.zone_count %></td>
             <td class="right"><%= d.church_count %></td>
             <td class="right nowrap">
-              <a class="btn ghost small" href="/super/churches?diocese=<%= d.id %>">Churches</a>
+              <a class="btn ghost small" href="<%= base %>/super/churches?diocese=<%= d.id %>">Churches</a>
             </td>
           </tr>
         <% }); %>
@@ -66,9 +66,9 @@
     <%= labels.zone.toLowerCase() %>s is optional, for installs that want it.
   </p>
   <div class="actions">
-    <a class="btn" href="/super/churches">Manage churches</a>
-    <a class="btn ghost" href="/super/dioceses">Manage <%= labels.diocese.toLowerCase() %>s</a>
-    <a class="btn ghost" href="/super/zones">Manage <%= labels.zone.toLowerCase() %>s</a>
+    <a class="btn" href="<%= base %>/super/churches">Manage churches</a>
+    <a class="btn ghost" href="<%= base %>/super/dioceses">Manage <%= labels.diocese.toLowerCase() %>s</a>
+    <a class="btn ghost" href="<%= base %>/super/zones">Manage <%= labels.zone.toLowerCase() %>s</a>
   </div>
 </div>
 

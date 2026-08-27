@@ -3,13 +3,13 @@
 <head>
 <%- include('head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
 <body class="app">
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="<%= isSuperAdmin && !churchId ? '/super' : '/' %>">
+    <a class="brand" href="<%= base + (isSuperAdmin && !churchId ? '/super' : '/') %>">
       <%= settings.directory_title %>
       <small><%= church ? church.name : settings.parish_name %></small>
     </a>
@@ -40,45 +40,45 @@
 %>
     <nav class="nav">
       <% if (isFamilyLogin) { %>
-        <a href="/families/<%= currentUser.family_id %>"
+        <a href="<%= base %>/families/<%= currentUser.family_id %>"
            class="<%= path.startsWith('/families') ? 'active' : '' %>">Our entry</a>
       <% } else { %>
         <% if (churchId) { %>
-          <a href="/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
-          <a href="/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
+          <a href="<%= base %>/"          class="<%= path === '/' ? 'active' : '' %>">Dashboard</a>
+          <a href="<%= base %>/families"  class="<%= path.startsWith('/families') ? 'active' : '' %>">Families</a>
           <% if (atLeast('editor')) { %>
-            <a href="/review" class="<%= path.startsWith('/review') ? 'active' : '' %>">
+            <a href="<%= base %>/review" class="<%= path.startsWith('/review') ? 'active' : '' %>">
               Review<% if (typeof pendingCount !== 'undefined' && pendingCount) { %>
                 <span class="badge"><%= pendingCount %></span>
               <% } %>
             </a>
           <% } %>
-          <a href="/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
+          <a href="<%= base %>/directory" class="<%= path.startsWith('/directory') ? 'active' : '' %>">Print directory</a>
           <% if (atLeast('admin')) { %>
             <details class="nav-menu">
               <summary class="<%= path.startsWith('/admin') ? 'active' : '' %>">Manage</summary>
               <div class="nav-menu-items">
-                <a href="/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
-                <a href="/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
-                <a href="/admin/import"   class="<%= path.startsWith('/admin/import') ? 'active' : '' %>">Import members</a>
-                <a href="/admin/export"   class="<%= path.startsWith('/admin/export') ? 'active' : '' %>">Download your data</a>
-                <a href="/admin/audit"    class="<%= path === '/admin/audit' ? 'active' : '' %>">Audit log</a>
+                <a href="<%= base %>/admin/settings" class="<%= path === '/admin/settings' ? 'active' : '' %>">Settings</a>
+                <a href="<%= base %>/admin/users"    class="<%= path.startsWith('/admin/users') ? 'active' : '' %>">Users</a>
+                <a href="<%= base %>/admin/import"   class="<%= path.startsWith('/admin/import') ? 'active' : '' %>">Import members</a>
+                <a href="<%= base %>/admin/export"   class="<%= path.startsWith('/admin/export') ? 'active' : '' %>">Download your data</a>
+                <a href="<%= base %>/admin/audit"    class="<%= path === '/admin/audit' ? 'active' : '' %>">Audit log</a>
               </div>
             </details>
           <% } %>
         <% } %>
 
         <% if (isSuperAdmin && !churchId) { %>
-          <a href="/super"           class="<%= path === '/super' ? 'active' : '' %>">System</a>
-          <a href="/super/churches"  class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
-          <a href="/super/reports"   class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+          <a href="<%= base %>/super"           class="<%= path === '/super' ? 'active' : '' %>">System</a>
+          <a href="<%= base %>/super/churches"  class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
+          <a href="<%= base %>/super/reports"   class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
         <% } else if (isSuperAdmin) { %>
           <details class="nav-menu">
             <summary class="<%= path.startsWith('/super') ? 'active' : '' %>">System</summary>
             <div class="nav-menu-items">
-              <a href="/super"          class="<%= path === '/super' ? 'active' : '' %>">Console</a>
-              <a href="/super/churches" class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
-              <a href="/super/reports"  class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+              <a href="<%= base %>/super"          class="<%= path === '/super' ? 'active' : '' %>">Console</a>
+              <a href="<%= base %>/super/churches" class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
+              <a href="<%= base %>/super/reports"  class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
             </div>
           </details>
         <% } %>
@@ -86,8 +86,8 @@
     </nav>
 
     <div class="whoami">
-      <a href="/account"><strong><%= currentUser.full_name || currentUser.username %></strong></a>
-      <form method="post" action="/logout">
+      <a href="<%= base %>/account"><strong><%= currentUser.full_name || currentUser.username %></strong></a>
+      <form method="post" action="<%= base %>/logout">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn ghost small">Sign out</button>
       </form>
@@ -111,7 +111,7 @@
         %><% if (church.city) { %>, <%= church.city %><% } %>.
         Anything you change here belongs to that parish.
       </span>
-      <form method="post" action="/super/stop-acting" style="display:inline">
+      <form method="post" action="<%= base %>/super/stop-acting" style="display:inline">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn ghost small">Leave this church</button>
       </form>
@@ -124,7 +124,7 @@
     <div class="inner">
       <span>
         You are still signed in with the password everyone was given.
-        <a href="/account">Choose a password of your own</a>.
+        <a href="<%= base %>/account">Choose a password of your own</a>.
       </span>
       <button type="button" class="btn ghost small" data-dismiss-banner>Not now</button>
     </div>

@@ -20,7 +20,7 @@
 
 <%- include('../partials/messages') %>
 
-<form method="post" action="/admin/settings">
+<form method="post" action="<%= base %>/admin/settings">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
   <div class="card">
@@ -168,11 +168,11 @@
 
   <div class="actions">
     <button type="submit" class="btn">Save settings</button>
-    <a href="/directory" class="btn ghost">Preview the directory</a>
+    <a href="<%= base %>/directory" class="btn ghost">Preview the directory</a>
   </div>
 </form>
 
-<form method="post" action="/admin/settings/reset-colors" class="card" style="margin-top:24px">
+<form method="post" action="<%= base %>/admin/settings/reset-colors" class="card" style="margin-top:24px">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <h2>Reset colours</h2>
   <p class="help" style="margin:-8px 0 14px">Put the five printed colours back to the template defaults.</p>

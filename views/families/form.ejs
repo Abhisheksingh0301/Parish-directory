@@ -118,7 +118,7 @@
 </datalist>
 
 <form method="post"
-      action="<%= isNew ? '/families' : '/families/' + family.id %>"
+      action="<%= base + (isNew ? '/families' : '/families/' + family.id) %>"
       enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
@@ -309,7 +309,7 @@
     <button type="submit" class="btn">
       <%= isNew ? 'Create family' : (isOwnEntry ? 'Send our corrections' : 'Save changes') %>
     </button>
-    <a href="<%= isNew ? '/families' : '/families/' + family.id %>" class="btn ghost">Cancel</a>
+    <a href="<%= base + (isNew ? '/families' : '/families/' + family.id) %>" class="btn ghost">Cancel</a>
 
     <% if (!isNew) { %>
       <span class="spacer"></span>
@@ -318,7 +318,7 @@
 </form>
 
 <% if (!isNew && !isOwnEntry) { %>
-  <form method="post" action="/families/<%= family.id %>/delete" class="card"
+  <form method="post" action="<%= base %>/families/<%= family.id %>/delete" class="card"
         style="margin-top:24px;border-color:#d9b4aa"
         onsubmit="return confirm('Delete this family and all of its members? This cannot be undone.')">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -337,9 +337,9 @@
      }); %>
 </template>
 
-<script src="/javascripts/datepicker.js"></script>
-<script src="/javascripts/same-address.js"></script>
-<script src="/javascripts/head-name-sync.js"></script>
-<script src="/javascripts/family-form.js"></script>
+<script src="<%= base %>/javascripts/datepicker.js"></script>
+<script src="<%= base %>/javascripts/same-address.js"></script>
+<script src="<%= base %>/javascripts/head-name-sync.js"></script>
+<script src="<%= base %>/javascripts/family-form.js"></script>
 
 <%- include('../partials/footer') %>

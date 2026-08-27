@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
 <body class="auth">
 
@@ -13,7 +13,7 @@
 
   <%- include('../partials/messages') %>
 
-  <form method="post" action="/login" autocomplete="on">
+  <form method="post" action="<%= base %>/login" autocomplete="on">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="field">
@@ -33,12 +33,12 @@
 
   <p class="help" style="margin-top:18px">
     A family with no email address on file signs in with its
-    <a href="/family-login">Family ID and PIN</a> instead.
+    <a href="<%= base %>/family-login">Family ID and PIN</a> instead.
   </p>
 </div>
 
 <%- include('../partials/indus-badge') %>
 
-<script src="/javascripts/password-toggle.js"></script>
+<script src="<%= base %>/javascripts/password-toggle.js"></script>
 </body>
 </html>

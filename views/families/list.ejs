@@ -4,14 +4,14 @@
   <h1>Families</h1>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <form method="get" action="/families" style="display:flex;gap:8px">
+    <form method="get" action="<%= base %>/families" style="display:flex;gap:8px">
       <input type="search" name="q" value="<%= search %>" placeholder="Search name, ID, address, mobile…"
              style="min-width:260px" aria-label="Search families">
       <button type="submit" class="btn ghost">Search</button>
-      <% if (search) { %><a href="/families" class="btn ghost">Clear</a><% } %>
+      <% if (search) { %><a href="<%= base %>/families" class="btn ghost">Clear</a><% } %>
     </form>
-    <a href="/families/status" class="btn ghost">Verification status</a>
-    <% if (canEdit) { %><a href="/families/new" class="btn">Add a family</a><% } %>
+    <a href="<%= base %>/families/status" class="btn ghost">Verification status</a>
+    <% if (canEdit) { %><a href="<%= base %>/families/new" class="btn">Add a family</a><% } %>
   </div>
 </div>
 
@@ -49,7 +49,7 @@
     </div>
 
     <% if (isAdmin) { %>
-      <form method="post" action="/families/logins" style="margin-bottom:18px"
+      <form method="post" action="<%= base %>/families/logins" style="margin-bottom:18px"
             onsubmit="return confirm('Create logins for <%= pendingLoginCount %> famil<%= pendingLoginCount === 1 ? 'y' : 'ies' %>?')">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn" <%= pendingLoginCount ? '' : 'disabled' %>>
@@ -94,7 +94,7 @@
         No families match &ldquo;<%= search %>&rdquo;.
       <% } else { %>
         No families yet.
-        <% if (canEdit) { %><br><a href="/families/new">Add the first one</a>.<% } %>
+        <% if (canEdit) { %><br><a href="<%= base %>/families/new">Add the first one</a>.<% } %>
       <% } %>
     </div>
   <% } else { %>
@@ -117,7 +117,7 @@
             <tr>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
               <td>
-                <a href="/families/<%= f.id %>"><%= f.head_name %></a>
+                <a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a>
                 <% if (!f.is_published) { %><span class="tag draft">Draft</span><% } %>
               </td>
               <td style="color:var(--ink-faint)"><%= f.address.split('\n')[0] %></td>
@@ -141,7 +141,7 @@
               <% } %>
               <td class="right nowrap">
                 <% if (canEdit) { %>
-                  <a href="/families/<%= f.id %>/edit" class="btn ghost small">Edit</a>
+                  <a href="<%= base %>/families/<%= f.id %>/edit" class="btn ghost small">Edit</a>
                 <% } %>
               </td>
             </tr>
@@ -158,6 +158,6 @@
   </p>
 <% } %>
 
-<script src="/javascripts/copy-emails.js"></script>
+<script src="<%= base %>/javascripts/copy-emails.js"></script>
 
 <%- include('../partials/footer') %>

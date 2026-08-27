@@ -7,7 +7,7 @@
 <%- include('../partials/messages') %>
 
 <div class="card" style="max-width:520px">
-  <form method="post" action="/account" autocomplete="on">
+  <form method="post" action="<%= base %>/account" autocomplete="on">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="field">
@@ -47,7 +47,7 @@
 
     <div class="actions">
       <button type="submit" class="btn">Save changes</button>
-      <a href="/" class="btn ghost">Cancel</a>
+      <a href="<%= base %>/" class="btn ghost">Cancel</a>
     </div>
   </form>
 </div>

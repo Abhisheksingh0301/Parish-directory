@@ -50,6 +50,16 @@ module.exports = {
   env,
   isProduction,
   port: Number(process.env.PORT || 3000),
+  /**
+   * The public URL prefix, when a reverse proxy serves this install under a
+   * sub-path and strips it before forwarding — `location /parishdir/` with
+   * `proxy_pass http://127.0.0.1:3001/;`. The app still sees paths from the
+   * root, so this is needed only for the URLs it writes into a page.
+   *
+   * Empty when the app owns its domain, which is the ordinary case: every URL
+   * then comes out exactly as it did before this setting existed.
+   */
+  basePath: (process.env.BASE_PATH || '').trim().replace(/\/+$/, ''),
   dataDir,
   uploadDir,
   dbFile: path.join(dataDir, 'parish.db'),

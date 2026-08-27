@@ -232,8 +232,15 @@ async function main() {
     bar.includes('<summary class="active">Manage</summary>'),
     'no Manage menu, or it is not marked as the section in use');
 
+  /*
+   * The prefix the links carry when the app is served under a sub-path. The
+   * request paths above stay bare either way — a proxy strips the prefix
+   * before forwarding, so only the URLs written into the page wear it.
+   */
+  const base = require('../config').basePath;
+
   for (const href of ['/admin/settings', '/admin/users', '/admin/import', '/admin/export', '/admin/audit']) {
-    check(`${href} is still reachable from the bar`, bar.includes(`href="${href}"`));
+    check(`${href} is still reachable from the bar`, bar.includes(`href="${base}${href}"`));
   }
 
   check('and the identity is not inside the navigation that wraps',

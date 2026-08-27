@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
 <body class="auth">
 
@@ -13,7 +13,7 @@
 
   <%- include('../partials/messages') %>
 
-  <form method="post" action="/family-login" autocomplete="off">
+  <form method="post" action="<%= base %>/family-login" autocomplete="off">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <% if (churches.length > 1) { %>
@@ -52,7 +52,7 @@
 
   <p class="help" style="margin-top:18px">
     Have you an email address on file with the parish?
-    <a href="/login">Sign in with that instead</a>.
+    <a href="<%= base %>/login">Sign in with that instead</a>.
     <br>
     Lost your slip, or never had one? Ask the parish office or your Area
     Representative — they can issue a new PIN, or enter your corrections for you.
@@ -61,6 +61,6 @@
 
 <%- include('../partials/indus-badge') %>
 
-<script src="/javascripts/password-toggle.js"></script>
+<script src="<%= base %>/javascripts/password-toggle.js"></script>
 </body>
 </html>

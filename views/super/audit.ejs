@@ -18,7 +18,7 @@
     exporting data are.
   </p>
 
-  <form method="get" action="/super/audit" class="grid-2">
+  <form method="get" action="<%= base %>/super/audit" class="grid-2">
     <div class="field">
       <label for="church">Church</label>
       <select id="church" name="church">
@@ -38,7 +38,7 @@
     <div class="actions">
       <button type="submit" class="btn ghost small">Filter</button>
       <% if (filterChurch || filterAction) { %>
-        <a class="btn ghost small" href="/super/audit">Clear</a>
+        <a class="btn ghost small" href="<%= base %>/super/audit">Clear</a>
       <% } %>
     </div>
   </form>

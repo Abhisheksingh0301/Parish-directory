@@ -29,7 +29,7 @@
         <% zones.forEach(function (z) { %>
           <tr>
             <td>
-              <form method="post" action="/super/zones/<%= z.id %>" class="checkline">
+              <form method="post" action="<%= base %>/super/zones/<%= z.id %>" class="checkline">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="text" name="name" value="<%= z.name %>" required
                        aria-label="Name of <%= z.name %>">
@@ -39,7 +39,7 @@
             <td><%= z.diocese_name %></td>
             <td class="right"><%= z.church_count %></td>
             <td class="right nowrap">
-              <form method="post" action="/super/zones/<%= z.id %>/delete" style="display:inline"
+              <form method="post" action="<%= base %>/super/zones/<%= z.id %>/delete" style="display:inline"
                     onsubmit="return confirm('Dissolve <%= z.name %>? Its <%= z.church_count %> church(es) will become unzoned. Nothing is deleted.')">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn danger small">Dissolve</button>
@@ -61,7 +61,7 @@
       a <%= labels.zone.toLowerCase() %> has to belong to one.
     </p>
   <% } else { %>
-    <form method="post" action="/super/zones">
+    <form method="post" action="<%= base %>/super/zones">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="grid-2">
         <div class="field">

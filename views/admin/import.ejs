@@ -20,8 +20,8 @@
   </p>
 
   <div class="actions">
-    <a class="btn" href="/admin/import-template.csv">Template with example rows</a>
-    <a class="btn ghost" href="/admin/import-template.csv?examples=0">
+    <a class="btn" href="<%= base %>/admin/import-template.csv">Template with example rows</a>
+    <a class="btn ghost" href="<%= base %>/admin/import-template.csv?examples=0">
       Headings only
     </a>
   </div>
@@ -101,7 +101,7 @@
       <% relations.forEach((relation, i) => { %><code><%= relation %></code><%= i < relations.length - 1 ? ', ' : '' %><% }) %>.
     <% } else { %>
       none are set &mdash; add them on the
-      <a href="/admin/settings">Settings</a> page first.
+      <a href="<%= base %>/admin/settings">Settings</a> page first.
     <% } %>
     Change them on Settings and the template you download changes with them.
   </p>
@@ -163,7 +163,7 @@
     a <strong>draft</strong> &mdash; nothing enters the printed book until
     somebody has looked at it &mdash; and <strong>no logins are created</strong>.
     Accounts stay a separate, deliberate step on
-    <a href="/admin/users">User accounts</a>.
+    <a href="<%= base %>/admin/users">User accounts</a>.
   </p>
 </div>
 

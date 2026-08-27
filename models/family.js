@@ -1,6 +1,7 @@
 'use strict';
 
 const { Op, fn, col, where: whereFn } = require('sequelize');
+const config = require('../config');
 const db = require('../db');
 const dayMonth = require('../lib/daymonth');
 const verification = require('../lib/verification');
@@ -89,7 +90,9 @@ function decorate(family, members) {
     is_published: !!family.is_published,
     // Where the photograph is served from. Built here so no view has to know
     // that the path carries the church, and so it changes in one place.
-    photo_url: family.photo ? `/uploads/${family.church_id}/${family.photo}` : null,
+    photo_url: family.photo
+      ? `${config.basePath}/uploads/${family.church_id}/${family.photo}`
+      : null,
     dom: dayMonth.format(family.dom_day, family.dom_month),
     members: members.map((m) => ({
       ...m,

@@ -9,14 +9,14 @@
   </p>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <a href="/families/status/print<%= query %>" class="btn ghost">Printable follow-up sheet</a>
-    <a href="/review" class="btn ghost">Review queue</a>
+    <a href="<%= base %>/families/status/print<%= query %>" class="btn ghost">Printable follow-up sheet</a>
+    <a href="<%= base %>/review" class="btn ghost">Review queue</a>
   </div>
 </div>
 
 <%- include('../partials/messages') %>
 
-<form method="get" action="/families/status" class="card filter-bar">
+<form method="get" action="<%= base %>/families/status" class="card filter-bar">
   <label>
     Status
     <select name="status">
@@ -54,7 +54,7 @@
   <% } %>
 
   <button type="submit" class="btn ghost small">Apply</button>
-  <% if (query) { %><a href="/families/status" class="btn ghost small">Clear</a><% } %>
+  <% if (query) { %><a href="<%= base %>/families/status" class="btn ghost small">Clear</a><% } %>
 </form>
 
 <div class="card">
@@ -70,7 +70,7 @@
         ].filter(Boolean).join('&');
       %>
       <a class="chain-step <%= counts[step.key] ? '' : 'is-empty' %> <%= filter.status === step.key ? 'is-current' : '' %>"
-         href="/families/status?<%= stepQuery %>">
+         href="<%= base %>/families/status?<%= stepQuery %>">
         <span class="n"><%= counts[step.key] %></span>
         <span class="k"><%= step.label %></span>
       </a>
@@ -83,7 +83,7 @@
     <h2>Marking a batch</h2>
 
     <div class="actions" style="margin-top:0">
-      <form method="post" action="/families/invitations<%= query %>"
+      <form method="post" action="<%= base %>/families/invitations<%= query %>"
             onsubmit="return confirm('Mark the <%= families.length %> famil<%= families.length === 1 ? 'y' : 'ies' %> in this view as invited?')">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn ghost" <%= families.length ? '' : 'disabled' %>>
@@ -91,7 +91,7 @@
         </button>
       </form>
 
-      <form method="post" action="/families/pins"
+      <form method="post" action="<%= base %>/families/pins"
             onsubmit="return confirm('Issue a new PIN to every family in this parish? Any PIN already handed out stops working.')">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <% families.forEach(function (f) { %>
@@ -102,7 +102,7 @@
         </button>
       </form>
 
-      <form method="post" action="/families/printed"
+      <form method="post" action="<%= base %>/families/printed"
             onsubmit="return confirm('Mark every family in the printed book as Printed?')">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn ghost">Mark the printed book as printed</button>
@@ -141,7 +141,7 @@
           <% families.forEach(function (f) { %>
             <tr>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
-              <td><a href="/families/<%= f.id %>"><%= f.head_name %></a></td>
+              <td><a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a></td>
               <td><%= f.area || '—' %></td>
               <td><%= f.prayer_group || '—' %></td>
               <td class="nowrap"><%= f.contact || '—' %></td>

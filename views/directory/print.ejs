@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
-<link rel="stylesheet" href="/stylesheets/directory.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/directory.css">
 </head>
 <%
   // The parish's saved palette overrides the defaults in directory.css.
@@ -29,12 +29,12 @@
 
   <% if (canEdit) { %>
     <% if (includeDrafts) { %>
-      <a class="ghost" href="/directory">Published only</a>
+      <a class="ghost" href="<%= base %>/directory">Published only</a>
     <% } else { %>
-      <a class="ghost" href="/directory?drafts=1">Preview with drafts</a>
+      <a class="ghost" href="<%= base %>/directory?drafts=1">Preview with drafts</a>
     <% } %>
   <% } %>
-  <a class="ghost" href="/">Back to the app</a>
+  <a class="ghost" href="<%= base %>/">Back to the app</a>
   <button type="button" onclick="window.print()">Print this directory</button>
 </div>
 
@@ -42,7 +42,7 @@
   <div class="page" style="min-height:0">
     <p style="text-align:center;padding:60px 20px;color:#8d8577">
       There are no families in the directory yet.
-      <% if (canEdit) { %><br><a href="/families/new">Add the first one</a>.<% } %>
+      <% if (canEdit) { %><br><a href="<%= base %>/families/new">Add the first one</a>.<% } %>
     </p>
   </div>
 <% } %>

@@ -8,15 +8,15 @@
   </p>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <a href="/review/export.csv<%= query %>" class="btn ghost">Export the queue</a>
-    <a href="/families/status" class="btn ghost">Verification status</a>
+    <a href="<%= base %>/review/export.csv<%= query %>" class="btn ghost">Export the queue</a>
+    <a href="<%= base %>/families/status" class="btn ghost">Verification status</a>
   </div>
 </div>
 
 <%- include('../partials/messages') %>
 
 <% if (twoTier || groupings.areas.length || groupings.prayerGroups.length) { %>
-  <form method="get" action="/review" class="card filter-bar">
+  <form method="get" action="<%= base %>/review" class="card filter-bar">
     <% if (twoTier) { %>
       <label>
         Queue
@@ -54,7 +54,7 @@
     <% } %>
 
     <button type="submit" class="btn ghost small">Apply</button>
-    <% if (query) { %><a href="/review" class="btn ghost small">Clear</a><% } %>
+    <% if (query) { %><a href="<%= base %>/review" class="btn ghost small">Clear</a><% } %>
   </form>
 <% } %>
 
@@ -79,7 +79,7 @@
 
   <div class="card review-block">
     <h2>
-      <a href="/families/<%= block.family.id %>"><%= block.family.head_name %></a>
+      <a href="<%= base %>/families/<%= block.family.id %>"><%= block.family.head_name %></a>
       <span class="hint">
         — Family ID <%= block.family.family_id %><%
         %><% if (block.family.area) { %>, <%= block.family.area %><% } %><%
@@ -95,7 +95,7 @@
       <% } %>.
     </p>
 
-    <form id="<%= batchForm %>" method="post" action="/review/decide">
+    <form id="<%= batchForm %>" method="post" action="<%= base %>/review/decide">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="back" value="/review<%= query %>">
     </form>
@@ -120,11 +120,11 @@
              placeholder="Reason, if rejecting" aria-label="Reason for rejecting the ticked changes"
              style="max-width:280px">
       <span class="spacer"></span>
-      <a href="/review/<%= block.family.id %>" class="btn ghost small">Open this family</a>
+      <a href="<%= base %>/review/<%= block.family.id %>" class="btn ghost small">Open this family</a>
     </div>
 
     <% if (twoTier && routineIds.length) { %>
-      <form method="post" action="/review/decide" class="batch-routine">
+      <form method="post" action="<%= base %>/review/decide" class="batch-routine">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="back" value="/review<%= query %>">
         <% routineIds.forEach(function (id) { %>

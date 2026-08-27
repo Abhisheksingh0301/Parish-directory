@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %></title>
-<link rel="stylesheet" href="/stylesheets/directory.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/directory.css">
 </head>
 <body class="directory directory-body">
 
@@ -17,8 +17,8 @@
 
   <span class="spacer"></span>
 
-  <a class="ghost" href="/super/reports<%= query %>">Change selection</a>
-  <a class="ghost" href="/super">Back to the console</a>
+  <a class="ghost" href="<%= base %>/super/reports<%= query %>">Change selection</a>
+  <a class="ghost" href="<%= base %>/super">Back to the console</a>
   <button type="button" onclick="window.print()">Print this directory</button>
 </div>
 

@@ -8,11 +8,11 @@
   </p>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
-    <a href="/review/export.csv" class="btn ghost">Export the change queue</a>
+    <a href="<%= base %>/review/export.csv" class="btn ghost">Export the change queue</a>
   </div>
 </div>
 
-<form method="get" action="/admin/audit" class="card filter-bar">
+<form method="get" action="<%= base %>/admin/audit" class="card filter-bar">
   <label>
     Event
     <select name="action" onchange="this.form.submit()">

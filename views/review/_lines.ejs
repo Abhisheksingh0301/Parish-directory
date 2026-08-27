@@ -17,11 +17,11 @@
    * Reused by the queue and by one family's own review page, so the two cannot
    * drift apart.
    */
-  const photoUrl = (file) => (file ? `/uploads/${churchId}/${file}` : null);
+  const photoUrl = (file) => (file ? `${base}/uploads/${churchId}/${file}` : null);
 %>
 
 <% changes.forEach(function (change) { %>
-  <form id="line-<%= change.id %>" method="post" action="/review/decide" hidden>
+  <form id="line-<%= change.id %>" method="post" action="<%= base %>/review/decide" hidden>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <input type="hidden" name="back" value="<%= back %>">
     <input type="hidden" name="change_ids" value="<%= change.id %>">

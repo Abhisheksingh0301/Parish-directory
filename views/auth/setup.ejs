@@ -3,7 +3,7 @@
 <head>
 <%- include('../partials/head-assets') %>
 <title><%= title %></title>
-<link rel="stylesheet" href="/stylesheets/app.css">
+<link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
 <body class="auth">
 
@@ -16,7 +16,7 @@
 
   <%- include('../partials/messages') %>
 
-  <form method="post" action="/setup" autocomplete="on">
+  <form method="post" action="<%= base %>/setup" autocomplete="on">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="field">
@@ -57,6 +57,6 @@
 
 <%- include('../partials/indus-badge') %>
 
-<script src="/javascripts/password-toggle.js"></script>
+<script src="<%= base %>/javascripts/password-toggle.js"></script>
 </body>
 </html>
