@@ -145,14 +145,25 @@ three levels. Idempotent, so a file can be corrected and re-imported, and it
 creates no accounts: importing a hundred parishes should not quietly mint a
 hundred logins.
 
-`data/seed/` carries what could honestly be bundled:
+`data/seed/` carries the Mar Thoma Syrian Church, which is the church this
+installation actually serves: **1,114 parishes and congregations in 14
+dioceses**, converted from the list published at marthoma.in. It replaced the
+earlier bundle of CSI, CNI and Catholic diocesan skeletons — those were
+partial lists of denominations nobody here was importing, and a partial list
+invites more correcting than typing.
 
-- **CSI, all 24 dioceses** — the one complete list.
-- **CNI, 26 dioceses** — there are about 27, so it is marked as needing a check.
-- **Catholic, ~30 metropolitan sees** out of roughly 174 jurisdictions, named
-  `catholic-archdioceses-only.csv` so nobody imports it believing it is the
-  whole country.
-- **An example** of the shape a real one-diocese import takes.
+- **`marthoma-dioceses.csv`** — the 14 diocese names alone, for an install
+  running one parish that only needs somewhere to file it.
+- **`marthoma-parishes.csv`** — every parish, unzoned. The usual choice.
+- **`marthoma-parishes-with-country-zones.csv`** — the same rows with the
+  country as the zone. Not invented structure: every diocese really does span
+  more than one country, because the Gulf congregations are attached to Kerala
+  dioceses rather than to a diocese of their own.
+
+The source spreadsheet has an address but no city column, so the city is read
+out of the address and lands for 1,062 of the 1,114 rows. The other 52 are left
+blank. Its vicar, phone and website columns are dropped: a church row here is a
+name, a city and a place in the hierarchy, and there is nowhere to put them.
 
 **No zone list is bundled, and none can be.** Foranes, deaneries and pastorates
 are decided inside each diocese, number in the low thousands nationally, and

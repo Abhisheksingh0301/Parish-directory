@@ -46,9 +46,22 @@ app.use((req, res, next) => {
 });
 
 app.use(logger(config.isProduction ? 'combined' : 'dev'));
-app.use(express.json());
+/*
+ * Body limits.
+ *
+ * The defaults are 100 KB and 1000 parameters, and the parameter count is the
+ * one that bites first: a family posts nine fields per member, so a household
+ * entered with a long list of members climbs towards the limit while the body
+ * is still only tens of kilobytes. Both then fail the same way — a bare 413
+ * from body-parser, on a form the person had just spent ten minutes filling in.
+ *
+ * Photographs do not pass through here. They are multipart, which these skip
+ * entirely and multer handles with its own 5 MB limit and a message that lands
+ * on the form rather than an error page.
+ */
+app.use(express.json({ limit: '1mb' }));
 // extended: true so the family form can post members[0][name] as a nested object.
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '1mb', parameterLimit: 5000 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -166,9 +179,25 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     return req.socket.destroy();
   }
 
+  /*
+   * "request entity too large" is body-parser's wording, and it tells a parish
+   * administrator nothing about what to do. Say what was too big and what to
+   * do about it instead.
+   *
+   * Note that a 413 raised by a reverse proxy — nginx caps uploads at 1 MB
+   * unless client_max_body_size says otherwise — never reaches this handler at
+   * all: the proxy answers it and the app never sees the request. If people
+   * report this on a photograph and not on a long form, the cap is in front of
+   * this application, not in it.
+   */
+  const message = status === 413
+    ? 'That was too much to send at once. If you were attaching a photograph, '
+      + 'use a smaller image; otherwise the entry has more in it than one save can carry.'
+    : err.message;
+
   res.status(status).render('error', {
     title: status === 404 ? 'Page not found' : 'Something went wrong',
-    message: err.message,
+    message,
     error: config.isProduction ? {} : err
   });
 });

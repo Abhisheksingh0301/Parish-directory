@@ -289,6 +289,49 @@ router.get('/export.zip', wrap(async (req, res) => {
  * is still a deliberate, supervised step.
  */
 
+/**
+ * Add one relation to the list the member editor offers.
+ *
+ * The list has always been editable, as a comma-separated field on this page.
+ * That is the wrong shape for the moment it is actually wanted: someone is
+ * halfway through entering a household, needs "Father-in-law", and the only
+ * way to have it offered is to abandon the half-filled form, come here, edit a
+ * comma string and go back. So the family form can append to it in place.
+ *
+ * It appends and never removes or reorders — this is a convenience reached
+ * mid-entry, and curating the list stays a deliberate act on the settings page
+ * where the whole thing is visible at once.
+ *
+ * Admin-only, like everything on this router. An editor may type any relation
+ * they like into a member row; changing what the parish is *offered* is a
+ * settings change, and settings belong to an administrator.
+ */
+router.post('/relations', wrap(async (req, res) => {
+  const name = String(req.body.name || '').trim().replace(/\s+/g, ' ');
+  const current = settings.relationOptions(req.settings);
+
+  const fail = (message) => res.status(400).json({ ok: false, message });
+
+  if (!name) return fail('Type a relation before adding it.');
+  if (name.length > 40) return fail('That is too long for a relation.');
+  // The setting is one comma-separated string, so a comma would split it in two.
+  if (name.includes(',')) return fail('A relation cannot contain a comma.');
+
+  const already = current.find((r) => r.toLowerCase() === name.toLowerCase());
+  if (already) {
+    return res.json({ ok: true, relations: current, message: `"${already}" is already offered.` });
+  }
+
+  const relations = current.concat(name);
+  await settings.save(req.churchId, { relation_options: relations.join(', ') });
+  await audit.record(req, 'settings.relations.add', {
+    churchId: req.churchId,
+    detail: name
+  });
+
+  res.json({ ok: true, relations, message: `"${name}" added to the relations offered.` });
+}));
+
 router.get('/import', wrap(async (req, res) => {
   res.render('admin/import', {
     title: 'Import members from a spreadsheet',

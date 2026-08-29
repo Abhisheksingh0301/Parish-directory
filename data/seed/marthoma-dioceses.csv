@@ -1,0 +1,24 @@
+# Mar Thoma Syrian Church — the 14 dioceses, and nothing below them.
+#
+# Start here if you are setting up one parish and only need somewhere to file
+# it. Importing 1,100 churches you will never open is not a favour to anyone;
+# marthoma-parishes.csv is there when you want the whole list.
+# Source: the Mar Thoma parish list published at marthoma.in, as collected in
+#   https://docs.google.com/spreadsheets/d/1QVPcgFuO638L673NJ5fqtwqwq_obO4lF/edit
+# Converted 2026-08-29. 1114 parishes in 14 dioceses.
+#
+diocese,zone,church,city
+ADOOR DIOCESE,,,
+CHENGANNUR - MAVELIKKARA DIOCESE,,,
+CHENNAI - BANGALORE DIOCESE,,,
+DELHI DIOCESE,,,
+KOTTARAKKARA - PUNALUR DIOCESE,,,
+KOTTAYAM - KOCHI DIOCESE,,,
+KUNNAMKULAM - MALABAR DIOCESE,,,
+MALAYSIA - SINGAPORE - AUS - NZ DIOCESE,,,
+MUMBAI DIOCESE,,,
+NIRANAM - MARAMON DIOCESE,,,
+NORTH AMERICA DIOCESE,,,
+RANNI - NILACKAL DIOCESE,,,
+THIRUVANANTHAPURAM - KOLLAM DIOCESE,,,
+UK - EUROPE - AFRICA DIOCESE,,,

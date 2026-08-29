@@ -285,6 +285,26 @@ async function listChurches({ search = '', dioceseId = null, zoneId = null } = {
   });
 }
 
+/**
+ * Every church name, for the "Home parish" suggestions on the family form.
+ *
+ * A household's home parish is usually not the parish they now attend — it is
+ * the one they came from, anywhere in the church — so this is deliberately the
+ * whole installation rather than anything scoped to the current church.
+ *
+ * Names only, and no counts: this runs on every render of the family form, and
+ * listChurches() would join families and count them to answer a question the
+ * form never asks.
+ */
+function listNames() {
+  return Church.findAll({
+    attributes: ['name'],
+    where: { is_active: true },
+    order: [['name', 'ASC']],
+    raw: true
+  }).then((rows) => rows.map((r) => r.name));
+}
+
 async function findChurch(id) {
   const row = await Church.findByPk(id, { include: withParents });
   return row ? decorateChurch(row) : null;
@@ -460,6 +480,7 @@ module.exports = {
   renameZone,
   removeZone,
   listChurches,
+  listNames,
   findChurch,
   findChurchBySlug,
   idsFor,

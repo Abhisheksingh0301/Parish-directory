@@ -11,12 +11,12 @@
 <%- include('../partials/messages') %>
 
 <div class="stats">
-  <div class="stat"><strong><%= counts.dioceses %></strong><span><%= labels.diocese %>s</span></div>
-  <div class="stat"><strong><%= counts.zones %></strong><span><%= labels.zone %>s</span></div>
-  <div class="stat"><strong><%= counts.churches %></strong><span>Churches</span></div>
-  <div class="stat"><strong><%= counts.families %></strong><span>Families</span></div>
-  <div class="stat"><strong><%= counts.members %></strong><span>Members</span></div>
-  <div class="stat"><strong><%= counts.users %></strong><span>Accounts</span></div>
+  <div class="stat"><div class="n"><%= counts.dioceses %></div><div class="k"><%= labels.diocese %>s</div></div>
+  <div class="stat"><div class="n"><%= counts.zones %></div><div class="k"><%= labels.zone %>s</div></div>
+  <div class="stat"><div class="n"><%= counts.churches %></div><div class="k">Churches</div></div>
+  <div class="stat"><div class="n"><%= counts.families %></div><div class="k">Families</div></div>
+  <div class="stat"><div class="n"><%= counts.members %></div><div class="k">Members</div></div>
+  <div class="stat"><div class="n"><%= counts.users %></div><div class="k">Accounts</div></div>
 </div>
 
 <div class="card" style="padding:0;overflow:hidden">

@@ -5,6 +5,7 @@ const express = require('express');
 const config = require('../config');
 const Users = require('../models/user');
 const Family = require('../models/family');
+const Churches = require('../models/church');
 const Pending = require('../models/pending');
 const dayMonth = require('../lib/daymonth');
 const relations = require('../lib/relations');
@@ -163,6 +164,11 @@ async function formLocals(req, extra) {
     // Offered as suggestions on the Area and Prayer Group fields, so a parish
     // settles on a spelling without the fields becoming a fixed list.
     groupings: await Family.groupings(req.churchId),
+    // The same idea for Home parish, from the churches this installation knows
+    // about. A suggestion, not a fixed list: a family's home parish may be one
+    // that was never imported, and the ones already recorded as free text must
+    // survive being edited.
+    parishNames: await Churches.listNames(),
     bloodGroupOptions: BLOOD_GROUP_OPTIONS,
     maxPhotoMb: Math.round(maxBytes / (1024 * 1024)),
     errors: [],

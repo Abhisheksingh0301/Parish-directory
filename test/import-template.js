@@ -117,6 +117,10 @@ async function main() {
     username: 'alpha-editor', password_hash: await auth.hashPassword(PASSWORD),
     full_name: 'Alpha Editor', role: 'editor', church_id: church.id, created_at: db.now()
   });
+  await db.User.create({
+    username: 'root', password_hash: await auth.hashPassword(PASSWORD),
+    full_name: 'Super', role: 'superadmin', church_id: null, created_at: db.now()
+  });
 
   const app = require('../app');
   const server = http.createServer(app);
@@ -135,9 +139,27 @@ async function main() {
   check('with this parish’s own relation codes',
     res.body.includes('<code>HF</code>') && res.body.includes('<code>W</code>'),
     'the page offered relation codes this parish does not use');
-  check('and the command that loads the finished sheet',
-    res.body.includes('--church alpha'),
+  check('and tells the administrator who to hand the sheet to',
+    res.body.includes('whoever installed this directory'),
     'the page did not say how the sheet is handed over');
+  // A parish administrator has no shell. Printing the load command to them
+  // describes a job they cannot do, so it belongs to the super administrator.
+  check('without a command line they cannot run',
+    !res.body.includes('npm run import-families'),
+    'the page showed an administrator the import command');
+
+  // --- and the person who actually runs it ---
+  const root = makeClient();
+  await signIn(root, 'root');
+  const console_ = await root('GET', '/super/churches');
+  await root('POST', `/super/churches/${church.id}/act`, {
+    _csrf: csrfFrom(console_.body)
+  });
+  const rootPage = await root('GET', '/admin/import');
+  check('a super administrator is shown the command',
+    rootPage.status === 200 && rootPage.body.includes('--church alpha'),
+    `status ${rootPage.status}; the command was not offered to a super administrator`);
+
 
   console.log('');
   console.log('--- the template itself ---');

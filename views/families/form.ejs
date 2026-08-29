@@ -116,6 +116,9 @@
 <datalist id="prayer-group-names">
   <% groupings.prayerGroups.forEach(function (name) { %><option value="<%= name %>"><% }); %>
 </datalist>
+<datalist id="parish-names">
+  <% parishNames.forEach(function (name) { %><option value="<%= name %>"><% }); %>
+</datalist>
 
 <form method="post"
       action="<%= base + (isNew ? '/families' : '/families/' + family.id) %>"
@@ -180,7 +183,12 @@
     <div class="grid-2">
       <div class="field">
         <label for="home_parish">Home parish</label>
-        <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>">
+        <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>"
+               list="parish-names" autocomplete="off"
+               placeholder="Start typing a parish name">
+        <p class="help">
+          Pick from the churches on record, or type one that is not listed.
+        </p>
       </div>
 
       <div class="field">
@@ -290,6 +298,34 @@
     <div class="actions">
       <button type="button" class="btn ghost" id="add-member">Add another member</button>
     </div>
+
+    <%
+      /*
+       * Relation is a free-text field with suggestions, so any relation can be
+       * typed into a row already. What this adds is making one stick: typed
+       * into the box below it joins the list every family form offers from
+       * then on.
+       *
+       * Administrators only — the list is a parish setting. An editor can
+       * still type whatever a household actually is into the row itself.
+       */
+    %>
+    <% if (atLeast('admin')) { %>
+      <div class="field add-relation" id="add-relation" hidden style="margin-top:16px"
+           data-endpoint="<%= base %>/admin/relations">
+        <div class="label">Relations offered</div>
+        <div class="daymonth">
+          <input type="text" id="new-relation" maxlength="40"
+                 placeholder="Father-in-law" aria-label="A relation to add to the list">
+          <button type="button" class="btn ghost" id="add-relation-go">Add to the list</button>
+        </div>
+        <p class="help" id="add-relation-note">
+          Adds to the relations every family form suggests. You can also just type
+          a one-off relation straight into a member row above, or edit the whole
+          list under <a href="<%= base %>/admin/settings">Settings</a>.
+        </p>
+      </div>
+    <% } %>
   </div>
 
   <% if (isOwnEntry) { %>
@@ -341,5 +377,7 @@
 <script src="<%= base %>/javascripts/same-address.js"></script>
 <script src="<%= base %>/javascripts/head-name-sync.js"></script>
 <script src="<%= base %>/javascripts/family-form.js"></script>
+<script src="<%= base %>/javascripts/day-of-month.js"></script>
+<script src="<%= base %>/javascripts/add-relation.js"></script>
 
 <%- include('../partials/footer') %>

@@ -510,21 +510,70 @@ Safe to run twice: anything already there is reported as skipped, so you can
 correct the file and import it again. It creates no accounts — a hundred
 parishes should not quietly become a hundred logins.
 
-`data/seed/` holds starting points. **Verify them against your own directory
-before trusting them**, and read the comment at the top of each:
+### What is bundled
 
-| File | |
-|---|---|
-| `csi-dioceses.csv` | All 24 CSI dioceses. The one list here that is complete |
-| `cni-dioceses.csv` | 26 CNI dioceses; there are around 27, so check for a missing one |
-| `catholic-archdioceses-only.csv` | ~30 metropolitan sees out of roughly 174 jurisdictions — a skeleton, not a list of dioceses |
-| `example-one-diocese.csv` | The shape a real import takes. Copy this one |
+`data/seed/` holds the Mar Thoma Syrian Church: **1,114 parishes and
+congregations across 14 dioceses**, converted from the parish list published at
+marthoma.in. **Verify it against your own diocesan directory before trusting
+it**, and read the comment at the top of each file:
 
-**No zone list is bundled, and none can be.** Foranes, deaneries and pastorates
-are decided inside each diocese, number in the low thousands nationally, and
-live in your diocesan directory rather than anywhere public. They are also the
-level that changes — every few years, when a bishop reorganises. Put yours in
-the `zone` column.
+| File | Creates | |
+|---|---|---|
+| `marthoma-dioceses.csv` | 14 dioceses | The diocesan tier alone. Start here if you run one parish and just need somewhere to file it |
+| `marthoma-parishes.csv` | 14 dioceses, 1,114 churches | Every parish, unzoned. **The one most people want** |
+| `marthoma-parishes-with-country-zones.csv` | 14 dioceses, 32 zones, 1,114 churches | The same rows, with the country as the zone |
+
+Pick one of the last two, not both — they hold the same parishes.
+
+```bash
+# look first: this writes nothing
+node bin/import-hierarchy.js --file data/seed/marthoma-parishes.csv --dry-run
+
+# then, for real
+node bin/import-hierarchy.js --file data/seed/marthoma-parishes.csv
+```
+
+That takes a minute or so and prints what it made. Every church it creates is
+still without an administrator — importing a list of parishes does not mint a
+thousand logins. Add accounts from the console, for the parishes that are
+actually going to use this, as they come on board.
+
+**Two things about the data to know before you rely on it.**
+
+*The zone column is empty in `marthoma-parishes.csv`, on purpose.* The published
+list has no tier between the diocese and the parish, and inventing one would
+fill your console with names nobody in the church would recognise. A church
+with no zone is normal and fully supported here. If your diocese does use a
+tier below itself, put your own names in the `zone` column, or add them later
+from **Manage → Churches**.
+
+*The city is derived, not published.* The spreadsheet has a postal address but
+no city field, so the city is read out of the address — the post-office
+locality for Indian parishes, the town for the 152 parishes abroad. It resolved
+for 1,062 of the 1,114 rows; the remaining 52 are blank rather than guessed. A
+post office is not always the place a parish is named after, so
+`ANTHICHIRA ST JOHNS MAR THOMA CHURCH` lands in `Adoor` — correct, postally,
+and still not what a local would say. Treat the column as a starting point.
+
+The vicar, phone, email and website columns in the source spreadsheet are
+**not** imported: a church here stores a name, a city and its place in the
+hierarchy, and there is nowhere to put them.
+
+### Re-importing, and using your own list
+
+Safe to run twice: anything already there is reported as skipped, so you can
+correct the file and import it again. Matching is on diocese plus church name,
+so a **renamed** parish imports as a second church rather than updating the
+first — rename it in the console instead.
+
+To load a different denomination, write the same four columns. The seed files
+are ordinary CSVs; copy one, empty it, and keep the header.
+
+**No zone list is bundled for anyone, and none can be.** Foranes, deaneries and
+pastorates are decided inside each diocese, number in the low thousands
+nationally, and live in your diocesan directory rather than anywhere public.
+They are also the level that changes — every few years, when a bishop
+reorganises. Put yours in the `zone` column.
 
 ## Setting up a new church
 
@@ -653,6 +702,24 @@ had been set on a different pooled connection.
 
 Set `TRUST_PROXY=1` and serve over HTTPS when deploying behind nginx, Caddy or
 a PaaS, so the session cookie is sent with `Secure`.
+
+**Raise the proxy's upload limit to match the app's.** This one is not
+optional, and it fails in a way that looks like an application bug:
+
+```nginx
+client_max_body_size 8m;    # nginx defaults to 1m
+```
+
+The app accepts photographs up to 5 MB (`MAX_PHOTO_MB`) and, when one is too
+big, says so on the form beside the field. nginx caps request bodies at 1 MB
+unless told otherwise, so without this line every photograph between 1 MB and
+5 MB — which is most photographs taken on a phone — is refused by the proxy
+with a bare **413 Request Entity Too Large** before the request reaches the
+application at all. Nothing appears in the app's log, because nothing arrived.
+
+It reads as intermittent, because it depends on the size of the photograph
+somebody happened to attach. If you raise `MAX_PHOTO_MB`, raise this with it:
+the proxy should never be the stricter of the two.
 
 ---
 

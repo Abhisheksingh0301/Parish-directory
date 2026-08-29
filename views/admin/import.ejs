@@ -143,20 +143,37 @@
 <div class="card">
   <h2>Handing the sheet over</h2>
   <p class="help" style="margin-top:0">
-    The load itself is run at the command line by whoever installed this, once,
-    against this parish:
+    There is nothing to upload on this page. Fill the sheet in against the
+    notes above, then send it to whoever installed this directory &mdash; the
+    load is run once, by them, against this parish.
   </p>
+  <p class="help">
+    They will do a trial run first, which writes nothing and reports every
+    family it would create and every row it cannot read. That is the point to
+    correct the sheet: nothing reaches the directory until it comes back clean.
+  </p>
+
+<%
+  /*
+   * The command itself, for the person who has a shell.
+   *
+   * A parish administrator does not have one — they work in this app and
+   * nowhere else — so printing a command line to them describes a job they
+   * cannot do and reads as an instruction they have failed to follow. What
+   * they need is on either side of this block: who to send the sheet to, and
+   * what the directory looks like once it has been loaded.
+   */
+%>
+<% if (isSuperAdmin) { %>
   <p class="help">
     <code>npm run import-families -- --church <%= church.slug %> --file parish.csv --dry-run</code>
   </p>
   <p class="help">
-    The dry run writes nothing. It reports every family it would create and
-    every row it cannot read, so the sheet is corrected before anything enters
-    the directory. Running it again without <code>--dry-run</code> does the
-    load; adding <code>--rejects bad.csv</code> writes out exactly the rows
-    that failed, with the reason in the last column, ready to be fixed and
-    imported again.
+    Running it again without <code>--dry-run</code> does the load; adding
+    <code>--rejects bad.csv</code> writes out exactly the rows that failed,
+    with the reason in the last column, ready to be fixed and imported again.
   </p>
+<% } %>
   <p class="help">
     A family with any unreadable row is held back whole, so a single bad date
     never leaves a family half-imported. Everything that does arrive arrives as

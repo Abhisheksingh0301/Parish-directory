@@ -60,7 +60,7 @@
               <% if (u.family_id) { %>
                 <span style="color:var(--ink-faint)"><%= allRoles[u.role].label %> login</span>
               <% } else { %>
-                <form method="post" action="<%= base %>/admin/users/<%= u.id %>/role" style="display:flex;gap:6px">
+                <form method="post" action="<%= base %>/admin/users/<%= u.id %>/role" class="role-set">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <select name="role" aria-label="Role for <%= u.username %>">
                     <% roles.forEach(function (r) { %>

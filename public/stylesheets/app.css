@@ -58,7 +58,14 @@ a:hover { color: var(--ink); }
   margin: 0 auto;
   padding: 12px 20px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /*
+   * The middle track was minmax(0, 1fr), which let the navigation be squeezed
+   * below the width it needs — and a squeezed nav wrapped. It now keeps its
+   * min-content width, and the brand, which ellipsises, is the track that
+   * gives way. So a long parish name shortens itself before the nav folds,
+   * without anyone having to guess the widths in advance.
+   */
+  grid-template-columns: minmax(0, auto) minmax(min-content, 1fr) auto;
   align-items: center;
   gap: 12px 18px;
 }
@@ -69,9 +76,12 @@ a:hover { color: var(--ink); }
   text-transform: uppercase;
   text-decoration: none;
   color: var(--ink);
-  /* A long parish name is trimmed rather than allowed to squeeze the nav. */
+  /* A long parish name is trimmed rather than allowed to squeeze the nav.
+     34ch was wider than the longest title we actually set and left the nav
+     short of the ~590px its six items need, so the cap is drawn in to the
+     width of the real title. */
   min-width: 0;
-  max-width: 34ch;
+  max-width: 26ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -86,17 +96,33 @@ a:hover { color: var(--ink); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/*
+ * One row, and it must stay one row.
+ *
+ * This wrapped, and the case that wrapped it is the ordinary one: a super
+ * administrator working inside a church gets six items — Dashboard, Families,
+ * Review, Print directory, Manage, System — which came to more than the middle
+ * column offers even at the full 1100px. `flex-wrap: wrap` folded Manage and
+ * System onto a second line, so the bar grew a row and the two menus sat under
+ * the rest of the navigation instead of beside it.
+ *
+ * `nowrap` states the rule; the tighter gap and padding below, the narrower
+ * brand cap and the shorter identity link buy back the room to keep it. Below
+ * the breakpoint there is genuinely not enough width for one row, and the nav
+ * moves to a full-width row of its own — deliberately, and wrapping is allowed
+ * again there.
+ */
 .nav {
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 2px;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   min-width: 0;
 }
 .nav a,
 .nav summary {
-  padding: 7px 13px;
+  padding: 7px 10px;
   border-radius: 6px;
   text-decoration: none;
   color: var(--ink-soft);
@@ -167,7 +193,10 @@ a:hover { color: var(--ink); }
 }
 .whoami strong { color: var(--ink); }
 .whoami > a {
-  max-width: 18ch;
+  /* Long enough to recognise yourself by, short enough to leave the nav its
+     row. It already ellipsises, so the cost of the narrower cap is a few more
+     characters of an address that was being trimmed anyway. */
+  max-width: 14ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -237,6 +266,23 @@ input[type=color] {
   border: 1px solid var(--rule); border-radius: 6px; background: #fff;
 }
 input[type=file] { font: inherit; font-size: 14px; }
+
+/*
+ * The role picker in the users table.
+ *
+ * Selects are width:100% above, which is right in a form column and wrong in a
+ * table cell: the row is a select and a Set button side by side, so the select
+ * took whatever was left over and "Administrator" — the longest role a church
+ * can hand out — was cut off mid-word. Sizing it to its own longest option
+ * instead makes the column as wide as it needs to be, and the floor keeps it
+ * there in a browser that measures the option list less generously.
+ */
+.role-set { display: flex; gap: 6px; align-items: center; }
+.role-set select {
+  width: auto;
+  min-width: 15ch;
+  flex: 0 0 auto;
+}
 
 .checkline { display: flex; align-items: center; gap: 9px; font-size: 15px; }
 .checkline input { width: auto; }
@@ -793,18 +839,25 @@ body.auth {
 
 /* ---------- responsive ---------- */
 
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
   /*
-   * Two rows on purpose. Three columns on a phone leaves the navigation a
-   * sliver between two things that will not shrink, so the bar becomes the
-   * brand and the identity on top — still never displaced — with the
-   * navigation given the full width underneath.
+   * Two rows on purpose. Three columns on a narrow window leaves the
+   * navigation a sliver between two things that will not shrink, so the bar
+   * becomes the brand and the identity on top — still never displaced — with
+   * the navigation given the full width underneath.
+   *
+   * This was 860px, which was where the four-item nav ran out of room. Six
+   * items run out sooner, and between the two widths the nav was still in its
+   * middle column with nowhere to go. The breakpoint now names the width where
+   * the widest navigation stops fitting, not the narrowest.
    */
   .topbar-inner { grid-template-columns: minmax(0, 1fr) auto; }
   .nav {
     grid-row: 2;
     grid-column: 1 / -1;
     justify-content: flex-start;
+    /* A full-width row can afford to wrap; the middle column could not. */
+    flex-wrap: wrap;
   }
   .whoami { grid-row: 1; grid-column: 2; }
   .brand { grid-row: 1; grid-column: 1; max-width: none; }
