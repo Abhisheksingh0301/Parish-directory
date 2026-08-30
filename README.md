@@ -493,6 +493,7 @@ Typing two hundred churches into a form is not a reasonable way to start.
 ```bash
 node bin/import-hierarchy.js --file mine.csv --dry-run   # look first
 node bin/import-hierarchy.js --file mine.csv
+node bin/import-hierarchy.js --file data/seed/marthoma-parishes.csv
 ```
 
 Four columns — `diocese, zone, church, city` — and a row is read as deeply as
