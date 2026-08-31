@@ -38,10 +38,21 @@
    * reason the reviewer gave — so a correction that was turned down is not
    * silently lost, and the household knows to ask about it rather than
    * assuming the form did not work.
+   *
+   * Every rejection is listed, including the ones with no reason against them.
+   * This used to keep only those that carried a reason, which quietly undid
+   * the promise above: the box on the review screen reads "Reason, if
+   * rejecting" and is optional, so a reviewer clearing a queue rejects several
+   * lines without typing one, and the family was shown whichever single
+   * correction had happened to be explained — with no sign that the others had
+   * been decided at all. A rejection with nothing written against it says so.
    */
+  const SHOWN = 8;
   const waiting = proposals.waiting;
-  const rejected = proposals.rejected.filter(function (c) { return c.reason; }).slice(0, 8);
-  const approved = proposals.approved.slice(0, 8);
+  const rejected = proposals.rejected.slice(0, SHOWN);
+  const rejectedMore = proposals.rejected.length - rejected.length;
+  const approved = proposals.approved.slice(0, SHOWN);
+  const approvedMore = proposals.approved.length - approved.length;
 %>
 
 <% if (waiting.length) { %>
@@ -97,17 +108,28 @@
           <% rejected.forEach(function (c) { %>
             <li>
               <strong><%= c.label %></strong> — <%= c.proposed_value || 'cleared' %>.
-              <%= c.reason %>
+              <% if (c.reason) { %>
+                <%= c.reason %>
+              <% } else { %>
+                <span class="hint">No reason was recorded — ask the parish office.</span>
+              <% } %>
             </li>
           <% }); %>
         </ul>
+        <% if (rejectedMore) { %>
+          <p class="help" style="margin:0">
+            And <%= rejectedMore %> other<%= rejectedMore === 1 ? '' : 's' %>,
+            older than these.
+          </p>
+        <% } %>
       </div>
     <% } %>
 
     <% if (approved.length) { %>
       <p class="help" style="margin-top:0">
         Applied to the directory:
-        <%= approved.map(function (c) { return c.label; }).join('; ') %>.
+        <%= approved.map(function (c) { return c.label; }).join('; ') %><%
+        %><% if (approvedMore) { %>, and <%= approvedMore %> other<%= approvedMore === 1 ? '' : 's' %><% } %>.
       </p>
     <% } %>
   </div>

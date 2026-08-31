@@ -273,7 +273,11 @@ async function main() {
     'members[0][name]': 'Mr. Steve Smith',
     'members[0][relation]': 'Head',
     'members[0][dob]': '1975-08-02',
-    'members[0][mobile]': '111',
+    // Typed with a space in it, the way a person writes a phone number down;
+    // it is stored as the ten digits alone. See lib/phone.js.
+    'members[0][mobile]': '98765 43210',
+    'members[0][qualification]': 'B.Sc. Nursing',
+    'members[0][occupation]': 'Staff Nurse',
     'members[0][links]': '',
     'members[1][name]': 'Mrs. Riva Smith',
     'members[1][relation]': 'Spouse',
@@ -288,6 +292,75 @@ async function main() {
   check('members were replaced rather than duplicated',
     (res.body.match(/Mrs\. Riva Smith/g) || []).length === 1);
   check('the member count is still 2', (await db.Member.count()) === 2);
+  check('the mobile number was stored without its space',
+    (await db.Member.findOne({ where: { name: 'Mr. Steve Smith' } })).mobile === '9876543210');
+
+  console.log('\n--- a member row the browser would have refused ---');
+  // The browser objects to all of these first. The point of the check is that
+  // a form which never went through a browser is refused just the same, and
+  // that the complaint names the member rather than the field alone.
+  const badRows = [
+    ['a mobile number with letters in it', { mobile: '98abc43210' }],
+    ['a mobile number too short', { mobile: '98765' }],
+    ['a mobile number with a country code', { mobile: '+919876543210' }],
+    ['a mobile number starting with 1', { mobile: '1234567890' }],
+    ['a qualification of only symbols', { qualification: '###$$$' }],
+    ['an occupation longer than the cell', { occupation: 'x'.repeat(61) }],
+    ['links with a tag pasted into them', { links: '<script>alert(1)</script>' }]
+  ];
+
+  for (const [what, overrides] of badRows) {
+    res = await request('GET', '/families/1/edit');
+    const row = {
+      'members[0][name]': 'Mr. Steve Smith',
+      'members[0][relation]': 'Head',
+      'members[0][dob]': '1975-08-02',
+      'members[0][mobile]': '9876543210',
+      'members[0][qualification]': '',
+      'members[0][occupation]': '',
+      'members[0][links]': ''
+    };
+    for (const [key, value] of Object.entries(overrides)) {
+      row[`members[0][${key}]`] = value;
+    }
+
+    res = await request('POST', '/families/1', {
+      _csrf: csrfFrom(res.body),
+      family_id: '0001',
+      head_name: 'Steve Smith',
+      address: '12 New Lane',
+      email: 'steve@example.com',
+      is_published: '1',
+      ...row
+    });
+    check(`${what} is refused`, res.status === 400, `status ${res.status}`);
+    check(`${what} is complained about by member name`,
+      res.body.includes('Steve Smith'));
+  }
+
+  res = await request('GET', '/families/1');
+  check('and none of that was written', res.body.includes('9876543210'));
+
+  // The trunk prefix is how a good deal of what has been imported already is
+  // spelled; it is the same number, so it is taken in and straightened out
+  // rather than refused. Last, because it changes what is on record.
+  res = await request('GET', '/families/1/edit');
+  res = await request('POST', '/families/1', {
+    _csrf: csrfFrom(res.body),
+    family_id: '0001',
+    head_name: 'Steve Smith',
+    address: '12 New Lane',
+    email: 'steve@example.com',
+    is_published: '1',
+    'members[0][name]': 'Mr. Steve Smith',
+    'members[0][relation]': 'Head',
+    'members[0][dob]': '1975-08-02',
+    'members[0][mobile]': '09000003251'
+  });
+  check('a mobile number written with the trunk 0 is accepted',
+    res.status === 302, `status ${res.status}`);
+  check('and stored as the ten digits alone',
+    (await db.Member.findOne({ where: { name: 'Mr. Steve Smith' } })).mobile === '9000003251');
 
   console.log('\n--- a family reference is unique per church, not across them ---');
   const second = await db.Church.create({

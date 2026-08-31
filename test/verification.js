@@ -363,6 +363,60 @@ async function main() {
 
   // -------------------------------------------------------------------------
   console.log('');
+  console.log('--- a rejection with no reason given is still shown to the family ---');
+
+  /*
+   * The reason box on the review screen is optional — it reads "Reason, if
+   * rejecting" — so a reviewer clearing a queue quickly rejects without
+   * typing one. Those rejections have to reach the family all the same. The
+   * family's page used to list only the ones that carried a reason, so a
+   * household that had five corrections turned down saw whichever one the
+   * reviewer had happened to explain, and no sign the other four existed.
+   */
+  await post(family, `/families/${familyId}/edit`, `/families/${familyId}`, familyForm({
+    prayer_group: 'St Mary',
+    'members[0][id]': String(memberIds[0]),
+    'members[0][occupation]': 'Teacher'
+  }));
+
+  // The form sends the whole entry back, so this proposes several lines at
+  // once — how many is not the point; that every one of them comes back is.
+  const silent = await Pending.listQueue(church.id, { status: 'pending' });
+  check('more corrections are waiting', silent.length >= 2, `${silent.length} waiting`);
+
+  for (const line of silent) {
+    await post(office, '/review', '/review/decide', {
+      outcome: 'reject',
+      back: '/review',
+      change_ids: String(line.id)
+      // deliberately no reason
+    });
+  }
+
+  const afterSilent = await Pending.forFamily(church.id, familyId);
+  const noReason = afterSilent.rejected.filter((c) => !c.reason);
+  check('every one of them was rejected without a reason',
+    noReason.length === silent.length, `${noReason.length} of ${silent.length}`);
+
+  /*
+   * Read only the "Not applied" list. The same label appears in the members
+   * table further up the page, and again in the "Applied to the directory"
+   * line of the very same card, so anything wider passes on a rejection that
+   * was never listed as one.
+   */
+  res = await family('GET', `/families/${familyId}`);
+  const from = res.body.indexOf('Not applied:');
+  const decided = from === -1 ? '' : res.body.slice(from, res.body.indexOf('</ul>', from));
+  check('the "Not applied" list is on the page', from !== -1);
+
+  for (const line of noReason) {
+    check(`"${line.label}" is listed there`, decided.includes(line.label));
+  }
+  check('the earlier rejection that had a reason is still listed too',
+    decided.includes('Please confirm the new pin code with the office.'));
+
+  // -------------------------------------------------------------------------
+  console.log('');
   console.log('--- the audit trail carries the whole workflow ---');
 
   const auditLib = require('../lib/audit');

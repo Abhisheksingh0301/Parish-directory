@@ -22,6 +22,14 @@
     --frame:          #ffffff;
     --watermark:      #ded7c9;
     --radius:         10px;
+
+    /* The photograph's share of the row it shares with the details table.
+       Two families to a page governs it: an entry must come in under ~127mm,
+       the details table is 58mm of that on its own, and the members table
+       grows 7mm a person. At 0.72fr the photograph is 76x57mm and its frame
+       (61mm) only just exceeds the details table, so it costs almost nothing.
+       Stacked above the details it cannot do two to a page at any size. */
+    --photo-width:    0.72fr;
   }
 
   *{box-sizing:border-box}
@@ -63,10 +71,15 @@
     min-height:1160px;
   }
 
-  .entries{flex:1 1 auto}
+  /* Above the lattice, not under it. The watermark is 150px tall against a
+     footer of about 69px, so ~80px of it rises behind the foot of the page;
+     being absolutely positioned it painted over the last family's table. */
+  .entries{flex:1 1 auto;position:relative;z-index:1}
 
   /* ---------- one family entry ---------- */
-  .entry{margin-bottom:34px}
+  /* 34px here and 70px of footer padding were what stood between four members
+     and two families on a sheet. See --photo-width. */
+  .entry{margin-bottom:22px}
 
   .entry-head{
     display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:stretch;
@@ -87,8 +100,11 @@
     align-self:end;
   }
 
+  /* Beside the details, not above them: side by side the entry pays only the
+     taller of the two, which is what lets two families share a sheet. */
   .entry-body{
-    display:grid;grid-template-columns:0.82fr 1fr;gap:18px;align-items:start;
+    display:grid;grid-template-columns:var(--photo-width) 1fr;gap:18px;
+    align-items:start;
     margin-bottom:12px;
   }
 
@@ -149,10 +165,10 @@
   .page-foot{
     margin-top:auto;
     position:relative;
-    padding:70px 0 18px;
+    padding:30px 0 18px;
   }
   .lattice{
-    position:absolute;left:-26px;right:-26px;bottom:0;height:190px;
+    position:absolute;left:-26px;right:-26px;bottom:0;height:150px;
     opacity:.55;pointer-events:none;
     background-image:var(--lattice-svg);
     background-size:88px 88px;
@@ -161,7 +177,10 @@
     position:relative;
     display:flex;justify-content:space-between;align-items:flex-end;
     border-top:1px solid var(--rule);
-    padding-top:8px;
+    /* Both ends, pulled in from them. In print .page has no padding, which put
+       these hard against the printable edge. The padding is inside the border,
+       so the rule above still runs the full width of the page. */
+    padding:8px 18mm 0;
     font-size:17px;
   }
   .parish-name{font-weight:500}
@@ -177,6 +196,8 @@
     .head-id{font-size:17px;align-self:auto}
     .details,.members{font-size:15px}
     .members{display:block;overflow-x:auto}
+    /* 18mm a side is most of a phone; the footer goes back to the edges. */
+    .foot-row{padding-left:0;padding-right:0}
   }
 
   /* ---------- print ---------- */

@@ -20,6 +20,27 @@
   --page:      #ffffff;
   --frame:     #ffffff;
   --radius:    10px;
+
+  /*
+   * The photograph's share of the row it shares with the details table.
+   *
+   * Two families to a page is what governs this. On A4 less 12mm margins there
+   * are 255mm of height once the footer is taken off, so an entry has to come
+   * in under about 127mm for two of them to sit on one sheet. The details
+   * table is 58mm of that on its own — it renders all five rows whether or not
+   * a family filled them in — and the members table grows by 7mm a person.
+   *
+   * At 0.72fr the photograph is 76mm by 57mm, and its frame is 61mm: just past
+   * the 58mm details table beside it, so it costs the entry almost nothing in
+   * height. Widening it is not free after that — every millimetre the frame
+   * gains above the details table is a millimetre on the entry, and two
+   * millimetres on the sheet.
+   *
+   * A photograph stacked above the details instead cannot do two to a page at
+   * any size: stacking pays the full height of both, where this pays only the
+   * taller of the two.
+   */
+  --photo-width: 0.72fr;
 }
 
 body.directory-body {
@@ -82,10 +103,23 @@ body.directory-body {
   min-height: 1160px;
 }
 
-.entries { flex: 1 1 auto; }
+/*
+ * Above the lattice, not under it.
+ *
+ * The watermark is 150px tall against a footer of about 69px, so some 80px of
+ * it rises deliberately behind the foot of the page. It is absolutely
+ * positioned and the entries are not, which put it in front of them: on a full
+ * page the diamonds printed over the last family's table. Lifting the entries
+ * into their own layer keeps the bleed and puts the data back on top of it —
+ * the whitespace between entries is still transparent, so the pattern shows
+ * through it and only the tables themselves cover the diamonds.
+ */
+.entries { flex: 1 1 auto; position: relative; z-index: 1; }
 
 /* ---------- one family entry ---------- */
-.entry { margin-bottom: 34px; }
+/* 34px here and 70px of footer padding were what stood between four members
+   and two families on a sheet. See --photo-width. */
+.entry { margin-bottom: 22px; }
 
 .entry-head {
   display: grid;
@@ -119,9 +153,14 @@ body.directory-body {
   align-self: end;
 }
 
+/*
+ * The photograph beside the details, not above them. Stacking gave a far
+ * larger photograph but made the entry 232mm, which is one family to a sheet.
+ * Side by side the entry pays only the taller of the two. See --photo-width.
+ */
 .entry-body {
   display: grid;
-  grid-template-columns: 0.82fr 1fr;
+  grid-template-columns: var(--photo-width) 1fr;
   gap: 18px;
   align-items: start;
   margin-bottom: 12px;
@@ -200,11 +239,11 @@ body.directory-body {
 .members .d { white-space: nowrap; }
 
 /* ---------- footer ---------- */
-.page-foot { margin-top: auto; position: relative; padding: 70px 0 18px; }
+.page-foot { margin-top: auto; position: relative; padding: 30px 0 18px; }
 .lattice {
   position: absolute;
   left: -26px; right: -26px; bottom: 0;
-  height: 190px;
+  height: 150px;
   opacity: .55;
   pointer-events: none;
   background-size: 88px 88px;
@@ -216,7 +255,14 @@ body.directory-body {
   justify-content: space-between;
   align-items: flex-end;
   border-top: 1px solid var(--rule);
-  padding-top: 8px;
+  /*
+   * The name and the folio stay at the two ends, but pulled in from them. In
+   * print `.page` drops its padding to nothing, which put both hard against
+   * the edge of the printable area. The padding sits inside the border, so
+   * the rule above them still runs the full width of the page — an inset
+   * line under a full-width rule, rather than a shorter rule.
+   */
+  padding: 8px 18mm 0;
   font-size: 17px;
 }
 .parish-name { font-weight: 500; }
@@ -226,12 +272,15 @@ body.directory-body {
 @media (max-width: 720px) {
   body.directory-body { padding: 14px 8px 40px; }
   .page { padding: 16px 16px 0; min-height: 0; }
+  /* No page to fit on a phone, so the photograph takes the full width. */
   .entry-body { grid-template-columns: 1fr; }
   .entry-head { grid-template-columns: 1fr; }
   .head-name { font-size: 20px; }
   .head-id { font-size: 17px; align-self: auto; }
   .details, .members { font-size: 15px; }
   .members { display: block; overflow-x: auto; }
+  /* 18mm a side is most of a phone; the footer goes back to the edges. */
+  .foot-row { padding-left: 0; padding-right: 0; }
 }
 
 /* ---------- print ---------- */

@@ -52,6 +52,9 @@
     <div class="field">
       <label>Mobile</label>
       <input type="text" name="members[<%= index %>][mobile]" value="<%= m.mobile %>"
+             inputmode="numeric" autocomplete="tel-national" data-mobile
+             maxlength="<%= mobileMaxInput %>" pattern="<%= mobilePattern %>"
+             title="<%= mobileDigits %> digits beginning 6, 7, 8 or 9 — like 9876543210. A leading 0 is fine; letters and a country code are not."
              placeholder="9876543210">
     </div>
 
@@ -67,18 +70,25 @@
     <div class="field">
       <label>Qualification</label>
       <input type="text" name="members[<%= index %>][qualification]" value="<%= m.qualification %>"
+             maxlength="<%= textLimits.qualification %>" pattern="<%= textPattern('qualification') %>"
+             title="Up to <%= textLimits.qualification %> characters, with at least one letter in it."
              placeholder="B.Sc. Nursing">
     </div>
 
     <div class="field">
       <label>Occupation</label>
       <input type="text" name="members[<%= index %>][occupation]" value="<%= m.occupation %>"
+             maxlength="<%= textLimits.occupation %>" pattern="<%= textPattern('occupation') %>"
+             title="Up to <%= textLimits.occupation %> characters, with at least one letter in it."
              placeholder="Staff Nurse">
     </div>
 
     <div class="field">
       <label>Links</label>
-      <input type="text" name="members[<%= index %>][links]" value="<%= m.links %>">
+      <input type="text" name="members[<%= index %>][links]" value="<%= m.links %>"
+             maxlength="<%= textLimits.links %>" pattern="<%= textPattern('links') %>"
+             title="Up to <%= textLimits.links %> characters, with at least one letter in it."
+             placeholder="Studying in Bengaluru">
     </div>
 
     <div class="drop">
@@ -378,6 +388,7 @@
 <script src="<%= base %>/javascripts/head-name-sync.js"></script>
 <script src="<%= base %>/javascripts/family-form.js"></script>
 <script src="<%= base %>/javascripts/day-of-month.js"></script>
+<script src="<%= base %>/javascripts/mobile-digits.js"></script>
 <script src="<%= base %>/javascripts/add-relation.js"></script>
 
 <%- include('../partials/footer') %>

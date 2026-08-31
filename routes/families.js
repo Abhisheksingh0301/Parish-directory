@@ -10,6 +10,8 @@ const Pending = require('../models/pending');
 const dayMonth = require('../lib/daymonth');
 const relations = require('../lib/relations');
 const emails = require('../lib/email');
+const phones = require('../lib/phone');
+const freeText = require('../lib/free-text');
 const settings = require('../lib/settings');
 const auth = require('../lib/auth');
 const verification = require('../lib/verification');
@@ -85,8 +87,21 @@ function readForm(req) {
   const members = rawMembers
     .filter((m) => m && text(m.name))
     .map((m, i) => {
-      const dob = readDob(m, `Date of birth for "${text(m.name)}"`);
+      const who = text(m.name);
+      const dob = readDob(m, `Date of birth for "${who}"`);
       if (dob.error) errors.push(dob.error);
+
+      // The browser has already objected to most of these; a form can still
+      // arrive without having been through a browser at all, so the row is
+      // checked again here, named by the member it belongs to — with several
+      // rows on one page, "that is not a mobile number" is no help on its own.
+      const badMobile = phones.problem(m.mobile, who);
+      if (badMobile) errors.push(badMobile);
+
+      for (const field of Object.keys(freeText.LIMITS)) {
+        const bad = freeText.problem(field, m[field], who);
+        if (bad) errors.push(bad);
+      }
 
       return {
         // Carried back so a correction lands on the member it is about. See
@@ -98,7 +113,10 @@ function readForm(req) {
         dob_day: dob.day,
         dob_month: dob.month,
         dob_year: dob.year,
-        mobile: text(m.mobile),
+        // Stored as the ten digits alone, so the number a family typed with
+        // spaces in it and the same number typed without match each other —
+        // in a search, and in the diff a pending correction is read from.
+        mobile: phones.normalise(m.mobile),
         blood_group: text(m.blood_group),
         qualification: text(m.qualification),
         occupation: text(m.occupation),
@@ -160,6 +178,11 @@ async function formLocals(req, extra) {
     toISO: dayMonth.toISO,
     formatDayMonth: dayMonth.format,
     emailPattern: emails.HTML_PATTERN,
+    mobilePattern: phones.HTML_PATTERN,
+    mobileDigits: phones.DIGITS,
+    mobileMaxInput: phones.MAX_INPUT,
+    textLimits: freeText.LIMITS,
+    textPattern: freeText.htmlPattern,
     relationOptions: settings.relationOptions(parishSettings),
     // Offered as suggestions on the Area and Prayer Group fields, so a parish
     // settles on a spelling without the fields becoming a fixed list.
