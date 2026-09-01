@@ -39,13 +39,34 @@
     <button type="submit" class="btn ghost" formaction="<%= base %>/admin/export.csv">
       Spreadsheet only (.csv)
     </button>
+    <button type="submit" class="btn ghost"
+            formaction="<%= base %>/admin/export-photos.zip"
+            <%= photos ? '' : 'disabled' %>>
+      Photographs only (.zip)
+    </button>
   </div>
 
   <p class="help">
-    The archive holds <code>families.csv</code> and a <code>photos</code>
+    The full archive holds <code>families.csv</code> and a <code>photos</code>
     folder. Each photograph is named after the family it belongs to, and the
     last column of the spreadsheet gives that name &mdash; so a row and a face
     can be matched without opening the application.
+  </p>
+
+  <p class="help">
+    <% if (photos) { %>
+      <strong>Photographs only</strong> is the same pictures with nothing else,
+      and each file is named for its <strong>Family ID</strong> alone &mdash;
+      <code>F-001.jpg</code>. That is exactly what
+      <a href="<%= base %>/admin/photos">Import photographs</a> reads back, so
+      you can take the folder out, replace the pictures that are wrong, and
+      upload the same folder again without renaming a single file.
+    <% } else { %>
+      <strong>Photographs only</strong> is unavailable because no family in
+      this parish has a photograph yet. Add them from each family&rsquo;s own
+      page, or a folder at a time on
+      <a href="<%= base %>/admin/photos">Import photographs</a>.
+    <% } %>
   </p>
 </form>
 

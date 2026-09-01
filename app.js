@@ -16,6 +16,7 @@ const wrap = require('./lib/async');
 const Pending = require('./models/pending');
 const createSqliteStore = require('./lib/session-store');
 const { acceptPhoto } = require('./lib/upload');
+const { acceptSheet, acceptArchive } = require('./lib/import-upload');
 
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
@@ -89,12 +90,46 @@ app.use(settings.middleware);
 
 /**
  * The family form posts multipart/form-data when it carries a photo, and the
- * CSRF check below cannot read `_csrf` until that body is parsed — so multer
- * has to run first. Requiring an editor here means an anonymous or read-only
- * request can never cause a file to be written to disk.
+ * two import pages do when they carry a spreadsheet or an archive of
+ * photographs. The CSRF check below cannot read `_csrf` until that body is
+ * parsed — so multer has to run first, and the role check has to be made here
+ * rather than left to the route, because by the time the route runs the file
+ * has already been accepted.
+ *
+ * Which handler runs is decided by the path, and it has to be: the photograph
+ * handler refuses anything that is not an image and answers to a different
+ * field name, so a sheet or an archive sent through it would be dropped and
+ * the import would report an empty upload it never received.
+ *
+ * `req.path` is the whole path here — the app is mounted at the root, and
+ * config.basePath is a prefix for the links a page writes, stripped by the
+ * proxy in front of this.
  */
 app.use((req, res, next) => {
   if (!req.is('multipart/form-data')) return next();
+
+  if (req.path === '/admin/import' || req.path === '/admin/photos') {
+    if (!auth.atLeast(req.user, 'admin')) {
+      return next(createError(403, 'You do not have permission to import files.'));
+    }
+    /*
+     * And it has to be for a church, checked here rather than left to
+     * `tenancy.requireChurch` on the router below.
+     *
+     * That guard redirects a super administrator who has not borrowed a church
+     * to go and pick one — which is right, and which means the route never
+     * runs. The archive route deletes its upload in a `finally`, so a route
+     * that never runs is an uploaded file, of up to two hundred megabytes,
+     * left in the scratch folder for ever. Refusing before multer starts means
+     * there is nothing to leave behind.
+     */
+    if (!req.churchId) {
+      return next(createError(403, 'Choose which church you are importing into first.'));
+    }
+    return req.path === '/admin/photos'
+      ? acceptArchive(req, res, next)
+      : acceptSheet(req, res, next);
+  }
 
   // Editors upwards, plus a family login sending the photograph for its own
   // entry — the route it posts to checks that it is in fact their own, and

@@ -1,0 +1,166 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <h1>Import photographs</h1>
+  <p class="sub">
+    The parish already has the pictures &mdash; a folder of them, one per
+    household. Name each file after the family it belongs to, zip the folder,
+    and upload it here once instead of visiting two hundred pages.
+  </p>
+</div>
+
+<%
+  /*
+   * The outcome, above everything, for the reason the spreadsheet import puts
+   * it there: it is the only thing the person is looking for when the page
+   * comes back. Either `problems` or `result` is filled in, never both.
+   */
+%>
+<% if (problems.length) { %>
+  <div class="alert error">
+    <strong>
+      No photographs were imported<%= fileName ? ` from ${fileName}` : '' %>.
+      <% if (problemCount > 1) { %>
+        There are <%= problemCount %> files to put right first.
+      <% } %>
+    </strong>
+    <ul>
+      <% problems.forEach(function (problem) { %>
+        <li><%= problem.message %></li>
+      <% }); %>
+      <% if (problemsHidden) { %>
+        <li>&hellip;and <%= problemsHidden %> more. Put these right first &mdash;
+          the same mistake usually explains the rest.</li>
+      <% } %>
+    </ul>
+    <p style="margin:10px 0 0">
+      Correct the folder, make the zip again, and upload it once more. Not one
+      photograph was stored, so there is nothing to undo and no family has been
+      changed.
+    </p>
+  </div>
+<% } %>
+
+<% if (result) { %>
+  <div class="alert notice">
+    <%
+      /*
+       * One finished sentence, built in the route rather than assembled from
+       * fragments here: EJS puts a line break wherever the template has one,
+       * so a headline assembled from four tags across four lines arrives with
+       * newlines inside the sentence.
+       */
+    %>
+    <strong><%= result.headline %></strong>
+    <p style="margin:8px 0 0">
+      <%= withPhotos %> of this parish&rsquo;s <%= totalFamilies %>
+      famil<%= totalFamilies === 1 ? 'y' : 'ies' %> now
+      <%= withPhotos === 1 ? 'has' : 'have' %> a photograph. Nothing else about
+      any family was touched &mdash; a draft is still a draft, and a published
+      entry is still published.
+    </p>
+
+    <% if (result.replacedFamilies.length) { %>
+      <p style="margin:10px 0 0">
+        Replaced the photograph already on record for:
+        <% result.replacedFamilies.forEach(function (ref, i) { %><code><%= ref %></code><%= i < result.replacedFamilies.length - 1 ? ', ' : '' %><% }); %>.
+      </p>
+    <% } %>
+
+    <% if (result.failed.length) { %>
+      <p style="margin:10px 0 4px">
+        These were checked as fine a moment earlier and then were not &mdash;
+        somebody else was very likely working on the directory at the same time:
+      </p>
+      <ul>
+        <% result.failed.forEach(function (item) { %>
+          <li><%= item.file %>: <%= item.message %></li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </div>
+<% } %>
+
+<div class="card">
+  <h2>Naming the files</h2>
+  <p class="help" style="margin-top:0">
+    <strong>Each file is named after the family&rsquo;s Family ID</strong>
+    &mdash; the same reference the directory holds and the spreadsheet import
+    groups by. Family <code>F-001</code> gets <code>F-001.jpg</code>. Nothing
+    else about the name matters: letter case is ignored, so
+    <code>f-001.JPG</code> is the same family.
+  </p>
+  <p class="help">
+    One photograph per family. Two files named for the same family &mdash;
+    <code>F-001.jpg</code> beside <code>F-001.png</code> &mdash; stop the
+    import rather than have this application guess which one the parish meant.
+  </p>
+  <p class="help">
+    Put them all in one folder, then right-click the folder and choose
+    <strong>Send to &rarr; Compressed (zipped) folder</strong> on Windows, or
+    <strong>Compress</strong> on a Mac. Folders inside the zip are fine &mdash;
+    only the file names are read.
+  </p>
+  <p class="help">
+    <%= extensions.join(', ') %> are accepted, up to
+    <%= maxPhotoMb %>&nbsp;MB each and <%= maxArchiveMb %>&nbsp;MB for the
+    whole archive. Every photograph must be <strong>landscape</strong>, wider
+    than it is tall: the printed directory sets them in a landscape frame, and
+    a portrait picture would lose the top of somebody&rsquo;s head.
+  </p>
+</div>
+
+<form class="card" method="post" action="<%= base %>/admin/photos"
+      enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <h2>Upload the folder</h2>
+  <p class="help" style="margin-top:0">
+    Every image in the archive is opened and checked before a single one is
+    stored. If anything is wrong anywhere &mdash; a name that matches no
+    family, a picture that is portrait, a file that is not really the kind of
+    image its name claims &mdash; it is listed at the top of this page in plain
+    words and <strong>nothing at all is imported</strong>. Fix the folder and
+    upload it again.
+  </p>
+
+  <div class="field">
+    <label for="archive">Your folder of photographs, zipped</label>
+    <input type="file" id="archive" name="archive" accept=".zip,application/zip" required>
+    <p class="help">
+      A single <code>.zip</code> file. A large archive takes a moment to check
+      &mdash; every picture in it is opened.
+    </p>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn">Check and import</button>
+  </div>
+</form>
+
+<div class="card">
+  <h2>What the import will and will not do</h2>
+  <p class="help" style="margin-top:0">
+    <strong>All of the folder, or none of it.</strong> One bad file stops the
+    whole archive, so an import that reports success has stored every
+    photograph you sent it. There is never a half-loaded folder to work out the
+    shape of afterwards.
+  </p>
+  <p class="help">
+    <strong>A family that already has a photograph gets the new one</strong>,
+    and the old file is removed once the new one is safely stored. Every
+    replacement is listed by Family ID in the summary, so re-uploading a
+    corrected folder is a normal thing to do and never a silent one.
+  </p>
+  <p class="help">
+    <strong>Nothing else about a family changes.</strong> No entry is published,
+    unpublished or edited, and no logins are created. A family with no
+    photograph in the archive simply keeps whatever it had.
+  </p>
+  <p class="help">
+    Photographs can still be added or removed one at a time from each
+    family&rsquo;s own page, which is where a single late picture belongs.
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

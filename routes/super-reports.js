@@ -88,10 +88,10 @@ router.get('/print', wrap(async (req, res) => {
 
     if (!church || !families.length) continue;
 
-    const perPage = Math.max(1, parseInt(churchSettings.per_page, 10) || 2);
+    const perPage = Math.max(1, parseInt(churchSettings.per_page, 10) || 1);
     const pages = [];
     for (let i = 0; i < families.length; i += perPage) {
-      pages.push({ folio: folio++, families: families.slice(i, i + perPage) });
+      pages.push({ folio: folio++, families: families.slice(i, i + perPage), single: perPage === 1 });
     }
 
     sections.push({ church, settings: churchSettings, families: families.length, pages });

@@ -139,9 +139,9 @@ async function main() {
   check('with this parish’s own relation codes',
     res.body.includes('<code>HF</code>') && res.body.includes('<code>W</code>'),
     'the page offered relation codes this parish does not use');
-  check('and tells the administrator who to hand the sheet to',
-    res.body.includes('whoever installed this directory'),
-    'the page did not say how the sheet is handed over');
+  check('and offers the administrator somewhere to upload the filled-in sheet',
+    res.body.includes('name="sheet"') && res.body.includes('enctype="multipart/form-data"'),
+    'the page had no upload form on it');
   // A parish administrator has no shell. Printing the load command to them
   // describes a job they cannot do, so it belongs to the super administrator.
   check('without a command line they cannot run',

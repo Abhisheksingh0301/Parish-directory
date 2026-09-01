@@ -13,6 +13,9 @@ const db = require('../db');
 async function main() {
   await db.init();
   await require('../lib/upload').relocateLegacyPhotos(db);
+  // Anything a killed process left mid-upload. Nothing in there outlives
+  // its own request, so by start-up it is all abandoned.
+  await require('../lib/import-upload').sweepScratch();
 
   const app = require('../app');
   app.set('port', config.port);

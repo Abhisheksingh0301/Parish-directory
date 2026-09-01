@@ -128,7 +128,14 @@
       <div class="field">
         <label for="per_page">Families per printed page</label>
         <input type="number" id="per_page" name="per_page" min="1" max="6" value="<%= values.per_page %>">
-        <p class="help">Two fits an A4 page comfortably with the standard entry size.</p>
+        <p class="help">
+          <strong>One</strong> gives each family a sheet of its own: a large
+          photograph across the top with the details and members beneath it.
+          That is the default, and it is what most parishes print.
+          <strong>Two or more</strong> switches to the compact entry, with a
+          smaller photograph beside the details instead of above them, so that
+          several fit on one sheet.
+        </p>
       </div>
 
       <div class="field">

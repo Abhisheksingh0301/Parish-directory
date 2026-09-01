@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const express = require('express');
 const config = require('../config');
 const db = require('../db');
@@ -13,6 +14,10 @@ const verification = require('../lib/verification');
 const exporter = require('../lib/export');
 const importColumns = require('../lib/import-columns');
 const importTemplate = require('../lib/import-template');
+const importUpload = require('../lib/import-upload');
+const importer = require('../lib/import-families');
+const photoImporter = require('../lib/import-photos');
+const unzip = require('../lib/unzip');
 const { slugify } = require('../lib/slug');
 const wrap = require('../lib/async');
 
@@ -149,6 +154,7 @@ const AUDIT_EVENTS = [
   { value: 'family.pin_issued', label: 'Verification slips issued' },
   { value: 'family.printed', label: 'Marked as printed' },
   { value: 'family.imported', label: 'Data imported' },
+  { value: 'family.photos.imported', label: 'Photographs imported' },
   { value: 'export', label: 'Exports' },
   { value: 'church', label: 'Parish structure' }
 ];
@@ -186,12 +192,18 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
  * wrong way round — the data is theirs, and "may we have a copy?" should not
  * have to go through whoever runs the server.
  *
- * Two forms, and the only difference is the photographs:
+ * Three forms, and what differs is which half of the data comes out:
  *
- *   export.csv   the spreadsheet — opened in Excel, mailed to whoever asked
- *   export.zip   the same spreadsheet and every photograph, each named after
- *                the family it belongs to, which is what a printer or another
- *                system actually needs
+ *   export.csv          the spreadsheet — opened in Excel, mailed to whoever
+ *                       asked
+ *   export.zip          the same spreadsheet and every photograph, each named
+ *                       after the family it belongs to, which is what a printer
+ *                       or another system actually needs
+ *   export-photos.zip   the photographs alone, each named for its Family ID and
+ *                       nothing else — the shape the Import photographs page
+ *                       reads back, so a parish can take its folder out, fix
+ *                       the pictures that are wrong and put the same folder
+ *                       straight back
  *
  * Drafts are included by default: they are the parish's own unfinished
  * entries, and an export that quietly dropped them would be a backup with
@@ -272,6 +284,40 @@ router.get('/export.zip', wrap(async (req, res) => {
   }
 }));
 
+/**
+ * The photographs on their own.
+ *
+ * The bundle above already carries them, so this exists for the trip back
+ * rather than the trip out: the names in here are exactly what Import
+ * photographs expects, so the folder a parish downloads is the folder it can
+ * correct and upload again without renaming anything.
+ */
+router.get('/export-photos.zip', wrap(async (req, res) => {
+  const includeDrafts = req.query.drafts !== '0';
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition',
+    `attachment; filename="${downloadName(req.church, 'zip').replace(/\.zip$/, '-photos.zip')}"`);
+  res.setHeader('Cache-Control', 'no-store');
+
+  await audit.record(req, 'export.photos', {
+    churchId: req.churchId,
+    detail: `${req.church.name}, photographs only${includeDrafts ? '' : ', printed entries only'}`
+  });
+
+  const result = await exporter.photoBundle(res, req.churchId, {
+    folder: slugify(req.church.name, 'parish') + '-photos',
+    includeDrafts
+  });
+  res.end();
+
+  if (result.missing) {
+    console.warn(
+      `Photograph export of ${req.church.name}: ${result.missing} on record were not on disk.`
+    );
+  }
+}));
+
 // ---------------------------------------------------------------------------
 // The other direction — the sheet a parish fills in before importing
 // ---------------------------------------------------------------------------
@@ -332,8 +378,13 @@ router.post('/relations', wrap(async (req, res) => {
   res.json({ ok: true, relations, message: `"${name}" added to the relations offered.` });
 }));
 
-router.get('/import', wrap(async (req, res) => {
-  res.render('admin/import', {
+/**
+ * Everything the import page needs, whether it has just been asked for or has
+ * just been posted to. The reporting fields are here with nothing in them so
+ * the view can read them unconditionally rather than guarding every block.
+ */
+function importLocals(req) {
+  return {
     title: 'Import members from a spreadsheet',
     fields: importColumns.FIELDS,
     // Not `labels`: that name already belongs to the diocese/zone vocabulary
@@ -341,7 +392,148 @@ router.get('/import', wrap(async (req, res) => {
     columnLabels: importColumns.LABELS,
     aliases: importColumns.COLUMNS,
     required: importColumns.REQUIRED,
-    relations: settings.relationOptions(req.settings)
+    relations: settings.relationOptions(req.settings),
+    maxSheetMb: Math.round(importUpload.maxBytes / (1024 * 1024)),
+    fileName: null,
+    problems: [],
+    problemCount: 0,
+    problemsHidden: 0,
+    unknownColumns: [],
+    result: null
+  };
+}
+
+router.get('/import', wrap(async (req, res) => {
+  res.render('admin/import', importLocals(req));
+}));
+
+/**
+ * How many problems are worth putting on the page.
+ *
+ * A sheet with the Family ID column shifted by one produces a problem for
+ * every row in it, and eight hundred of them is not a report — it is the same
+ * sentence often enough to hide the one line that explains it. The count is
+ * always exact; the list is what gets cut.
+ */
+const PROBLEMS_SHOWN = 50;
+
+/**
+ * Upload a filled-in sheet.
+ *
+ * The whole file is read and checked before a single row is written, and one
+ * problem anywhere stops all of it. That is stricter than the command line,
+ * which imports what it can and writes the rest to a rejects file, and the
+ * difference is deliberate: the operator running the command has the rejects
+ * file and a shell, while the person at this form has neither. "47 of your 60
+ * families arrived, and these 13 did not" leaves them with a half-loaded
+ * directory and no way to tell which half — so nothing arrives until the sheet
+ * is right, and then all of it does.
+ *
+ * A Family ID already in the directory counts as a problem for the same
+ * reason. It is not dangerous — it is skipped, never overwritten — but it
+ * means the file on the office's desk is not the file in the directory, and
+ * saying so is more use than importing around it in silence.
+ */
+router.post('/import', wrap(async (req, res) => {
+  const page = (extra) => res.render('admin/import', { ...importLocals(req), ...extra });
+
+  // Set by lib/import-upload, which runs before the CSRF check because the
+  // form is multipart and `_csrf` is inside the body it parses.
+  if (req.sheetError || !req.file) {
+    return page({
+      problems: [{
+        message: req.sheetError
+          || 'No file was chosen. Pick the spreadsheet you filled in and try again.'
+      }]
+    });
+  }
+
+  const fileName = req.file.originalname;
+
+  let sheet;
+  try {
+    sheet = importer.readSheet(req.file.buffer.toString('utf8'));
+  } catch (err) {
+    // Anything the reader could not make a sheet of at all: no rows, no Family
+    // ID column. It has already said so in words the office can act on.
+    if (!(err instanceof importer.SheetError)) throw err;
+    return page({ fileName, problems: [{ message: err.message }] });
+  }
+
+  // The check. This is the import itself with the writing turned off — the
+  // same code, reaching the same tables — rather than a second implementation
+  // that describes what the first one would do and drifts away from it.
+  const check = await importer.runImport({
+    churchId: req.churchId,
+    churchName: req.church.name,
+    families: sheet.families,
+    dryRun: true
+  });
+
+  const problems = [];
+
+  for (const row of sheet.rows) {
+    if (row.errors.length) problems.push({ line: row.line, message: row.errors.join('; ') });
+  }
+
+  for (const clash of check.skipped) {
+    problems.push({
+      line: clash.line,
+      message: `Family ID "${clash.family_id}" is already in the directory. Take that `
+        + "family's rows out of the sheet, or give this one a Family ID of its own."
+    });
+  }
+
+  for (const bad of check.failed) {
+    problems.push({
+      line: bad.line,
+      message: bad.reason === 'no-head'
+        ? `Family "${bad.family_id}" has neither a head of family nor any members. `
+          + 'A printed entry has to have a name at the top of it — fill in one column or the other.'
+        : bad.message
+    });
+  }
+
+  if (!problems.length && !sheet.families.length) {
+    problems.push({ message: 'That file has headings and no families under them.' });
+  }
+
+  if (problems.length) {
+    problems.sort((a, b) => (a.line || 0) - (b.line || 0));
+    return page({
+      fileName,
+      unknownColumns: sheet.unknown,
+      problems: problems.slice(0, PROBLEMS_SHOWN),
+      problemsHidden: Math.max(0, problems.length - PROBLEMS_SHOWN),
+      problemCount: problems.length
+    });
+  }
+
+  const outcome = await importer.runImport({
+    churchId: req.churchId,
+    churchName: req.church.name,
+    families: sheet.families,
+    dryRun: false
+  });
+
+  await audit.record(req, 'family.imported', {
+    churchId: req.churchId,
+    detail: `${outcome.created.length} family/families imported from ${fileName}`
+  });
+
+  return page({
+    fileName,
+    unknownColumns: sheet.unknown,
+    result: {
+      families: outcome.created.length,
+      rows: sheet.usable.length,
+      people: outcome.created.reduce((total, f) => total + f.members, 0),
+      adjusted: outcome.adjusted,
+      // The check said there was nothing wrong, so anything here happened in
+      // the seconds between the two passes — somebody else importing or adding
+      // the same family. Vanishingly rare, and never silent.
+      unexpected: [...outcome.skipped, ...outcome.failed]
+    }
   });
 }));
 
@@ -358,6 +550,147 @@ router.get('/import-template.csv', wrap(async (req, res) => {
     relations: settings.relationOptions(req.settings),
     withExamples
   }));
+}));
+
+// ---------------------------------------------------------------------------
+// Photographs, a folder at a time
+// ---------------------------------------------------------------------------
+
+/**
+ * Everything the photograph import page needs, empty of any report until a
+ * post fills one in.
+ */
+async function photoLocals(req) {
+  const [stats, withPhotos] = await Promise.all([
+    Family.stats(req.churchId),
+    Family.photoCount(req.churchId)
+  ]);
+
+  return {
+    title: 'Import photographs',
+    maxArchiveMb: Math.round(importUpload.archiveMaxBytes / (1024 * 1024)),
+    maxPhotoMb: Math.round(config.maxPhotoBytes / (1024 * 1024)),
+    extensions: Object.keys(photoImporter.BY_EXTENSION),
+    totalFamilies: stats.families,
+    withPhotos,
+    fileName: null,
+    problems: [],
+    problemCount: 0,
+    problemsHidden: 0,
+    result: null
+  };
+}
+
+/**
+ * What the import did, as one sentence.
+ *
+ * Built here rather than in the template because EJS emits a line break
+ * wherever the template has one, and a headline assembled from four tags
+ * across four lines arrives with newlines inside it.
+ */
+function photoHeadline({ added, replaced }, fileName) {
+  const count = (n) => `${n} photograph${n === 1 ? '' : 's'}`;
+  const from = fileName ? ` from ${fileName}` : '';
+
+  if (added.length && replaced.length) {
+    return `${count(added.length)} added and ${replaced.length} replaced${from}.`;
+  }
+  if (replaced.length) return `${count(replaced.length)} replaced${from}.`;
+  return `${count(added.length)} added${from}.`;
+}
+
+router.get('/photos', wrap(async (req, res) => {
+  res.render('admin/photos', await photoLocals(req));
+}));
+
+/**
+ * Upload a folder of photographs, zipped, one file per family.
+ *
+ * The archive is unpacked twice on purpose. The first pass reads every image
+ * and checks it — that its name is a Family ID this parish has, that no two
+ * files claim the same family, that the bytes are the kind of image the name
+ * says, and that it is landscape — and writes nothing at all. Only if every
+ * file passes does the second pass store them.
+ *
+ * The same all-or-nothing rule as the spreadsheet import, for the same reason:
+ * a partial result leaves the office with no way to tell which half of their
+ * folder arrived. Here it also has a cheaper answer than it looks — images are
+ * already-compressed formats, so unpacking one twice costs almost nothing, and
+ * only one photograph is ever held in memory.
+ */
+router.post('/photos', wrap(async (req, res) => {
+  const page = async (extra) => res.render('admin/photos', { ...(await photoLocals(req)), ...extra });
+
+  if (req.archiveError || !req.file) {
+    return page({
+      problems: [{
+        message: req.archiveError
+          || 'No file was chosen. Pick the zip of photographs and try again.'
+      }],
+      problemCount: 1
+    });
+  }
+
+  const fileName = req.file.originalname;
+  const uploaded = req.file.path;
+  let archive = null;
+
+  try {
+    try {
+      archive = await unzip.open(uploaded);
+    } catch (err) {
+      if (!(err instanceof unzip.ArchiveError)) throw err;
+      return page({ fileName, problems: [{ message: err.message }], problemCount: 1 });
+    }
+
+    const families = await Family.photoTargets(req.churchId);
+    const { problems, ready, ignored } = await photoImporter.check({ archive, families });
+
+    if (!problems.length && !ready.length) {
+      return page({
+        fileName,
+        problems: [{
+          message: 'There are no photographs in that archive. Check that the folder you '
+            + 'compressed has the images in it.'
+        }],
+        problemCount: 1
+      });
+    }
+
+    if (problems.length) {
+      return page({
+        fileName,
+        problems: problems.slice(0, PROBLEMS_SHOWN),
+        problemsHidden: Math.max(0, problems.length - PROBLEMS_SHOWN),
+        problemCount: problems.length
+      });
+    }
+
+    const outcome = await photoImporter.store({ archive, churchId: req.churchId, ready });
+
+    await audit.record(req, 'family.photos.imported', {
+      churchId: req.churchId,
+      detail: `${outcome.added.length} added, ${outcome.replaced.length} replaced, from ${fileName}`
+    });
+
+    return page({
+      fileName,
+      result: {
+        headline: photoHeadline(outcome, fileName),
+        added: outcome.added.length,
+        replaced: outcome.replaced.length,
+        replacedFamilies: outcome.replaced.map((item) => item.ref),
+        ignored,
+        // The check passed, so anything here happened in the seconds since —
+        // a family deleted from under the import, or a disk that filled.
+        failed: outcome.failed
+      }
+    });
+  } finally {
+    if (archive) await archive.close();
+    // The upload is scratch space and nothing else keeps a reference to it.
+    await fs.promises.unlink(uploaded).catch(() => {});
+  }
 }));
 
 // ---------------------------------------------------------------------------

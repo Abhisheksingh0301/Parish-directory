@@ -483,6 +483,65 @@ async function photoCount(churchId) {
 }
 
 /**
+ * Just the families that have a photograph, and what it is called on disk.
+ *
+ * Its own query rather than a filter over `listWithMembers`, because the
+ * photographs-only download needs three columns and nothing else: pulling
+ * every member of every family into memory to read one filename off each is
+ * the difference between a narrow index scan and the whole directory.
+ */
+async function photoFiles(churchId, { publishedOnly = false } = {}) {
+  const where = { ...scope(churchId), photo: { [Op.ne]: null } };
+  if (publishedOnly) where.is_published = true;
+
+  const rows = await Family.findAll({
+    attributes: ['id', 'family_id', 'head_name', 'photo'],
+    where,
+    raw: true
+  });
+
+  return rows.sort(byFamilyId);
+}
+
+/**
+ * Every family's reference and the photograph it currently has, for matching a
+ * folder of images against the directory in one query.
+ *
+ * Keyed by the lowercased Family ID, because "a-12" and "A-12" are the same
+ * reference to everybody except a database — the same comparison
+ * `familyIdTaken` makes, and the one a person naming a file makes without
+ * thinking about it.
+ */
+async function photoTargets(churchId) {
+  const rows = await Family.findAll({
+    attributes: ['id', 'family_id', 'head_name', 'photo'],
+    where: scope(churchId),
+    raw: true
+  });
+
+  const byRef = new Map();
+  for (const row of rows) byRef.set(String(row.family_id).toLowerCase(), row);
+  return byRef;
+}
+
+/**
+ * Point a family at a photograph, and at nothing else.
+ *
+ * `update()` above replaces the member list as part of its transaction, which
+ * is right for a form that posts the whole family and wrong for this: a bulk
+ * photograph import would rewrite every member row in the parish to change a
+ * filename. Scoped like everything else, so a family in another church cannot
+ * be reached by guessing an id.
+ */
+async function setPhoto(churchId, id, filename) {
+  const [changed] = await Family.update(
+    { photo: filename || null, updated_at: db.now() },
+    { where: { ...scope(churchId), id } }
+  );
+  return changed > 0;
+}
+
+/**
  * Upcoming birthdays and anniversaries within `days` of today, wrapping around
  * the end of the year. Purely day+month — no ages, because we don't store years.
  *
@@ -736,5 +795,8 @@ module.exports = {
   remove,
   stats,
   photoCount,
+  photoFiles,
+  photoTargets,
+  setPhoto,
   upcoming
 };

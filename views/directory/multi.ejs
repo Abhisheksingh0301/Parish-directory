@@ -68,7 +68,7 @@
     </div>
 
     <% section.pages.forEach(function (page) { %>
-      <div class="page">
+      <div class="page<%= page.single ? ' page-single' : '' %>">
         <div class="entries">
           <% page.families.forEach(function (f) { %>
             <%- include('_entry', { f: f }) %>

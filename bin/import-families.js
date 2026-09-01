@@ -12,6 +12,13 @@
  *     node bin/import-families.js --church st-marys --file parish.csv --dry-run
  *     node bin/import-families.js --church st-marys --file parish.csv --rejects bad.csv
  *
+ * The reading, grouping and writing moved to lib/import-families.js when the
+ * Import members page grew an upload form: the office checking a sheet in the
+ * browser and the operator running it here have to get the same answer, and
+ * the only way to promise that is one implementation. What is left in this
+ * file is the parts a shell has and a browser does not — arguments, a file on
+ * disk, a rejects file, and a report printed to a terminal.
+ *
  * ── The rules, which are the ones the hierarchy import already proved ───────
  *
  *   One row per member.       The Family ID groups a family's rows together,
@@ -44,23 +51,29 @@
  *   No logins are created.    Accounts are a separate, deliberate step. A few
  *                             hundred families should not quietly become a few
  *                             hundred live accounts.
+ *
+ * One difference from the upload form, and it is deliberate. This keeps going:
+ * it imports what it can and reports what it could not, because the operator
+ * running it has the rejects file, a shell and the ability to re-run. The form
+ * refuses the whole file unless it is clean, because the parish administrator
+ * has none of those and "47 of your 60 families arrived" is not an outcome
+ * anybody can act on from a web page.
  */
 
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const csv = require('../lib/csv');
-const Family = require('../models/family');
 const Churches = require('../models/church');
 const audit = require('../lib/audit');
-const { readDate } = require('../lib/import-dates');
+const importer = require('../lib/import-families');
 
-// The column list this reads a sheet with is shared with the template the
-// parish downloads, so a heading offered there is a heading read back here.
-const { COLUMNS, mapHeader } = require('../lib/import-columns');
+// The column list a sheet is read with is shared with the template the parish
+// downloads, so a heading offered there is a heading read back here.
+const { COLUMNS } = require('../lib/import-columns');
 
 // ---------------------------------------------------------------------------
-// Reading the sheet
+// The run
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
@@ -72,140 +85,6 @@ function parseArgs(argv) {
   }
   return flags;
 }
-
-const cellAt = (row, index) => (index === undefined ? '' : String(row[index] ?? '').trim());
-
-/**
- * One sheet row, read into the shape the directory holds.
- *
- * Errors are collected rather than thrown: a row with an unreadable date of
- * birth is one reject line, and the other four hundred rows still import.
- */
-function readRow(row, map, lineNumber) {
-  const get = (field) => cellAt(row, map[field]);
-  const errors = [];
-
-  const familyRef = get('family_id');
-  if (!familyRef) errors.push('no Family ID');
-
-  const dom = readDate(get('dom'), { label: 'Date of marriage', full: false });
-  if (dom.error) errors.push(dom.error);
-
-  const dob = readDate(get('dob'), { label: 'Date of birth', full: true });
-  if (dob.error) errors.push(dob.error);
-
-  return {
-    line: lineNumber,
-    raw: row,
-    errors,
-    family_ref: familyRef,
-    family: {
-      family_id: familyRef,
-      head_name: get('head_name'),
-      address: get('address'),
-      hometown: get('hometown'),
-      home_parish: get('home_parish'),
-      spouse_home: get('spouse_home'),
-      prayer_group: get('prayer_group'),
-      area: get('area'),
-      email: get('email'),
-      dom_day: dom.day,
-      dom_month: dom.month
-    },
-    member: {
-      name: get('member_name'),
-      relation: get('relation'),
-      dob_day: dob.day,
-      dob_month: dob.month,
-      dob_year: dob.year,
-      mobile: get('mobile'),
-      blood_group: get('blood_group'),
-      qualification: get('qualification'),
-      occupation: get('occupation'),
-      links: get('links')
-    }
-  };
-}
-
-/**
- * Group the rows into families.
- *
- * The family's own columns come from the first row carrying that Family ID; a
- * later row that repeats them is not a contradiction to resolve, it is a
- * spreadsheet repeating itself down a merged block. Where a later row fills in
- * a family column the first row left blank, that value is taken — the sheet
- * knows something the first row did not.
- */
-function groupFamilies(rows) {
-  const families = new Map();
-
-  for (const row of rows) {
-    const key = row.family_ref.toLowerCase();
-
-    if (!families.has(key)) {
-      families.set(key, { ...row.family, lines: [], members: [], rows: [] });
-    }
-    const family = families.get(key);
-    family.lines.push(row.line);
-    family.rows.push(row);
-
-    for (const [field, value] of Object.entries(row.family)) {
-      if (!family[field] && value) family[field] = value;
-    }
-
-    if (row.member.name) family.members.push(row.member);
-  }
-
-  return [...families.values()];
-}
-
-/**
- * A family is imported whole, or not at all.
- *
- * One unreadable date in the third row of a family used to cost that one
- * member: the other rows imported, the family was created without them, and a
- * re-import after correcting the sheet would report the family as already
- * there and never add the missing person. Silent, permanent, and exactly the
- * failure the rejects file exists to prevent.
- *
- * So a family with any unreadable row is held back entirely, and every one of
- * its rows is written to the rejects file — the offending row with its own
- * reason, its siblings with the reason they are keeping it company. Correct
- * that one cell, import again, and the whole family arrives.
- */
-function holdBackWholeFamilies(rows) {
-  const spoiled = new Map();
-  for (const row of rows) {
-    if (!row.errors.length || !row.family_ref) continue;
-    const key = row.family_ref.toLowerCase();
-    if (!spoiled.has(key)) spoiled.set(key, row.family_ref);
-  }
-
-  const usable = [];
-  const rejects = [];
-
-  for (const row of rows) {
-    const key = String(row.family_ref).toLowerCase();
-
-    if (row.errors.length) {
-      rejects.push(row);
-    } else if (spoiled.has(key)) {
-      rejects.push({
-        ...row,
-        errors: [`Another row for family ${spoiled.get(key)} could not be read, ` +
-                 'so the whole family was held back. Correct that row and import again.']
-      });
-    } else {
-      usable.push(row);
-    }
-  }
-
-  return { usable, rejects };
-}
-
-// ---------------------------------------------------------------------------
-// The run
-// ---------------------------------------------------------------------------
 
 function usage() {
   console.log(`
@@ -255,68 +134,18 @@ async function main() {
   const file = path.resolve(String(flags.file));
   if (!fs.existsSync(file)) throw new Error(`No such file: ${file}`);
 
-  const sheet = csv.parse(fs.readFileSync(file, 'utf8'));
-  if (sheet.length < 2) throw new Error('That file has a header row and nothing else.');
-
-  const [headerRow, ...bodyRows] = sheet;
-  const { map, unknown } = mapHeader(headerRow);
-
-  if (map.family_id === undefined) {
-    throw new Error(
-      'No Family ID column was found. One is required — it is what groups a ' +
-      "family's rows together, and it is the parish's permanent reference."
-    );
-  }
+  const sheet = importer.readSheet(fs.readFileSync(file, 'utf8'));
+  const { headerRow, unknown, usable, rejects, families } = sheet;
 
   await db.init();
   const church = await resolveChurch(flags.church);
 
-  const rows = bodyRows.map((row, i) => readRow(row, map, i + 2));
-  const { usable, rejects } = holdBackWholeFamilies(rows);
-
-  const families = groupFamilies(usable);
-
-  const created = [];
-  const skipped = [];
-  const adjusted = [];
-  const failed = [];
-
-  for (const family of families) {
-    try {
-      if (await Family.familyIdTaken(church.id, family.family_id)) {
-        skipped.push(`${family.family_id} is already in ${church.name}`);
-        continue;
-      }
-
-      // A family with no head named anywhere still has to be somebody, or the
-      // printed entry has no title. The first member is the honest guess, and
-      // it is reported rather than done in silence.
-      if (!family.head_name && family.members.length) {
-        family.head_name = family.members[0].name;
-        adjusted.push(
-          `${family.family_id}: no family head on the sheet, so "${family.head_name}" was taken from the first member`
-        );
-      }
-      if (!family.head_name) {
-        failed.push(`${family.family_id} (line ${family.lines[0]}): no family head and no members`);
-        continue;
-      }
-
-      if (!dryRun) {
-        await Family.create(church.id, {
-          ...family,
-          // Imported entries start as drafts, so a sheet with half a parish in
-          // it cannot put half a parish into the printed book before anybody
-          // has looked at it.
-          is_published: false,
-          members: family.members
-        });
-      }
-      created.push(`${family.family_id} ${family.head_name} (${family.members.length} member(s))`);
-    } catch (err) {
-      failed.push(`${family.family_id}: ${err.message}`);
-    }
-  }
+  const { created, skipped, adjusted, failed } = await importer.runImport({
+    churchId: church.id,
+    churchName: church.name,
+    families,
+    dryRun
+  });
 
   // --- the report ---
 
@@ -325,24 +154,24 @@ async function main() {
   console.log(`  ${usable.length} member row(s) read`);
 
   if (unknown.length) {
-    console.log(`\nColumns this directory has no home for (nothing was dropped in silence):`);
+    console.log('\nColumns this directory has no home for (nothing was dropped in silence):');
     unknown.forEach((name) => console.log(`  "${name}"`));
   }
 
   if (skipped.length) {
     console.log(`\nAlready there, so not touched (${skipped.length}):`);
-    skipped.slice(0, 15).forEach((m) => console.log(`  ${m}`));
+    skipped.slice(0, 15).forEach((m) => console.log(`  ${m.message}`));
     if (skipped.length > 15) console.log(`  …and ${skipped.length - 15} more`);
   }
 
   if (adjusted.length) {
     console.log(`\nRead, with a decision made for you (${adjusted.length}):`);
-    adjusted.forEach((m) => console.log(`  ${m}`));
+    adjusted.forEach((m) => console.log(`  ${m.message}`));
   }
 
   if (failed.length) {
     console.log(`\nRefused (${failed.length}):`);
-    failed.forEach((m) => console.log(`  ${m}`));
+    failed.forEach((m) => console.log(`  ${m.message}`));
   }
 
   if (rejects.length) {

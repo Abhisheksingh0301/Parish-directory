@@ -268,6 +268,154 @@ body.directory-body {
 .parish-name { font-weight: 500; }
 .folio { font-weight: 600; }
 
+/* ==========================================================================
+   One family to a sheet.
+
+   A different layout, not the two-up entry with more room around it. The
+   photograph moves above the details and becomes the thing the page is about,
+   which is what the whole sheet is now for.
+
+   Everything below is reached only through `.page-single`, put on the page by
+   the two directory views when the parish has set one family per printed page.
+   The entry markup does not change at all — `_entry.ejs` is shared by the
+   single-church book and the combined one precisely so the two cannot drift,
+   and a second copy of it for this layout would be the drift.
+
+   ── The height budget, which is what governs the photograph ────────────────
+
+   On screen a page is 908px of content inside 1160px, less about 78px of
+   footer: some 1056px to fill. Spent, for a family of five:
+
+       heading          80px    the ID pill and the name beneath it
+       photograph      518px    478 of picture, plus its mat and the gap
+       details         226px    five rows, whether or not they are filled in
+       members         182px    a header and five people at 30px each
+                      ------
+                       1006px
+
+   which leaves a little in hand. Every further member costs 30px, so a family
+   of seven still fits and a family of ten runs the page long — the trade taken
+   deliberately, because a photograph sized for the largest family in the
+   parish would be a small photograph on every other page.
+
+   Widening `--single-photo` past 640px costs three quarters of a pixel in
+   height for each one gained in width, so it is the number to change if the
+   budget above ever needs to move.
+   ========================================================================== */
+
+.page-single {
+  /*
+   * A proportion, not a pixel width, and that is the whole trick.
+   *
+   * The screen page and the printed sheet are not to the same scale: on screen
+   * a page is 960px wide for what will be 210mm of paper, but in print the
+   * padding drops away and the content is 186mm — 703px at the 96dpi a browser
+   * prints at — against 1032px of usable height. A photograph fixed in pixels
+   * is therefore a different share of the two, and the one that fits the
+   * screen runs the printed sheet over.
+   */
+  --single-photo: 62%;
+}
+
+/*
+ * The heading: the name on the left, the reference on the right, sharing one
+ * rule.
+ *
+ * `_entry.ejs` writes the id first and the name second, which is the order the
+ * two-up entry wants — a narrow id column beside a wide name band. Here they
+ * are swapped with `order` rather than by moving the markup, because that
+ * markup is shared with the compact layout and with the combined book; a
+ * second copy of it to reorder two elements is the drift the sharing exists to
+ * prevent. Grid auto-placement follows `order`, so nothing else is needed.
+ */
+.page-single .entry-head {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  /* One rule under both, rather than an accent under the name alone: with the
+     two pushed to opposite ends, a rule under only one of them reads as a
+     mistake. */
+  border-bottom: 3px solid var(--band-dark);
+}
+.page-single .head-name {
+  order: 1;
+  justify-self: start;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 26px;
+  letter-spacing: .05em;
+  /* No band and no box: the name is the title of the page it is on, not
+     another cell in another table. */
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.page-single .head-id {
+  order: 2;
+  justify-self: end;
+  align-self: end;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  padding: 5px 16px;
+  border-radius: 999px;
+  /* Sat on the same baseline as the name, not on the rule itself. */
+  margin-bottom: 3px;
+}
+
+/* The photograph above the details, mounted rather than merely bordered. */
+.page-single .entry-body {
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-bottom: 18px;
+}
+.page-single .photo-frame {
+  /*
+   * `width: 100%` and not merely `max-width`. A grid item given `margin: 0
+   * auto` stops stretching to its column and sizes to its contents instead —
+   * and its contents are an image at `width: 100%`, which then resolves
+   * against the picture's own intrinsic width. The frame collapses to whatever
+   * size the photograph happened to be uploaded at. Setting the width
+   * explicitly takes the decision away from the file.
+   */
+  width: 100%;
+  max-width: var(--single-photo);
+  margin: 0 auto 18px;
+  padding: 9px;
+  border-radius: 3px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .16);
+}
+.page-single .photo,
+.page-single .photo-empty {
+  aspect-ratio: 4 / 3;
+}
+.page-single .photo-empty { font-size: 15px; }
+
+/* The details, given the air the extra page affords. */
+.page-single .details {
+  font-size: 15px;
+  border-color: var(--rule);
+}
+.page-single .details th,
+.page-single .details td { padding: 7px 14px; }
+.page-single .details th {
+  width: 26%;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.page-single .home-icon { width: 30px; height: 30px; }
+
+.page-single .members { font-size: 13px; }
+.page-single .members th { padding: 6px 7px; letter-spacing: .02em; }
+.page-single .members td { padding: 5px 7px; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
   body.directory-body { padding: 14px 8px 40px; }
@@ -281,6 +429,13 @@ body.directory-body {
   .members { display: block; overflow-x: auto; }
   /* 18mm a side is most of a phone; the footer goes back to the edges. */
   .foot-row { padding-left: 0; padding-right: 0; }
+  /* The single-page photograph is capped for an A4 sheet, which a phone is
+     not — below that width the cap is wider than the screen and does nothing,
+     so this only matters on a narrow tablet. */
+  .page-single { --single-photo: 100%; }
+  .page-single .head-name { font-size: 20px; }
+  .page-single .head-id { font-size: 11px; letter-spacing: .12em; padding: 4px 12px; }
+  .page-single .details th { width: 34%; }
 }
 
 /* ---------- print ---------- */

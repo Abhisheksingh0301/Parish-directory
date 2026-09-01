@@ -113,12 +113,14 @@ npm test
 ```
 
 259 end-to-end checks across seven suites — smoke, console, tenancy, reports,
-verification, export and import-template — each booting the app over HTTP
+verification, export, import-template, import-upload and import-photos — each
+booting the app over HTTP
 against a throwaway database in your system temp folder. They override
 `DATA_DIR`, so your own `data/` folder is left alone. The last line should read
 `ALL CHECKS PASSED`. Run one suite on its own with `npm run test:tenancy`, and
 the same for `test:smoke`, `test:console`, `test:reports`,
-`test:verification`, `test:export` and `test:import-template`.
+`test:verification`, `test:export`, `test:import-template`, `test:import-upload`
+and `test:import-photos`.
 
 ### Every command
 
@@ -130,7 +132,7 @@ the same for `test:smoke`, `test:console`, `test:reports`,
 | `npm run superadmin` | Create, reset or list super administrators |
 | `npm run backup` | Snapshot the database and photographs |
 | `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
-| `npm run import-families -- --church <slug> --file <x.csv>` | Load a parish's existing families from its own spreadsheet. Run it with `--dry-run` first |
+| `npm run import-families -- --church <slug> --file <x.csv>` | Load a parish's existing families from its own spreadsheet. Run it with `--dry-run` first. An administrator can also upload the sheet at **Manage → Import members** |
 
 ---
 
@@ -203,9 +205,9 @@ on every visit to the sign-in page.
 
 Daily work stays in the open — Dashboard, Families, Review, Print directory.
 The administration screens fold into one **Manage** menu (Settings, Users,
-Import members, Download your data, Audit log), because they are visited
-occasionally and nine flat links wrapped the bar onto a second line, displacing
-the name and Sign out.
+Import members, Import photographs, Download your data, Audit log), because
+they are visited occasionally and nine flat links wrapped the bar onto a second
+line, displacing the name and Sign out.
 
 A super administrator sees **System**, **Churches** and **Reports** flat while
 they are in their own console — that is their whole application. Once they have
@@ -389,12 +391,14 @@ The objective is that no family keys in what the parish already holds. Every
 family should find its existing record already on screen, with only the
 corrections left to make.
 
-### The template the parish fills in — **Manage → Import members**
+### The sheet the parish fills in and uploads — **Manage → Import members**
 
-`/admin/import` is where the parish office gets the sheet. It offers the blank
+`/admin/import` is the whole exercise in one page. It offers the blank
 spreadsheet as a download — **with example rows** or **headings only** — beside
 the columns, the accepted alternative spellings for each, this church's own
-relation codes and the date rules. Administrators only, one church at a time.
+relation codes and the date rules; and under that, the upload form the office
+hands the filled-in sheet back through. Administrators only, one church at a
+time.
 
 The headings are generated from the importer's own column list
 (`lib/import-columns.js`, shared with `bin/import-families.js`), so a heading
@@ -402,9 +406,28 @@ the template prints is a heading the import reads back; the two cannot drift.
 They are also the export's headings, so a file downloaded from **Download your
 data**, edited, can be handed straight back.
 
-The load itself stays at the command line. Several hundred families arriving at
-once is not a thing to do from a web form on a first attempt — the dry run and
-the rejects file are what make it safe:
+**The upload is all-or-nothing.** The file is read to the end and checked
+against the database before a single row is written, and one problem anywhere
+in it — an unreadable date, a family with no name, a Family ID this parish
+already holds — stops the whole import and is reported on the page in plain
+words with its row number. Nothing is written, so there is nothing to undo. A
+run that says it imported is a run that imported the entire file.
+
+That is deliberately stricter than the command line, which imports what it can
+and writes the rest to a rejects file. The operator running the command has
+that file, a shell and the ability to re-run; the administrator at the form has
+none of the three, and "47 of your 60 families arrived" is not an outcome
+anybody can act on from a web page.
+
+The check is the import with the writing turned off — the same
+`lib/import-families.js` code reaching the same tables, not a second
+implementation that describes what the first would do and drifts away from it.
+The file never touches the disk: it is held in memory, read once, and either
+imported or reported on.
+
+The command line remains for a sheet too broken to fix a row at a time, and the
+page prints it for a super administrator only — a parish administrator has no
+shell, so an instruction to use one reads as a job they have failed to do:
 
 ```bash
 npm run import-families -- --church st-marys --file parish.csv --dry-run
@@ -432,6 +455,56 @@ arguments to see the list.
 - **Imported families are drafts**, so half a parish cannot enter the printed
   book before anybody has looked at it.
 
+### The photographs — **Manage → Import photographs**
+
+`/admin/photos` takes the other half of what a parish already has: a folder of
+pictures, one per household. **Each file is named after the family's Family
+ID** — `F-001.jpg` for family `F-001`, letter case ignored — and the folder is
+zipped and uploaded once, instead of visiting two hundred family pages.
+
+Both stored and deflated archives are read, which matters because "Send to →
+Compressed (zipped) folder" and "Compress" both produce deflated ones.
+`lib/unzip.js` is the reader, written out for the reason `lib/zip.js` and
+`lib/csv.js` are: the format this needs is an index at the end of the file, a
+header per entry, and inflate, which Node already ships. It reads by range
+rather than slurping — peak memory is one photograph whether the archive holds
+ten or a thousand — and it distrusts every number in the file, checking sizes
+and CRCs and capping what inflate may produce.
+
+**Every image is opened and checked before one of them is stored**, and any
+problem anywhere refuses the whole archive, in plain words, naming the file:
+
+- **The name matches a family in this parish.** A picture named for a family
+  that is not here has nowhere to go, and skipping it silently is how a parish
+  finds out at the printer that forty entries have no face.
+- **One photograph per family.** `F-001.jpg` beside `F-001.png` is somebody's
+  half-finished tidy-up; choosing between them would be a guess.
+- **The bytes are what the name claims.** A PNG renamed to `.jpg` is reported
+  as "a PNG image with a .jpg name", because browsers displaying it anyway have
+  taught people that renaming converts.
+- **It is landscape.** The same rule the single-photo form enforces, for the
+  same reason: the printed frame is landscape, and the proof copy is not the
+  place to discover a portrait picture.
+- **It is within the size cap**, the same one a single upload has.
+
+`Thumbs.db`, `.DS_Store` and `__MACOSX` are passed over without comment — the
+parish did not create them and cannot see them, so asking them to delete a file
+they cannot find would be worse than useless.
+
+A family that already has a photograph gets the new one, the old file is
+removed once the new one is safely stored, and every replacement is listed by
+Family ID in the summary — so re-uploading a corrected folder is a normal thing
+to do and never a silent one. **Nothing else about a family changes**: no entry
+is published, unpublished or edited, and no logins are created.
+
+The archive is the one upload that reaches the disk, because it is read by
+seeking to the index at its end and can be hundreds of megabytes. It lands in
+`data/tmp`, and it is deleted when the response ends — tied to the response
+rather than to the route, because multer must run before the CSRF check (which
+cannot read `_csrf` until the body it is inside has been parsed), so an expired
+form is rejected *after* the file is on disk and the route never runs. Anything
+a killed process left behind is swept at start-up.
+
 ---
 
 ## Viewing, printing and exporting across churches
@@ -453,8 +526,8 @@ An empty selection produces nothing — never everything.
 ## Downloading the data, with the photographs
 
 **Download** on the administrator's menu gives a parish its own records back.
-The console has the same two downloads under Reports, for any selection of
-churches.
+The console has the spreadsheet and the full archive under Reports too, for any
+selection of churches.
 
 - **Spreadsheet only** (`.csv`) — one row per person, the family's details
   repeated on each of their rows. That is the shape that sorts and filters in
@@ -464,6 +537,25 @@ churches.
   column gives that name, so a row and a face can be matched without opening
   the application. A `README.txt` in the archive says the same thing to
   whoever receives it.
+- **Photographs only** (`.zip`) — the pictures with nothing else, each file
+  named for its **Family ID alone**: `F-001.jpg`.
+
+That last naming is deliberately not the bundle's `F-001-kandathil.jpg`, and
+the two must not be tidied into one. The bundle sits beside a spreadsheet and a
+person matching faces to rows by eye, so the head of family in the name earns
+its place. The photographs-only archive is the one **Import photographs** reads
+back — the parish downloads the folder, replaces the half-dozen pictures that
+are wrong, and uploads the same folder again without renaming a file. A name
+carrying the head of family would not survive that trip.
+
+For the same reason there is no `README.txt` in the photographs-only archive:
+it would come back on the next upload as a file that is not a photograph. The
+button is disabled, with a sentence saying why, when no family has a
+photograph yet.
+
+The round trip is tested end to end — `test/import-photos.js` downloads the
+archive and posts it straight back, unedited — so if the two namings are ever
+merged, that check is the one that objects.
 
 Drafts are included by default — they are the parish's own unfinished entries,
 and an export that dropped them silently would be a backup with holes in it.
@@ -612,6 +704,8 @@ bin/superadmin.js    create or recover the super administrator account
 bin/backup.js        consistent snapshot of the database and photographs
 bin/import-hierarchy.js  dioceses, zones and churches, from a CSV
 bin/import-families.js   a parish's existing families, from its own sheet
+                         (the reading itself lives in lib/import-families.js,
+                          shared with the upload form on /admin/import)
 app.js               middleware chain and route mounting
 config/              .env loading, paths, session secret, database choice
 db/
@@ -639,6 +733,12 @@ lib/
   import-columns.js  the columns a family sheet may have, shared by the
                      importer and the template the parish downloads
   import-template.js the blank sheet, built from that list
+  import-families.js reading a sheet into families: the command line and the
+                     upload form are one implementation
+  import-upload.js   accepting the sheet and the photograph archive from the
+                     browser: one in memory, one to scratch space it clears up
+  import-photos.js   a folder of photographs named after their families
+  unzip.js           reading a .zip, by range; the other half of zip.js
   csv.js             reading and writing the sheets a parish actually has
   export.js          the columns, shared by every download, and the archive
   zip.js             writing a .zip straight down a response
@@ -724,8 +824,53 @@ the proxy should never be the stricter of the two.
 
 ---
 
+## Two printed layouts, one piece of markup
+
+**Families per printed page** on the Settings page chooses between them, and it
+defaults to **one**.
+
+- **One family to a sheet** — the photograph across the top at 62% of the page
+  width, with the details and the members beneath it. The head of family reads
+  as the title of the page: name on the left, Family ID on the right in a quiet
+  pill, one rule under both, rather than the two banded across the top.
+
+  `_entry.ejs` writes the id before the name, which is the order the compact
+  entry wants. Here the two are swapped with CSS `order` rather than by editing
+  the markup — grid auto-placement follows it — because that markup is shared,
+  and a second copy of it to reorder two elements is exactly the drift the
+  sharing exists to prevent.
+- **Two or more** — the original compact entry, with a smaller photograph
+  beside the details rather than above them, so that several fit on a sheet.
+
+`views/directory/_entry.ejs` is the same markup for both, and deliberately so:
+it is shared by the single-church book and the combined one precisely to stop
+the two drifting, and a second copy of it for a second layout would be the
+drift. The routes put `page-single` on the page and the stylesheet does the
+rest — the whole one-per-page layout is a block of CSS reached only through
+that class.
+
+### The photograph is sized as a proportion, not in pixels
+
+The screen page and the printed sheet are not to the same scale. On screen a
+page is 960px wide for what will be 210mm of paper; in print the padding drops
+away and the content is 186mm — 703px at the 96dpi a browser prints at —
+against 1032px of usable height. A photograph fixed in pixels is therefore a
+different share of the two, and the size that looks right on screen runs the
+printed sheet over by a hundred pixels, pushing the footer onto a second page.
+`--single-photo` is a percentage for that reason, and the height budget it has
+to live inside is written out above the rules in `directory.css`.
+
+That budget has one deliberate limit: a family of about eight members fills the
+sheet, and a larger one runs it long. Sizing the photograph for the largest
+family in the parish would mean a small photograph on every other page.
+
+---
+
 ## The original template
 
 `public/parish-directory-template.html` is the standalone layout this was built
-from. It is kept as the visual reference — `public/stylesheets/directory.css`
-and `views/directory/_entry.ejs` reproduce it exactly. It is not used at runtime.
+from. It is the visual reference for the **two-or-more** entry, which
+`views/directory/_entry.ejs` and the unprefixed rules in
+`public/stylesheets/directory.css` still reproduce exactly. It is not used at
+runtime, and it does not describe the one-family-to-a-sheet layout, which
+postdates it.

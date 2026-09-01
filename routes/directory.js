@@ -25,12 +25,20 @@ router.get('/', wrap(async (req, res) => {
   const includeDrafts = req.query.drafts === '1' && auth.atLeast(req.user, 'editor');
   const families = await Family.listWithMembers(req.churchId, { publishedOnly: !includeDrafts });
 
-  const perPage = Math.max(1, parseInt(parishSettings.per_page, 10) || 2);
+  const perPage = Math.max(1, parseInt(parishSettings.per_page, 10) || 1);
   const startingPage = parseInt(parishSettings.starting_page, 10) || 1;
 
   const pages = [];
   for (let i = 0; i < families.length; i += perPage) {
-    pages.push({ folio: startingPage + pages.length, families: families.slice(i, i + perPage) });
+    pages.push({
+      folio: startingPage + pages.length,
+      families: families.slice(i, i + perPage),
+      // One family to a sheet is a different layout, not the same one with
+      // more room: the photograph goes above the details and takes most of the
+      // page. The view needs to know which it is drawing; the stylesheet does
+      // the rest, so `_entry.ejs` stays one piece of markup for both.
+      single: perPage === 1
+    });
   }
 
   res.render('directory/print', {

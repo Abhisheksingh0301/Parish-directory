@@ -5,10 +5,104 @@
   <p class="sub">
     The parish already holds its families somewhere &mdash; a register, a
     ledger, somebody&rsquo;s spreadsheet. Nobody should type it in twice.
-    Download the sheet below, fill it in, and hand it to whoever looks after
-    this installation to load.
+    Download the sheet below, fill it in, and upload it here.
   </p>
 </div>
+
+<%
+  /*
+   * The outcome of an upload, at the top of the page rather than beside the
+   * button, because it is the only thing the person is looking for when the
+   * page comes back and it is longer than the button is.
+   *
+   * Either `problems` or `result` is filled in, never both: a sheet with a
+   * single problem in it imports nothing at all.
+   */
+%>
+<% if (problems.length) { %>
+  <div class="alert error">
+    <strong>
+      Nothing was imported<%= fileName ? ` from ${fileName}` : '' %>.
+      <% if (problemCount > 1) { %>
+        There are <%= problemCount %> things to fix first.
+      <% } %>
+    </strong>
+    <ul>
+      <% problems.forEach(function (problem) { %>
+        <li>
+          <% if (problem.line) { %><strong>Row <%= problem.line %>:</strong> <% } %>
+          <%= problem.message %>
+        </li>
+      <% }); %>
+      <% if (problemsHidden) { %>
+        <li>&hellip;and <%= problemsHidden %> more. Fix these first &mdash; the same
+          mistake usually explains the rest.</li>
+      <% } %>
+    </ul>
+    <p style="margin:10px 0 0">
+      Correct those rows in your spreadsheet, save it again as
+      <code>.csv</code>, and upload it once more. The directory has not been
+      changed, so there is nothing to undo.
+    </p>
+  </div>
+<% } %>
+
+<% if (result) { %>
+  <div class="alert notice">
+    <strong>
+      Imported <%= result.families %> famil<%= result.families === 1 ? 'y' : 'ies' %><%
+        %><%= result.people ? ` and ${result.people} people` : '' %><%
+        %><%= fileName ? ` from ${fileName}` : '' %>.
+    </strong>
+    <p style="margin:8px 0 0">
+      They arrived as <strong>drafts</strong>, so nothing has entered the
+      printed book yet &mdash; look them over in
+      <a href="<%= base %>/families">Families</a> and publish the
+      ones that are right. <strong>No logins were created:</strong> accounts
+      stay a separate, deliberate step on
+      <a href="<%= base %>/admin/users">User accounts</a>.
+    </p>
+
+    <% if (result.adjusted.length) { %>
+      <p style="margin:10px 0 4px">Decisions made for you, so you can check them:</p>
+      <ul>
+        <% result.adjusted.forEach(function (item) { %>
+          <li><%= item.message %></li>
+        <% }); %>
+      </ul>
+    <% } %>
+
+    <% if (result.unexpected.length) { %>
+      <p style="margin:10px 0 4px">
+        These were checked as fine a moment earlier and then were not &mdash;
+        somebody else was very likely working on the directory at the same
+        time. Nothing was overwritten:
+      </p>
+      <ul>
+        <% result.unexpected.forEach(function (item) { %>
+          <li><%= item.message %></li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (unknownColumns.length) { %>
+  <div class="alert error" style="background:var(--paper-warm);border-color:var(--rule);color:var(--ink)">
+    <strong>Columns this directory has no home for</strong>
+    <p style="margin:6px 0 0">
+      <% unknownColumns.forEach(function (name, i) { %><code><%= name %></code><%= i < unknownColumns.length - 1 ? ', ' : '' %><% }); %>
+      <%= unknownColumns.length === 1 ? 'was' : 'were' %> not recognised as
+      <%= unknownColumns.length === 1 ? 'a heading' : 'headings' %> this
+      directory stores, so whatever is in
+      <%= unknownColumns.length === 1 ? 'it' : 'them' %>
+      <%= result ? 'has not been kept' : 'would not be kept' %>. This is
+      reported rather than passed over in silence; it is not itself a reason to
+      stop. If one of them is a column this directory does hold under another
+      name, the table below says what to call it.
+    </p>
+  </div>
+<% } %>
 
 <div class="card">
   <h2>Get the template</h2>
@@ -32,6 +126,36 @@
   </p>
 </div>
 
+<form class="card" method="post" action="<%= base %>/admin/import"
+      enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <h2>Upload the filled-in sheet</h2>
+  <p class="help" style="margin-top:0">
+    The whole file is read and checked before anything is written. If there is
+    a problem anywhere in it &mdash; a date nobody could read, a family with no
+    name, a Family ID this parish already has &mdash; it is listed at the top
+    of this page in plain words, with the row number, and
+    <strong>nothing at all is imported</strong>. Fix the sheet and upload it
+    again. There is no half-finished state to clean up.
+  </p>
+
+  <div class="field">
+    <label for="sheet">Your spreadsheet, saved as CSV</label>
+    <input type="file" id="sheet" name="sheet" accept=".csv,text/csv" required>
+    <p class="help">
+      A <code>.csv</code> file, up to <%= maxSheetMb %>&nbsp;MB. An Excel
+      <code>.xlsx</code> workbook cannot be read &mdash; open it, choose
+      File&nbsp;&rarr;&nbsp;Save&nbsp;As and pick
+      &ldquo;CSV (comma delimited)&rdquo;.
+    </p>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn">Check and import</button>
+  </div>
+</form>
+
 <div class="card">
   <h2>The one rule that matters</h2>
   <p class="help" style="margin-top:0">
@@ -47,10 +171,11 @@
     sheet is not wrong either way.
   </p>
   <p class="help">
-    Two families must never share a Family ID, and a Family ID already in this
-    parish is reported as already there and left untouched &mdash; a correction
-    the office has made by hand is never undone by an import somebody runs
-    twice.
+    Two families must never share a Family ID, and a Family ID this parish
+    already holds stops the import and is reported with its row number. Take
+    that family&rsquo;s rows out of the sheet, or give the new family a Family
+    ID of its own &mdash; a record the office has corrected by hand is never
+    overwritten by an import somebody runs twice.
   </p>
 </div>
 
@@ -135,36 +260,57 @@
   </p>
 
   <p class="help">
-    <strong>Photographs</strong> are not part of this. They are added to each
-    family afterwards, from the family&rsquo;s own page.
+    <strong>Photographs</strong> are not part of this sheet. Import the
+    families first, then send the pictures as their own folder on
+    <a href="<%= base %>/admin/photos">Import photographs</a> &mdash; each file
+    named after the Family ID it belongs to. A single late photograph is still
+    added from the family&rsquo;s own page.
   </p>
 </div>
 
 <div class="card">
-  <h2>Handing the sheet over</h2>
+  <h2>What the import will and will not do</h2>
   <p class="help" style="margin-top:0">
-    There is nothing to upload on this page. Fill the sheet in against the
-    notes above, then send it to whoever installed this directory &mdash; the
-    load is run once, by them, against this parish.
+    <strong>All of the sheet, or none of it.</strong> The file is read through
+    to the end before a single family is written, and one problem anywhere
+    stops the lot. A run that says it imported is a run that imported
+    everything in the file &mdash; there is never a half-loaded directory to
+    work out the shape of afterwards.
   </p>
   <p class="help">
-    They will do a trial run first, which writes nothing and reports every
-    family it would create and every row it cannot read. That is the point to
-    correct the sheet: nothing reaches the directory until it comes back clean.
+    <strong>Nothing already here is touched.</strong> A Family ID this parish
+    already holds is reported as a problem to fix in the sheet, not merged and
+    not overwritten. A correction the office has made by hand cannot be undone
+    by an import somebody runs twice.
+  </p>
+  <p class="help">
+    Everything that arrives arrives as a <strong>draft</strong> &mdash; nothing
+    enters the printed book until somebody has looked at it &mdash; and
+    <strong>no logins are created</strong>. Accounts stay a separate,
+    deliberate step on
+    <a href="<%= base %>/admin/users">User accounts</a>.
   </p>
 
 <%
   /*
-   * The command itself, for the person who has a shell.
+   * The command line, for the person who has a shell.
    *
-   * A parish administrator does not have one — they work in this app and
-   * nowhere else — so printing a command line to them describes a job they
-   * cannot do and reads as an instruction they have failed to follow. What
-   * they need is on either side of this block: who to send the sheet to, and
-   * what the directory looks like once it has been loaded.
+   * The form above is what a parish administrator uses and it is enough for
+   * any sheet a parish actually has. This is still worth printing for a super
+   * administrator, because it can do the one thing the form deliberately will
+   * not: import what it can and write the rows it could not to a rejects file,
+   * which is the tool for a sheet too broken to fix a row at a time.
+   *
+   * It is inside the isSuperAdmin guard because a parish administrator has no
+   * shell — printing a command to them describes a job they cannot do and
+   * reads as an instruction they have failed to follow.
    */
 %>
 <% if (isSuperAdmin) { %>
+  <p class="help">
+    The same import from a shell, which reports rather than refuses and can
+    write out the rows it could not read:
+  </p>
   <p class="help">
     <code>npm run import-families -- --church <%= church.slug %> --file parish.csv --dry-run</code>
   </p>
@@ -174,14 +320,6 @@
     with the reason in the last column, ready to be fixed and imported again.
   </p>
 <% } %>
-  <p class="help">
-    A family with any unreadable row is held back whole, so a single bad date
-    never leaves a family half-imported. Everything that does arrive arrives as
-    a <strong>draft</strong> &mdash; nothing enters the printed book until
-    somebody has looked at it &mdash; and <strong>no logins are created</strong>.
-    Accounts stay a separate, deliberate step on
-    <a href="<%= base %>/admin/users">User accounts</a>.
-  </p>
 </div>
 
 <%- include('../partials/footer') %>

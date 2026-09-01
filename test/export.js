@@ -327,6 +327,51 @@ async function main() {
     printable.join(', '));
 
   console.log('');
+  console.log('--- the photographs on their own ---');
+
+  res = await admin('GET', '/admin/export-photos.zip', null, { binary: true });
+  check('is served as its own zip download',
+    res.headers['content-type'] === 'application/zip'
+    && /alpha-church-\d{4}-\d{2}-\d{2}-photos\.zip/.test(res.headers['content-disposition'] || ''),
+    `${res.headers['content-type']} ${res.headers['content-disposition']}`);
+  check('and is never cached on the way',
+    res.headers['cache-control'] === 'no-store', res.headers['cache-control']);
+
+  const photoOnly = readZip(res.buffer);
+  const photoNames = photoOnly.map((e) => e.name).sort();
+
+  check('it holds the photographs and nothing else',
+    photoOnly.length === 2, photoNames.join(', '));
+  check('no spreadsheet, and no README to trip the importer up on the way back',
+    !photoNames.some((n) => n.endsWith('.csv') || n.endsWith('.txt')),
+    photoNames.join(', '));
+
+  /*
+   * The naming is the whole point of this download, and it differs from the
+   * bundle's on purpose: `0001.jpg`, not `0001-kandathil.jpg`. It is what
+   * Import photographs reads back, so the folder can go out, be corrected, and
+   * come straight back in without anything being renamed.
+   */
+  check('each file is named for its Family ID alone',
+    photoNames.includes('alpha-church-photos/0001.jpg')
+    && photoNames.includes('alpha-church-photos/0003.jpg'),
+    photoNames.join(', '));
+
+  check('every entry passes its own checksum',
+    photoOnly.every((e) => e.crcOk),
+    photoOnly.filter((e) => !e.crcOk).map((e) => e.name).join(', '));
+
+  const back = photoOnly.find((e) => e.name === 'alpha-church-photos/0001.jpg');
+  check('and arrives byte for byte as it was uploaded',
+    back && back.data.equals(photoOne),
+    back ? `${back.size} bytes, expected ${photoOne.length}` : 'not in the archive');
+
+  res = await admin('GET', '/admin/export-photos.zip?drafts=0', null, { binary: true });
+  check('drafts=0 leaves the draft family’s photograph out',
+    readZip(res.buffer).length === 1,
+    readZip(res.buffer).map((e) => e.name).join(', '));
+
+  console.log('');
   console.log('--- a photograph on record but missing from the disk ---');
   const root = makeClient();
   await signIn(root, 'root');
@@ -359,7 +404,8 @@ async function main() {
   const editor = makeClient();
   await signIn(editor, 'alpha-editor');
 
-  for (const p of ['/admin/export', '/admin/export.csv', '/admin/export.zip']) {
+  for (const p of ['/admin/export', '/admin/export.csv', '/admin/export.zip',
+    '/admin/export-photos.zip']) {
     const page = await editor('GET', p);
     check(`an editor is refused ${p}`, page.status === 403, `status ${page.status}`);
   }

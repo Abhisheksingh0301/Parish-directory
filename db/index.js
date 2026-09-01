@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS = {
   parish_name: config.seed.parishName,
   directory_title: config.seed.directoryTitle,
   starting_page: '1',
-  per_page: '2',
+  per_page: '1',
   relation_options: 'Head, Spouse, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother',
   // The password every member login in this church is created with. It was a
   // single environment variable shared by the whole installation, which meant
