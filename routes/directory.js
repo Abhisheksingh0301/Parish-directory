@@ -3,7 +3,6 @@
 const express = require('express');
 const Family = require('../models/family');
 const settings = require('../lib/settings');
-const relations = require('../lib/relations');
 const auth = require('../lib/auth');
 const tenancy = require('../lib/tenancy');
 const wrap = require('../lib/async');
@@ -42,9 +41,8 @@ router.get('/', wrap(async (req, res) => {
   }
 
   res.render('directory/print', {
-    title: parishSettings.directory_title || 'Parish Directory',
+    title: parishSettings.directory_title || 'Family Parish Directory',
     pages,
-    domSpan: relations.domSpan,
     total: families.length,
     includeDrafts,
     canEdit: auth.atLeast(req.user, 'editor')

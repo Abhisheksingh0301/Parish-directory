@@ -106,20 +106,21 @@ function familyForm(overrides = {}) {
     address: '12 Old Street',
     hometown: '',
     home_parish: '',
-    spouse_home: '',
     prayer_group: 'St Thomas',
     area: 'North',
     email: 'alpha@example.com',
-    dom_day: '', dom_month: '',
     'members[0][id]': '',
     'members[0][name]': 'Alpha Dsouza',
     'members[0][relation]': 'Head',
-    'members[0][dob]': '',
+    'members[0][dob_day]': '',
+    'members[0][dob_month]': '',
+    'members[0][dom_day]': '',
+    'members[0][dom_month]': '',
     'members[0][mobile]': '9000000000',
     'members[0][blood_group]': '',
     'members[0][qualification]': '',
     'members[0][occupation]': '',
-    'members[0][links]': '',
+    'members[0][emails]': '',
     ...overrides
   };
 }
@@ -151,16 +152,15 @@ async function main() {
     family_id: '0001',
     head_name: 'Alpha Dsouza',
     address: '12 Old Street',
-    hometown: '', home_parish: '', spouse_home: '',
+    hometown: '', home_parish: '',
     prayer_group: 'St Thomas', area: 'North',
     email: 'alpha@example.com',
-    dom_day: null, dom_month: null,
     is_published: true,
     members: [
-      { name: 'Alpha Dsouza', relation: 'Head', dob_day: null, dob_month: null, dob_year: null,
-        mobile: '9000000000', blood_group: '', qualification: '', occupation: '', links: '' },
-      { name: 'Beta Dsouza', relation: 'Spouse', dob_day: 2, dob_month: 8, dob_year: 1975,
-        mobile: '9111111111', blood_group: '', qualification: '', occupation: '', links: '' }
+      { name: 'Alpha Dsouza', relation: 'Head', dob_day: null, dob_month: null, dom_day: null, dom_month: null,
+        mobile: '9000000000', blood_group: '', qualification: '', occupation: '', emails: '' },
+      { name: 'Beta Dsouza', relation: 'Spouse', dob_day: 2, dob_month: 8, dom_day: null, dom_month: null,
+        mobile: '9111111111', blood_group: '', qualification: '', occupation: '', emails: '' }
     ]
   });
 
@@ -169,14 +169,13 @@ async function main() {
     family_id: '0002',
     head_name: 'Gamma Pereira',
     address: '7 New Road',
-    hometown: '', home_parish: '', spouse_home: '',
+    hometown: '', home_parish: '',
     prayer_group: 'St Thomas', area: 'South',
     email: '',
-    dom_day: null, dom_month: null,
     is_published: true,
     members: [
-      { name: 'Gamma Pereira', relation: 'Head', dob_day: null, dob_month: null, dob_year: null,
-        mobile: '9222222222', blood_group: '', qualification: '', occupation: '', links: '' }
+      { name: 'Gamma Pereira', relation: 'Head', dob_day: null, dob_month: null, dom_day: null, dom_month: null,
+        mobile: '9222222222', blood_group: '', qualification: '', occupation: '', emails: '' }
     ]
   });
 
@@ -221,22 +220,28 @@ async function main() {
     'members[1][id]': String(memberIds[1]),
     'members[1][name]': 'Beta Dsouza',
     'members[1][relation]': 'Spouse',
-    'members[1][dob]': '1975-08-02',
+    'members[1][dob_day]': '2',
+    'members[1][dob_month]': '8',
+    'members[1][dom_day]': '',
+    'members[1][dom_month]': '',
     'members[1][mobile]': '9111111111',
     'members[1][blood_group]': '',
     'members[1][qualification]': '',
     'members[1][occupation]': '',
-    'members[1][links]': '',
+    'members[1][emails]': '',
     // A third member, added by the family — family composition.
     'members[2][id]': '',
     'members[2][name]': 'Anu Dsouza',
     'members[2][relation]': 'Daughter',
-    'members[2][dob]': '',
+    'members[2][dob_day]': '',
+    'members[2][dob_month]': '',
+    'members[2][dom_day]': '',
+    'members[2][dom_month]': '',
     'members[2][mobile]': '',
     'members[2][blood_group]': '',
     'members[2][qualification]': '',
     'members[2][occupation]': '',
-    'members[2][links]': ''
+    'members[2][emails]': ''
   }));
   check('the submission is accepted', res.status === 302, `status ${res.status}`);
 
@@ -271,12 +276,15 @@ async function main() {
     'members[1][id]': String(memberIds[1]),
     'members[1][name]': 'Beta Dsouza',
     'members[1][relation]': 'Spouse',
-    'members[1][dob]': '1975-08-02',
+    'members[1][dob_day]': '2',
+    'members[1][dob_month]': '8',
+    'members[1][dom_day]': '',
+    'members[1][dom_month]': '',
     'members[1][mobile]': '9111111111',
     'members[1][blood_group]': '',
     'members[1][qualification]': '',
     'members[1][occupation]': '',
-    'members[1][links]': ''
+    'members[1][emails]': ''
   }));
 
   const stillNumbered = await Family.findById(church.id, familyId);
@@ -470,6 +478,115 @@ async function main() {
   check('and the count moved',
     invited.counts.invitation_sent >= 1, JSON.stringify(invited.counts));
 
+
+  // -------------------------------------------------------------------------
+  console.log('');
+  console.log('--- the office approves a batch itself ---');
+
+  // A household not yet in the printed book, so approval leaves it at Approved
+  // rather than carrying it straight on to Ready for Printing.
+  const unpublishedId = await Family.create(church.id, {
+    family_id: '0004',
+    head_name: 'Epsilon Rodrigues',
+    address: '4 West Lane',
+    hometown: '', home_parish: '',
+    prayer_group: 'St Thomas', area: 'West',
+    email: '',
+    is_published: false,
+    members: [
+      { name: 'Epsilon Rodrigues', relation: 'Head', dob_day: null, dob_month: null,
+        dom_day: null, dom_month: null, mobile: '9333333333', blood_group: '', qualification: '',
+        occupation: '', emails: '' }
+    ]
+  });
+
+  // A household that has actually sent something in must not be swept up by a
+  // batch approval — its correction is still waiting for a reviewer to read it.
+  await Pending.submit(church.id, familyId, [{
+    kind: 'family', field: 'address', label: 'Address', tier: 'significant',
+    existing_value: '12 Old Street', proposed_value: '13 New Street',
+    payload: { kind: 'family', key: 'address', value: '13 New Street' }
+  }], { id: null, username: 'test' });
+
+  const statusOf = async (id) => (await Family.findById(church.id, id)).verify_status;
+  const beforeBatch = await statusOf(familyId);
+
+  res = await office('GET', '/families/status');
+  check('the list offers a tick-box against every family',
+    res.body.includes('name="family_ids"'));
+  check('and a select-all in the header', res.body.includes('data-batch-all'));
+
+  // Everything unticked. This is not "act on all of them" — the `selection`
+  // marker is what tells the two apart.
+  res = await post(office, '/families/status', '/families/approved', { selection: '1' });
+  check('an empty tick-list is refused',
+    res.status === 302 && /error=/.test(res.location || ''), res.location);
+  check('and nothing was approved by it',
+    !['approved', 'ready_for_printing'].includes(await statusOf(noEmailId)),
+    await statusOf(noEmailId));
+
+  // One family ticked, the rest left out.
+  res = await post(office, '/families/status', '/families/approved',
+    { selection: '1', family_ids: String(noEmailId) });
+  check('a ticked family is approved, and being in the book, is ready to print',
+    (await statusOf(noEmailId)) === 'ready_for_printing', await statusOf(noEmailId));
+  check('an unticked family is left exactly where it was',
+    (await statusOf(unpublishedId)) === 'not_started', await statusOf(unpublishedId));
+
+  // No tick-list at all — a bare POST still means the whole filtered view, so
+  // the screen's batch buttons keep working with scripting off.
+  res = await post(office, '/families/status', '/families/approved');
+  check('a batch with no tick-list acts on the whole view', res.status === 302, `status ${res.status}`);
+  check('a family with a correction waiting is left alone however it was ticked',
+    (await statusOf(familyId)) === beforeBatch, await statusOf(familyId));
+  check('and its correction is still open for a reviewer',
+    await Pending.familyHasOpen(church.id, familyId));
+  check('one outside the printed book stops at Approved',
+    (await statusOf(unpublishedId)) === 'approved', await statusOf(unpublishedId));
+
+  // -------------------------------------------------------------------------
+  console.log('');
+  console.log('--- and marks the approved ones ready for printing ---');
+
+  const publishedOf = async (id) => !!(await Family.findById(church.id, id)).is_published;
+
+  // An approved family that is only a draft is not part of the run, so the
+  // button has nothing it may move — and says so rather than moving it anyway.
+  res = await post(office, '/families/status', '/families/ready',
+    { selection: '1', family_ids: String(unpublishedId) });
+  check('a draft entry is not carried into the book by it',
+    (await statusOf(unpublishedId)) === 'approved', await statusOf(unpublishedId));
+  check('and the notice says why',
+    /not in the printed directory/.test(decodeURIComponent(res.location || '')), res.location);
+
+  // The office puts it in the book. This is what an import leaves undone: every
+  // imported family arrives as a draft, so the whole parish starts outside it.
+  res = await post(office, '/families/status', '/families/published',
+    { selection: '1', family_ids: String(unpublishedId), include: '1' });
+  check('the office can put a batch into the printed book', res.status === 302, `status ${res.status}`);
+  check('and the family is in it', await publishedOf(unpublishedId));
+
+  res = await post(office, '/families/status', '/families/ready',
+    { selection: '1', family_ids: String(unpublishedId) });
+  check('the batch runs', res.status === 302, `status ${res.status}`);
+  check('an approved family now in the book is ready to print',
+    (await statusOf(unpublishedId)) === 'ready_for_printing', await statusOf(unpublishedId));
+
+  res = await post(office, '/families/status', '/families/ready');
+  check('an unapproved family is not carried into the book with it',
+    (await statusOf(familyId)) === beforeBatch, await statusOf(familyId));
+
+  // And the same button takes a family back out of the run.
+  res = await post(office, '/families/status', '/families/published',
+    { selection: '1', family_ids: String(unpublishedId), include: '0' });
+  check('a family can be taken out of the printed book again',
+    !(await publishedOf(unpublishedId)));
+  check('which is a decision about the book, not a step back down the chain',
+    (await statusOf(unpublishedId)) === 'ready_for_printing', await statusOf(unpublishedId));
+
+  await post(office, '/families/status', '/families/published',
+    { selection: '1', family_ids: String(unpublishedId), include: '1' });
+
   // -------------------------------------------------------------------------
   console.log('');
   console.log('--- a family with no email address: Family ID and PIN ---');
@@ -560,12 +677,11 @@ async function main() {
   const doomed = await Family.create(church.id, {
     family_id: '0009',
     head_name: 'Delta Fernandes',
-    address: '', hometown: '', home_parish: '', spouse_home: '',
+    address: '', hometown: '', home_parish: '',
     prayer_group: '', area: '', email: '',
-    dom_day: null, dom_month: null,
     is_published: false,
     members: [{ name: 'Delta Fernandes', relation: 'Head', dob_day: null, dob_month: null,
-      dob_year: null, mobile: '', blood_group: '', qualification: '', occupation: '', links: '' }]
+      dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '', occupation: '', emails: '' }]
   });
 
   await Pending.submit(church.id, doomed, [{

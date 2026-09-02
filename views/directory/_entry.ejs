@@ -7,13 +7,13 @@
    * public/parish-directory-template.html and is the thing a parish has
    * already approved.
    *
-   * Expects: f (a family with members), domSpan, nl2br.
+   * Expects: f (a family with members), nl2br.
    *
-   * The DOM cell is merged across the first two member rows, as in the
-   * approved layout — except over a child in the second row, where the merge
-   * would read as that child's wedding date. See lib/relations.js.
+   * The DOM cell used to be one value on the family, merged down the first two
+   * member rows to read as the couple. It is now the member's own, so each row
+   * carries its own date and there is no merge to get wrong — which is what a
+   * household with a married son in it always needed.
    */
-  const span = domSpan(f.members);
 %>
 <section class="entry">
   <div class="entry-head">
@@ -41,9 +41,10 @@
           </th>
           <td><%- nl2br(f.address) %></td>
         </tr>
-        <tr><th>Home Town Address</th><td><%- nl2br(f.hometown) %></td></tr>
-        <tr><th>Home Parish</th><td><%= f.home_parish %></td></tr>
-        <tr><th>Spouse Home</th><td><%= f.spouse_home %></td></tr>
+        <tr><th>Prayer Group</th><td><%= f.prayer_group %></td></tr>
+        <tr><th>Area / Unit</th><td><%= f.area %></td></tr>
+        <tr><th>Home Parish (HOF)</th><td><%= f.home_parish %></td></tr>
+        <tr><th>Home Town Name / Address (HOF)</th><td><%- nl2br(f.hometown) %></td></tr>
         <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
       </tbody>
     </table>
@@ -60,25 +61,25 @@
         <th class="c">Blood Group</th>
         <th class="c">Qualification</th>
         <th class="c">Occupation</th>
-        <th class="c">Links</th>
+        <th class="c">Emails</th>
       </tr>
     </thead>
     <tbody>
-      <% f.members.forEach(function (m, i) { %>
+      <% f.members.forEach(function (m) { %>
         <tr>
           <td><%= m.name %></td>
           <td class="c"><%= m.relation %></td>
           <td class="c d"><%= m.dob %></td>
-          <% if (f.dom && i === 0) { %>
-            <td class="c d" rowspan="<%= span %>"><%= f.dom %></td>
-          <% } else if (!(f.dom && i < span)) { %>
-            <td class="c d"></td>
-          <% } %>
-          <td class="c"><%= m.mobile %></td>
+          <td class="c d"><%= m.dom %></td>
+          <%# A member may hold more than one of either, one to a line. Each is
+              escaped on its own rather than joined into a blob of markup. %>
+          <td class="c"><% m.mobiles.forEach(function (n, j) { %><%
+            %><%= n %><% if (j < m.mobiles.length - 1) { %><br><% } %><% }) %></td>
           <td class="c"><%= m.blood_group %></td>
           <td class="c"><%= m.qualification %></td>
           <td class="c"><%= m.occupation %></td>
-          <td class="c"><%= m.links %></td>
+          <td class="c"><% m.email_list.forEach(function (a, j) { %><%
+            %><%= a %><% if (j < m.email_list.length - 1) { %><br><% } %><% }) %></td>
         </tr>
       <% }); %>
     </tbody>

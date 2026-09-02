@@ -98,11 +98,11 @@ async function main() {
     });
     await Family.create(c.id, {
       family_id: '0001', head_name: head, address: '1 Road',
-      hometown: '', home_parish: '', spouse_home: '', email: '',
+      hometown: '', home_parish: '', email: '',
       dom_day: null, dom_month: null, is_published: true,
       members: [
-        { name: head + ' one', relation: 'Head', dob_day: null, dob_month: null, dob_year: null, mobile: '1', links: '' },
-        { name: head + ' two', relation: 'Spouse', dob_day: null, dob_month: null, dob_year: null, mobile: '2', links: '' }
+        { name: head + ' one', relation: 'Head', dob_day: null, dob_month: null, mobile: '1', emails: '' },
+        { name: head + ' two', relation: 'Spouse', dob_day: null, dob_month: null, mobile: '2', emails: '' }
       ]
     });
     return c;

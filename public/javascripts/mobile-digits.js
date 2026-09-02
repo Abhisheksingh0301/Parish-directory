@@ -6,11 +6,13 @@
    form comes back rejected, and the person who typed it has to work out which
    of several member rows the complaint was about.
 
-   So anything that is not a digit is taken out as it is typed. What is pasted
-   in is only cleaned, never shortened — a number pasted with its country code
-   is left whole and long, so the pattern objects to it and the person sees the
-   number they actually pasted, rather than a silently truncated one that looks
-   right and would ring nobody.
+   So anything that is not a digit or a separator is taken out as it is typed.
+   Separators survive because a member may list more than one number: see
+   MAX_NUMBERS in lib/phone.js. What is pasted in is only cleaned, never
+   shortened — a number pasted with its country code is left whole and long, so
+   the pattern objects to it and the person sees the number they actually
+   pasted, rather than a silently truncated one that looks right and would ring
+   nobody.
 
    Delegated from the document because "Add another member" clones a row after
    this file has run, and the clone has to behave like the rows that were here
@@ -26,14 +28,14 @@
     var field = event.target;
     if (!field || !field.hasAttribute || !field.hasAttribute('data-mobile')) return;
 
-    var digits = field.value.replace(/[^0-9]/g, '');
+    var digits = field.value.replace(/[^0-9,\/ ]/g, '');
     if (field.value === digits) return;
 
     // Where the caret was, counting only the digits before it, so cleaning up
     // a paste in the middle of a number does not throw the caret to the end.
     var caret = field.selectionStart;
     var kept = typeof caret === 'number'
-      ? field.value.slice(0, caret).replace(/[^0-9]/g, '').length
+      ? field.value.slice(0, caret).replace(/[^0-9,\/ ]/g, '').length
       : null;
 
     field.value = digits;

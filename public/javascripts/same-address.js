@@ -44,5 +44,4 @@
   }
 
   link('hometown', 'same-address');
-  link('spouse_home', 'same-address-spouse');
 })();

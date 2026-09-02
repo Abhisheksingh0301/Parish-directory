@@ -6,7 +6,6 @@ const Family = require('../models/family');
 const selection = require('../lib/selection');
 const exporter = require('../lib/export');
 const settings = require('../lib/settings');
-const relations = require('../lib/relations');
 const tenancy = require('../lib/tenancy');
 const audit = require('../lib/audit');
 const wrap = require('../lib/async');
@@ -103,8 +102,7 @@ router.get('/print', wrap(async (req, res) => {
     sections,
     totalFamilies: sections.reduce((n, s) => n + s.families, 0),
     totalPages: sections.reduce((n, s) => n + s.pages.length, 0),
-    query: queryString(req),
-    domSpan: relations.domSpan
+    query: queryString(req)
   });
 }));
 

@@ -4,6 +4,8 @@ const { Op, fn, col, where: whereFn } = require('sequelize');
 const config = require('../config');
 const db = require('../db');
 const dayMonth = require('../lib/daymonth');
+const phones = require('../lib/phone');
+const addresses = require('../lib/email');
 const verification = require('../lib/verification');
 
 const { sequelize, Family, Member, User } = db;
@@ -39,7 +41,6 @@ const FIELDS = [
   'address',
   'hometown',
   'home_parish',
-  'spouse_home',
   'prayer_group',
   'area',
   'email'
@@ -93,10 +94,13 @@ function decorate(family, members) {
     photo_url: family.photo
       ? `${config.basePath}/uploads/${family.church_id}/${family.photo}`
       : null,
-    dom: dayMonth.format(family.dom_day, family.dom_month),
     members: members.map((m) => ({
       ...m,
-      dob: dayMonth.formatFull(m.dob_day, m.dob_month, m.dob_year)
+      dob: dayMonth.format(m.dob_day, m.dob_month),
+      dom: dayMonth.format(m.dom_day, m.dom_month),
+      // The lists as they print: one number, one address, per line.
+      mobiles: phones.list(m.mobile),
+      email_list: addresses.list(m.emails)
     }))
   };
 }
@@ -311,8 +315,8 @@ async function nextFamilyId(churchId) {
 }
 
 const MEMBER_COLUMNS = [
-  'name', 'relation', 'dob_day', 'dob_month', 'dob_year',
-  'mobile', 'blood_group', 'qualification', 'occupation', 'links'
+  'name', 'relation', 'dob_day', 'dob_month', 'dom_day', 'dom_month',
+  'mobile', 'blood_group', 'qualification', 'occupation', 'emails'
 ];
 
 function memberValues(m, position) {
@@ -372,8 +376,6 @@ function writableFields(data) {
   const values = {};
   for (const field of FIELDS) values[field] = data[field];
   values.photo = data.photo || null;
-  values.dom_day = data.dom_day;
-  values.dom_month = data.dom_month;
   values.is_published = !!data.is_published;
   return values;
 }
@@ -552,24 +554,30 @@ async function setPhoto(churchId, id, filename) {
 async function upcoming(churchId, days = 30) {
   const where = scope(churchId);
 
-  const [memberRows, familyRows] = await Promise.all([
-    Member.findAll({
-      attributes: ['name', 'dob_day', 'dob_month', 'family_id'],
-      where: { dob_day: { [Op.ne]: null }, dob_month: { [Op.ne]: null } },
-      include: [{
-        model: Family,
-        as: 'family',
-        attributes: ['head_name', 'family_id', 'id'],
-        required: true,
-        where
-      }]
-    }),
-    Family.findAll({
-      attributes: ['head_name', 'family_id', 'id', 'dom_day', 'dom_month'],
-      where: { ...where, dom_day: { [Op.ne]: null }, dom_month: { [Op.ne]: null } },
-      raw: true
-    })
-  ]);
+  /*
+   * Both lists come off the members now. An anniversary used to be a column on
+   * the family, which could only ever describe the head and spouse — a
+   * household with a married son in it has two, and the second had nowhere to
+   * live. One query serves both: a member row carries whichever of the two
+   * dates it has.
+   */
+  const dated = (day, month) => ({ [day]: { [Op.ne]: null }, [month]: { [Op.ne]: null } });
+
+  const memberRows = await Member.findAll({
+    attributes: ['name', 'relation', 'dob_day', 'dob_month', 'dom_day', 'dom_month', 'family_id'],
+    where: {
+      [Op.or]: [dated('dob_day', 'dob_month'), dated('dom_day', 'dom_month')]
+    },
+    include: [{
+      model: Family,
+      as: 'family',
+      attributes: ['head_name', 'family_id', 'id'],
+      required: true,
+      where
+    }]
+  });
+
+  const plain = memberRows.map((row) => row.get({ plain: true }));
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -587,33 +595,28 @@ async function upcoming(churchId, days = 30) {
     return inDays <= days ? { ...row, inDays, label: dayMonth.format(row.day, row.month) } : null;
   };
 
-  const birthdays = memberRows
-    .map((row) => {
-      const m = row.get({ plain: true });
-      return {
-        name: m.name,
-        day: m.dob_day,
-        month: m.dob_month,
-        head_name: m.family.head_name,
-        family_id: m.family.family_id,
-        fid: m.family.id
-      };
-    })
+  const occasion = (m, day, month) => ({
+    name: m.name,
+    day: m[day],
+    month: m[month],
+    head_name: m.family.head_name,
+    family_id: m.family.family_id,
+    fid: m.family.id
+  });
+
+  const birthdays = plain
+    .filter((m) => m.dob_day && m.dob_month)
+    .map((m) => occasion(m, 'dob_day', 'dob_month'))
     .map(withinWindow)
     .filter(Boolean)
     .map((r) => ({ ...r, kind: 'birthday' }));
 
-  const anniversaries = familyRows
-    .map((f) => ({
-      head_name: f.head_name,
-      family_id: f.family_id,
-      fid: f.id,
-      day: f.dom_day,
-      month: f.dom_month
-    }))
+  const anniversaries = plain
+    .filter((m) => m.dom_day && m.dom_month)
+    .map((m) => occasion(m, 'dom_day', 'dom_month'))
     .map(withinWindow)
     .filter(Boolean)
-    .map((r) => ({ ...r, kind: 'anniversary', name: r.head_name }));
+    .map((r) => ({ ...r, kind: 'anniversary' }));
 
   return [...birthdays, ...anniversaries].sort((a, b) => a.inDays - b.inDays);
 }
@@ -671,6 +674,25 @@ async function setStatusMany(churchId, ids, wanted) {
     moved += 1;
   }
   return moved;
+}
+
+/**
+ * Who is in the printed book.
+ *
+ * Not a step on the verification chain and deliberately not part of one: this
+ * is the parish office deciding what the run contains, which is why a family
+ * may never propose it about itself (NEVER_EDITABLE, lib/verification.js). An
+ * import leaves every family outside the book, so after one this is how a
+ * parish puts them in without opening fifty edit forms.
+ */
+async function setPublished(churchId, ids, included) {
+  if (!ids.length) return 0;
+
+  const [changed] = await Family.update(
+    { is_published: !!included },
+    { where: { ...scope(churchId), id: { [Op.in]: ids.map(Number) } } }
+  );
+  return changed;
 }
 
 /** Narrow a status view to one Area or one Prayer Group. */
@@ -781,6 +803,7 @@ module.exports = {
   withoutLogins,
   setStatus,
   setStatusMany,
+  setPublished,
   statusCounts,
   listByStatus,
   groupings,

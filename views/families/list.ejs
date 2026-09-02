@@ -104,10 +104,9 @@
           <tr>
             <th style="width:90px">ID</th>
             <th>Family head</th>
-            <th>Address</th>
+            <th>Residence</th>
             <th class="nowrap">Members</th>
             <th class="nowrap">Verification</th>
-            <th class="nowrap">DOM</th>
             <% if (isAdmin) { %><th class="nowrap">Login</th><% } %>
             <th></th>
           </tr>
@@ -125,7 +124,6 @@
               <td class="nowrap">
                 <span class="tag"><%= statusLabel(f.verify_status) %></span>
               </td>
-              <td class="nowrap"><%= f.dom || '—' %></td>
               <% if (isAdmin) { %>
                 <td class="nowrap">
                   <% if (!f.login_id) { %>

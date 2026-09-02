@@ -78,29 +78,55 @@
   </div>
 </div>
 
+<%
+  // The batch buttons act on the rows ticked in the list below. They sit in
+  // their own card above it, so `form=` and `formaction=` carry the selection
+  // to whichever action is pressed — the same arrangement the review queue
+  // uses for its batch approval.
+  const batchForm = 'batch-selection';
+%>
+
 <% if (isAdmin) { %>
   <div class="card">
     <h2>Marking a batch</h2>
 
     <div class="actions" style="margin-top:0">
-      <form method="post" action="<%= base %>/families/invitations<%= query %>"
-            onsubmit="return confirm('Mark the <%= families.length %> famil<%= families.length === 1 ? 'y' : 'ies' %> in this view as invited?')">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="submit" class="btn ghost" <%= families.length ? '' : 'disabled' %>>
-          Mark these <%= families.length %> as invited
-        </button>
-      </form>
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/invitations<%= query %>"
+              data-batch-confirm="Mark %n in this view as invited?">
+        Mark <span data-batch-count><%= families.length %></span> as invited
+      </button>
 
-      <form method="post" action="<%= base %>/families/pins"
-            onsubmit="return confirm('Issue a new PIN to every family in this parish? Any PIN already handed out stops working.')">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <% families.forEach(function (f) { %>
-          <input type="hidden" name="family_ids" value="<%= f.id %>">
-        <% }); %>
-        <button type="submit" class="btn ghost" <%= families.length ? '' : 'disabled' %>>
-          Print verification slips with Family ID and PIN
-        </button>
-      </form>
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/pins">
+        Print verification slips with Family ID and PIN
+      </button>
+
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/approved<%= query %>"
+              data-batch-confirm="Approve %n as correct? Any of them with corrections still waiting in the review queue is left alone.">
+        Approve <span data-batch-count><%= families.length %></span>
+      </button>
+
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/published<%= query %>"
+              name="include" value="1"
+              data-batch-confirm="Include %n in the printed directory?">
+        Include <span data-batch-count><%= families.length %></span> in the printed book
+      </button>
+
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/published<%= query %>"
+              name="include" value="0"
+              data-batch-confirm="Leave %n out of the printed directory?">
+        Leave them out of the printed book
+      </button>
+
+      <button type="submit" class="btn ghost" form="<%= batchForm %>"
+              formaction="<%= base %>/families/ready<%= query %>"
+              data-batch-confirm="Of the %n ticked, mark the approved ones Ready for Printing?">
+        Mark the approved ones ready for printing
+      </button>
 
       <form method="post" action="<%= base %>/families/printed"
             onsubmit="return confirm('Mark every family in the printed book as Printed?')">
@@ -110,14 +136,55 @@
     </div>
 
     <p class="help">
+      Every button here except the last acts on the families <strong>ticked in the
+      list below</strong>, which starts with all of them ticked: narrow the view with
+      the filter above, untick the few to leave out, and the count on the button
+      follows. &ldquo;Mark the printed book as printed&rdquo; is the exception &mdash;
+      it is about the whole run, not this view.
+    </p>
+
+    <p class="help">
       <strong>Invitation Sent</strong> records that the parish office sent the
-      invitations. The application sends no email itself — messages go out from
-      the parish&rsquo;s own account — so this is a record of the office&rsquo;s
+      invitations. The application sends no email itself &mdash; messages go out from
+      the parish&rsquo;s own account &mdash; so this is a record of the office&rsquo;s
       action, not a delivery receipt. Families without an email address are
       reached with a <strong>verification slip</strong>: their Family ID and a
       short PIN, which is all they need to sign in.
     </p>
+
+    <p class="help">
+      <strong>Approve</strong> records the office&rsquo;s own decision that these
+      entries are correct as they stand, for the households that have nothing to
+      correct and will never sign in to say so. A family with corrections still
+      waiting in the <a href="<%= base %>/review">review queue</a> is left alone
+      however it is ticked: those are approved line by line, by a reviewer who
+      can see what is being proposed.
+    </p>
+
+    <p class="help">
+      <strong>In book</strong> is a separate decision from the chain, and the
+      office&rsquo;s alone: an imported family arrives as a <span class="tag draft">Draft</span>,
+      because a spreadsheet is not a decision about what to print. Only families
+      in the book can be marked Ready for Printing, so after an import put them
+      in with <strong>Include in the printed book</strong> first.
+    </p>
+
+    <p class="help">
+      <strong>Ready for Printing</strong> follows approval on its own for a family
+      already in the book, so that button is only needed where inclusion was
+      decided after the entry was approved &mdash; which is exactly what happens
+      after an import. It moves approved families only: an entry nobody has
+      verified does not go into the run.
+    </p>
   </div>
+<% } %>
+
+<% if (isAdmin) { %>
+  <form id="<%= batchForm %>" method="post" action="<%= base %>/families/approved<%= query %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%# Tells the server this POST carries a tick-list, so "none ticked" cannot
+        be mistaken for "no list sent, act on the whole view". %>
+    <input type="hidden" name="selection" value="1">
 <% } %>
 
 <div class="card" style="padding:0;overflow:hidden">
@@ -128,24 +195,40 @@
       <table class="table">
         <thead>
           <tr>
+            <% if (isAdmin) { %>
+              <th class="tick">
+                <input type="checkbox" checked data-batch-all
+                       aria-label="Select every family in this view">
+              </th>
+            <% } %>
             <th style="width:90px">ID</th>
             <th>Family head</th>
             <th>Area</th>
             <th>Prayer Group</th>
             <th class="nowrap">Contact</th>
             <th class="nowrap">Status</th>
+            <th class="nowrap">In book</th>
             <th class="nowrap">Since</th>
           </tr>
         </thead>
         <tbody>
           <% families.forEach(function (f) { %>
             <tr>
+              <% if (isAdmin) { %>
+                <td class="tick">
+                  <input type="checkbox" name="family_ids" value="<%= f.id %>" checked
+                         aria-label="Select <%= f.head_name %>">
+                </td>
+              <% } %>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
               <td><a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a></td>
               <td><%= f.area || '—' %></td>
               <td><%= f.prayer_group || '—' %></td>
               <td class="nowrap"><%= f.contact || '—' %></td>
               <td class="nowrap"><span class="tag"><%= f.status_label %></span></td>
+              <td class="nowrap">
+                <% if (f.is_published) { %>Yes<% } else { %><span class="tag draft">Draft</span><% } %>
+              </td>
               <td class="nowrap" style="color:var(--ink-faint)"><%= f.verify_status_at || '—' %></td>
             </tr>
           <% }); %>
@@ -154,5 +237,11 @@
     </div>
   <% } %>
 </div>
+
+<% if (isAdmin) { %></form><% } %>
+
+<% if (isAdmin) { %>
+  <script src="<%= base %>/javascripts/batch-select.js"></script>
+<% } %>
 
 <%- include('../partials/footer') %>

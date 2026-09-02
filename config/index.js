@@ -93,7 +93,7 @@ module.exports = {
   // Used once, when the database is first created.
   seed: {
     parishName: process.env.PARISH_NAME || 'Your Parish Church, City',
-    directoryTitle: process.env.DIRECTORY_TITLE || 'Home Parish Directory',
+    directoryTitle: process.env.DIRECTORY_TITLE || 'Family Parish Directory',
     // The diocese an already-running single-parish install is folded into when
     // it is upgraded to hold many churches. Renamed in the console afterwards.
     dioceseName: process.env.DIOCESE_NAME || 'Unnamed Diocese'

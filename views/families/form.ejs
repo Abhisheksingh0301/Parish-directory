@@ -29,33 +29,47 @@
     </div>
 
     <%
-      // A date already on record shows in the picker only if it is complete.
-      // Older entries kept a day and month with no year, which no date picker
-      // can hold — those are offered back as a checkbox instead of vanishing.
-      const dobISO = toISO(m.dob_day, m.dob_month, m.dob_year);
-      const dobPartial = dobISO ? '' : formatDayMonth(m.dob_day, m.dob_month);
+      /*
+       * Both dates are day and month, and both are the same pair of controls.
+       * A date picker cannot hold a day and month with no year, which is why
+       * the date of birth stopped being one: the directory records when to
+       * wish a member, not how old they are.
+       */
+      function memberDate(key, label, dayLabel, monthLabel) {
     %>
-    <div class="field">
-      <label for="dob-<%= index %>">Date of birth</label>
-      <input type="date" id="dob-<%= index %>" name="members[<%= index %>][dob]"
-             value="<%= dobISO %>"
-             min="<%= earliestBirthDate %>" max="<%= today %>">
-      <% if (dobPartial) { %>
-        <label class="checkline keep-dob" data-keep-dob>
-          <input type="checkbox" name="members[<%= index %>][dob_partial]"
-                 value="<%= m.dob_day %>-<%= m.dob_month %>" checked>
-          Keep <%= dobPartial %> (no year on record)
-        </label>
-      <% } %>
-    </div>
+      <div class="field">
+        <div class="label"><%= label %></div>
+        <div class="daymonth">
+          <input type="number" name="members[<%= index %>][<%= key %>_day]"
+                 min="1" max="31" value="<%= m[key + '_day'] || '' %>"
+                 placeholder="Day" aria-label="<%= dayLabel %>">
+          <select name="members[<%= index %>][<%= key %>_month]" aria-label="<%= monthLabel %>">
+            <option value="">Month</option>
+            <% months.forEach(function (mo) { %>
+              <option value="<%= mo.value %>"
+                <%= Number(m[key + '_month']) === mo.value ? 'selected' : '' %>><%= mo.name %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+    <% } %>
+
+    <% memberDate('dob', 'Date of birth', 'Day of birth', 'Month of birth'); %>
+    <% memberDate('dom', 'Date of marriage', 'Day of marriage', 'Month of marriage'); %>
 
     <div class="field">
       <label>Mobile</label>
+      <%# data-tags turns this into the chip editor in tag-input.js. Without
+          that script it stays exactly what it is here: one box holding a
+          comma-separated list, with its own pattern and title. %>
       <input type="text" name="members[<%= index %>][mobile]" value="<%= m.mobile %>"
              inputmode="numeric" autocomplete="tel-national" data-mobile
+             data-tags data-tag-max="<%= maxMobiles %>"
+             data-tag-pattern="<%= mobilePatternOne %>"
+             data-tag-strip="[\s()\-.]"
              maxlength="<%= mobileMaxInput %>" pattern="<%= mobilePattern %>"
-             title="<%= mobileDigits %> digits beginning 6, 7, 8 or 9 — like 9876543210. A leading 0 is fine; letters and a country code are not."
-             placeholder="9876543210">
+             title="Up to <%= maxMobiles %> numbers, one at a time — type a number and press comma. Each is <%= mobileDigits %> digits beginning 6, 7, 8 or 9, like 9876543210. A leading 0 is fine; letters and a country code are not."
+             placeholder="9876543210, then comma">
     </div>
 
     <div class="field">
@@ -84,11 +98,14 @@
     </div>
 
     <div class="field">
-      <label>Links</label>
-      <input type="text" name="members[<%= index %>][links]" value="<%= m.links %>"
-             maxlength="<%= textLimits.links %>" pattern="<%= textPattern('links') %>"
-             title="Up to <%= textLimits.links %> characters, with at least one letter in it."
-             placeholder="Studying in Bengaluru">
+      <label>Emails</label>
+      <input type="text" name="members[<%= index %>][emails]" value="<%= m.emails %>"
+             inputmode="email"
+             data-tags data-tag-max="<%= maxEmails %>"
+             data-tag-pattern="<%= emailPattern %>"
+             pattern="<%= emailListPattern %>"
+             title="Up to <%= maxEmails %> addresses, one at a time — type an address and press comma. Each needs a full domain ending, like name@example.com."
+             placeholder="name@example.com, then comma">
     </div>
 
     <div class="drop">
@@ -168,50 +185,30 @@
       const addressText = String(family.address || '').trim();
       const hometownText = String(family.hometown || '').trim();
       const sameAddress = !!hometownText && hometownText === addressText;
-      const spouseHomeText = String(family.spouse_home || '').trim();
-      const sameAddressSpouse = !!spouseHomeText && spouseHomeText === addressText;
     %>
+    <%# The order the Parish reads an entry in — the same order as
+        lib/verification.js, views/families/show.ejs and the printed book. %>
     <div class="grid-2 address-pair">
       <div class="field">
-        <label for="address">Address</label>
+        <label for="address">Residence</label>
         <textarea id="address" name="address"
                   placeholder="Flat no., Building name, Street,&#10;Locality, City — 000000"><%= family.address %></textarea>
         <p class="help">Line breaks are preserved in the printed entry.</p>
       </div>
 
       <div class="field">
-        <label for="hometown">Home Town address</label>
+        <label for="hometown">Home Town Name / Address (HOF)</label>
         <textarea id="hometown" name="hometown"
                   placeholder="House name, Village"><%= family.hometown %></textarea>
+        <p class="help">Where the head of the family is originally from.</p>
         <label class="checkline same-address" hidden>
           <input type="checkbox" id="same-address" <%= sameAddress ? 'checked' : '' %>>
-          Same as the address above
+          Same as the residence above
         </label>
       </div>
     </div>
 
     <div class="grid-2">
-      <div class="field">
-        <label for="home_parish">Home parish</label>
-        <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>"
-               list="parish-names" autocomplete="off"
-               placeholder="Start typing a parish name">
-        <p class="help">
-          Pick from the churches on record, or type one that is not listed.
-        </p>
-      </div>
-
-      <div class="field">
-        <label for="spouse_home">Spouse home</label>
-        <input type="text" id="spouse_home" name="spouse_home" value="<%= family.spouse_home %>"
-               placeholder="House name, Village">
-        <p class="help">Where the spouse is originally from — not their name, which goes in the member row below.</p>
-        <label class="checkline same-address" hidden>
-          <input type="checkbox" id="same-address-spouse" <%= sameAddressSpouse ? 'checked' : '' %>>
-          Same as the address above
-        </label>
-      </div>
-
       <div class="field">
         <label for="prayer_group">Prayer group</label>
         <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>"
@@ -219,7 +216,7 @@
       </div>
 
       <div class="field">
-        <label for="area">Area</label>
+        <label for="area">Area / Unit</label>
         <input type="text" id="area" name="area" value="<%= family.area || '' %>"
                list="area-names">
         <p class="help">
@@ -229,28 +226,24 @@
       </div>
 
       <div class="field">
+        <label for="home_parish">Home Parish (HOF)</label>
+        <input type="text" id="home_parish" name="home_parish" value="<%= family.home_parish %>"
+               list="parish-names" autocomplete="off"
+               placeholder="Start typing a parish name">
+        <p class="help">
+          Pick from the churches on record, or type one that is not listed.
+        </p>
+      </div>
+
+      <div class="field">
         <label for="email">Email ID</label>
         <input type="email" id="email" name="email" value="<%= family.email %>"
                pattern="<%= emailPattern %>"
                title="A full email address, ending in .com, .in and so on — like name@example.com">
-        <p class="help">Doubles as the family's sign-in name.</p>
-      </div>
-
-      <div class="field">
-        <div class="label">Date of marriage (DOM)</div>
-        <div class="daymonth">
-          <input type="number" id="dom_day" name="dom_day" min="1" max="31"
-                 value="<%= family.dom_day || '' %>" placeholder="Day" aria-label="Day of marriage">
-          <select name="dom_month" aria-label="Month of marriage">
-            <option value="">Month</option>
-            <% months.forEach(function (mo) { %>
-              <option value="<%= mo.value %>" <%= Number(family.dom_month) === mo.value ? 'selected' : '' %>>
-                <%= mo.name %>
-              </option>
-            <% }); %>
-          </select>
-        </div>
-        <p class="help">Day and month only. Leave blank to hide the DOM column for this family.</p>
+        <p class="help">
+          Doubles as the family&rsquo;s sign-in name. Each member has their own
+          Emails field in the row below.
+        </p>
       </div>
 
       <% if (!isOwnEntry) { %>
@@ -378,17 +371,18 @@
 
 <template id="member-template">
   <% memberRow('__INDEX__', {
-       id: '', name: '', relation: '', dob_day: '', dob_month: '', dob_year: '', mobile: '',
-       blood_group: '', qualification: '', occupation: '', links: ''
+       id: '', name: '', relation: '',
+       dob_day: '', dob_month: '', dom_day: '', dom_month: '', mobile: '',
+       blood_group: '', qualification: '', occupation: '', emails: ''
      }); %>
 </template>
 
-<script src="<%= base %>/javascripts/datepicker.js"></script>
 <script src="<%= base %>/javascripts/same-address.js"></script>
 <script src="<%= base %>/javascripts/head-name-sync.js"></script>
 <script src="<%= base %>/javascripts/family-form.js"></script>
 <script src="<%= base %>/javascripts/day-of-month.js"></script>
 <script src="<%= base %>/javascripts/mobile-digits.js"></script>
+<script src="<%= base %>/javascripts/tag-input.js"></script>
 <script src="<%= base %>/javascripts/add-relation.js"></script>
 
 <%- include('../partials/footer') %>

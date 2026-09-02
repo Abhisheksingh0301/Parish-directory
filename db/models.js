@@ -79,18 +79,16 @@ const Family = sequelize.define('Family', {
   address: text(),
   hometown: text(),
   home_parish: text(),
-  spouse_home: text(),
   // A neighbourhood-based group within this church, for local prayer
   // meetings — not part of the diocese/zone hierarchy above the church.
   prayer_group: text(),
   // The division an Area Representative follows up, which is a different
   // question from which prayer group a family attends.
   area: text(),
+  // The household's own address, which is also its login username. A family
+  // has one; its members each have their own list. See Member.emails.
   email: text(),
   photo: { type: DataTypes.TEXT, allowNull: true },
-  // Date of marriage: day and month only, never a year.
-  dom_day: { type: DataTypes.INTEGER, allowNull: true },
-  dom_month: { type: DataTypes.INTEGER, allowNull: true },
   is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   // Where this family has got to in the verification chain. The keys are
   // lib/verification.js's STATUSES; nothing else may be written here.
@@ -108,16 +106,22 @@ const Member = sequelize.define('Member', {
   position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   name: { type: DataTypes.TEXT, allowNull: false },
   relation: text(),
-  // Date of birth: a full date, but the year is optional, so an entry can be
-  // recorded before anyone has asked the family for it.
+  // Date of birth: day and month, never a year. The directory says when to
+  // wish a member, not how old they are.
   dob_day: { type: DataTypes.INTEGER, allowNull: true },
   dob_month: { type: DataTypes.INTEGER, allowNull: true },
-  dob_year: { type: DataTypes.INTEGER, allowNull: true },
+  // Date of marriage, per member rather than per family: a household holds
+  // more than one married couple often enough that a single date on the
+  // family cannot describe it.
+  dom_day: { type: DataTypes.INTEGER, allowNull: true },
+  dom_month: { type: DataTypes.INTEGER, allowNull: true },
+  // Both of these hold a short list, comma-separated. lib/phone.js and
+  // lib/email.js are the only places that spelling is decided.
   mobile: text(),
   blood_group: text(),
   qualification: text(),
   occupation: text(),
-  links: text()
+  emails: text()
 }, { tableName: 'members' });
 
 const User = sequelize.define('User', {

@@ -112,13 +112,12 @@ async function buildChurch(db, auth, { name, slug, admin, head, email }) {
     address: `${name} address`,
     hometown: '',
     home_parish: '',
-    spouse_home: '',
     email,
     dom_day: null,
     dom_month: null,
     is_published: true,
     members: [
-      { name: `${head} senior`, relation: 'Head', dob_day: null, dob_month: null, dob_year: null, mobile: '', links: '' }
+      { name: `${head} senior`, relation: 'Head', dob_day: null, dob_month: null, mobile: '', emails: '' }
     ]
   });
 
@@ -193,12 +192,12 @@ async function main() {
     family_id: '0001',
     head_name: 'Hijacked',
     address: 'nowhere',
-    hometown: '', home_parish: '', spouse_home: '', email: '',
+    hometown: '', home_parish: '', email: '',
     is_published: '1',
     'members[0][name]': 'Intruder',
     'members[0][relation]': 'Head',
     'members[0][mobile]': '',
-    'members[0][links]': ''
+    'members[0][emails]': ''
   });
   check('an update is refused', refused(res), `status ${res.status}`);
 

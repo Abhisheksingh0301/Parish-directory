@@ -26,10 +26,6 @@
     var row = holder.querySelector('[data-member-row]');
     editor.appendChild(row);
 
-    // The cloned row carries a plain date field; give it the same picker the
-    // rows rendered by the server got.
-    if (window.ParishDatePicker) window.ParishDatePicker.enhance(row);
-
     var firstInput = row.querySelector('input[type=text]');
     if (firstInput) firstInput.focus();
   });
@@ -43,12 +39,8 @@
 
     // Always leave one row, so the form never looks broken.
     if (rowCount() <= 1) {
-      // The "keep the recorded day and month" offer belongs to the member
-      // being cleared, not to whoever is typed in over them.
-      row.querySelectorAll('[data-keep-dob]').forEach(function (keep) { keep.remove(); });
       row.querySelectorAll('input').forEach(function (input) { input.value = ''; });
       row.querySelectorAll('select').forEach(function (select) { select.selectedIndex = 0; });
-      if (window.ParishDatePicker) window.ParishDatePicker.sync(row);
       return;
     }
 

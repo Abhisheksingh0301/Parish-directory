@@ -619,6 +619,168 @@ async function familyVerificationWorkflow({ qi, sequelize, transaction }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// 11 — the Parish's reading of the entry: dates per member, no birth years,
+//      several phone numbers, and "links" named as the emails it always held
+// ---------------------------------------------------------------------------
+
+/**
+ * Five changes the Parish asked for after reading a printed proof, which
+ * belong together because they are one revision of what an entry says.
+ *
+ * **The date of marriage moves to the member.** One anniversary on the family
+ * described the head and spouse and nobody else; a household with a married
+ * son in it has two, and had nowhere to put the second. The family's date is
+ * carried onto the head and the spouse before the column goes, so no parish
+ * loses an anniversary it had already recorded.
+ *
+ * **A date of birth loses its year.** The directory says when to wish a
+ * member, not how old they are. The year is dropped rather than left unused:
+ * a column nobody reads is still a column somebody's data sits in.
+ *
+ * **Spouse home goes.** The Parish does not use it.
+ *
+ * **`links` becomes `emails`.** It was free text that in practice held email
+ * addresses, so it is now named and checked as what it is.
+ *
+ * Both tables are rebuilt by hand rather than through `removeColumn`, for the
+ * reason migration 3 rebuilt `families`: on SQLite that call recreates the
+ * table from the model description, and what does not survive the round trip
+ * is every index and the composite UNIQUE (church_id, family_id) — which is
+ * the only thing stopping one parish numbering two families 0001.
+ *
+ * **The book is named.** The header reads the `directory_title` setting, and
+ * the Parish asked for "Family Parish Directory". Only a parish still on a
+ * shipped default is moved; one that has set its own title keeps it.
+ *
+ * Mobile numbers needed no migration: several are stored comma-separated in
+ * the column that already held one, and one number is a list of one.
+ */
+async function entryFieldsPerParishReview({ qi, sequelize, transaction }) {
+  const opts = { transaction };
+
+  // ---- members: gain both marriage columns, lose the birth year, and get
+  //      `links` renamed to the `emails` it always held ----------------------
+
+  await qi.addColumn('members', 'dom_day', { type: DataTypes.INTEGER, allowNull: true }, opts);
+  await qi.addColumn('members', 'dom_month', { type: DataTypes.INTEGER, allowNull: true }, opts);
+
+  // Head and Spouse are the two people the family's single date could ever
+  // have meant. Done before the family columns go, so no parish loses an
+  // anniversary it had already recorded.
+  await sequelize.query(
+    `UPDATE members
+        SET dom_day   = (SELECT dom_day   FROM families WHERE families.id = members.family_id),
+            dom_month = (SELECT dom_month FROM families WHERE families.id = members.family_id)
+      WHERE relation IN ('Head', 'Spouse')
+        AND (SELECT dom_day FROM families WHERE families.id = members.family_id) IS NOT NULL`,
+    { transaction }
+  );
+
+  await qi.createTable('members_new', {
+    id: ID,
+    family_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'families', key: 'id' },
+      onDelete: 'CASCADE'
+    },
+    position: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    name: { type: DataTypes.TEXT, allowNull: false },
+    relation: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    dob_day: { type: DataTypes.INTEGER, allowNull: true },
+    dob_month: { type: DataTypes.INTEGER, allowNull: true },
+    dom_day: { type: DataTypes.INTEGER, allowNull: true },
+    dom_month: { type: DataTypes.INTEGER, allowNull: true },
+    mobile: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    blood_group: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    qualification: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    occupation: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    emails: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }
+  }, opts);
+
+  // `dob_year` is read by nothing and copied to nothing: this is where the
+  // birth years actually leave the database.
+  await sequelize.query(
+    `INSERT INTO members_new
+       (id, family_id, position, name, relation, dob_day, dob_month,
+        dom_day, dom_month, mobile, blood_group, qualification, occupation, emails)
+     SELECT
+        id, family_id, position, name, relation, dob_day, dob_month,
+        dom_day, dom_month, mobile, blood_group, qualification, occupation, links
+     FROM members`,
+    { transaction }
+  );
+
+  await qi.dropTable('members', opts);
+  await qi.renameTable('members_new', 'members', opts);
+  await qi.addIndex('members', ['family_id', 'position'], { name: 'idx_members_family', ...opts });
+
+  // ---- families: lose the anniversary and the spouse's home ---------------
+
+  await qi.createTable('families_new', {
+    id: ID,
+    church_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'churches', key: 'id' },
+      onDelete: 'CASCADE'
+    },
+    family_id: { type: DataTypes.TEXT, allowNull: false },
+    head_name: { type: DataTypes.TEXT, allowNull: false },
+    address: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    hometown: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    home_parish: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    prayer_group: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    area: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    email: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    photo: { type: DataTypes.TEXT, allowNull: true },
+    is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    verify_status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'not_started' },
+    verify_status_at: { type: DataTypes.STRING, allowNull: true },
+    invited_at: { type: DataTypes.STRING, allowNull: true },
+    printed_at: { type: DataTypes.STRING, allowNull: true },
+    created_at: TIMESTAMP,
+    updated_at: TIMESTAMP
+  }, {
+    ...opts,
+    uniqueKeys: { families_church_family: { fields: ['church_id', 'family_id'] } }
+  });
+
+  await sequelize.query(
+    `INSERT INTO families_new
+       (id, church_id, family_id, head_name, address, hometown, home_parish,
+        prayer_group, area, email, photo, is_published,
+        verify_status, verify_status_at, invited_at, printed_at,
+        created_at, updated_at)
+     SELECT
+        id, church_id, family_id, head_name, address, hometown, home_parish,
+        prayer_group, area, email, photo, is_published,
+        verify_status, verify_status_at, invited_at, printed_at,
+        created_at, updated_at
+     FROM families`,
+    { transaction }
+  );
+
+  await qi.dropTable('families', opts);
+  await qi.renameTable('families_new', 'families', opts);
+
+  await qi.addIndex('families', ['head_name'], { name: 'idx_families_head', ...opts });
+  await qi.addIndex('families', ['church_id', 'family_id'], { name: 'idx_families_church', ...opts });
+  await qi.addIndex('families', ['church_id', 'verify_status'], { name: 'idx_families_verify', ...opts });
+
+  // ---- and the book is renamed --------------------------------------------
+
+  for (const table of ['settings', 'church_settings']) {
+    await sequelize.query(
+      `UPDATE ${table} SET value = 'Family Parish Directory'
+        WHERE key = 'directory_title'
+          AND value IN ('Parish Directory', 'Home Parish Directory')`,
+      { transaction }
+    );
+  }
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -633,7 +795,8 @@ const MIGRATIONS = [
   wifeBecomesSpouse,
   memberLoginChurchId,
   familyPrayerGroup,
-  familyVerificationWorkflow
+  familyVerificationWorkflow,
+  entryFieldsPerParishReview
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };

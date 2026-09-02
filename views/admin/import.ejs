@@ -133,9 +133,10 @@
   <h2>Upload the filled-in sheet</h2>
   <p class="help" style="margin-top:0">
     The whole file is read and checked before anything is written. If there is
-    a problem anywhere in it &mdash; a date nobody could read, a family with no
-    name, a Family ID this parish already has &mdash; it is listed at the top
-    of this page in plain words, with the row number, and
+    a problem anywhere in it &mdash; a date nobody could read, an email address
+    that is not one, a mobile number too short to ring, a family with no name,
+    a Family ID this parish already has &mdash; it is listed at the top of this
+    page in plain words, with the row number, and
     <strong>nothing at all is imported</strong>. Fix the sheet and upload it
     again. There is no half-finished state to clean up.
   </p>
@@ -236,15 +237,44 @@
     <code>02-Aug-1975</code>, <code>2/8/1975</code>, <code>1975-08-02</code>
     and <code>Aug 1975</code> are all read, and where two numbers are
     ambiguous the <em>day comes first</em> &mdash; <code>03/04/1978</code> is
-    the third of April. A date of birth with no year keeps its day and month,
-    and the birthday still prints. A date that cannot be read at all is
-    reported as a rejected row rather than quietly blanked.
+    the third of April. A date that cannot be read at all is reported as a
+    rejected row rather than quietly blanked.
   </p>
 
   <p class="help">
-    <strong>Date of marriage.</strong> This directory prints the day and month
-    only. Write the year if the register has it; it is read and then dropped,
-    not refused.
+    <strong>Years are dropped.</strong> This directory prints the day and month
+    of both dates and stores no year for either &mdash; it says when to wish
+    somebody, not how old they are. Write the year if the register has it: it
+    is read and then dropped, not refused, so no sheet has to be stripped
+    before it is handed over.
+  </p>
+
+  <p class="help">
+    <strong>Date of marriage</strong> belongs to the member, not the family, so
+    it goes on the row of each person who was married &mdash; both partners, and
+    both again for a married son or daughter living in the same household.
+  </p>
+
+  <p class="help">
+    <strong>Email addresses.</strong> There are two columns and they are not the
+    same thing. <code>Email</code> is the family&rsquo;s own, and it doubles as
+    the household&rsquo;s sign-in name, so a typo there is a family that cannot
+    verify its own entry. <code>Emails</code> is the member&rsquo;s, and one
+    member may list up to three, separated by commas.
+  </p>
+
+  <p class="help">
+    Both are checked properly rather than loosely: <code>steve@gmail</code> is
+    refused, because a bare hostname is a real address on an office network and
+    no address at all on the internet. Anything that is not an address &mdash;
+    a name, a phone number, a note &mdash; stops the whole file with the row
+    number against it.
+  </p>
+
+  <p class="help">
+    <strong>Mobile numbers.</strong> Ten digits beginning 6, 7, 8 or 9. A
+    leading <code>0</code> is taken off rather than refused, spaces and dashes
+    are ignored, and a member may list up to three numbers separated by commas.
   </p>
 
   <p class="help">

@@ -91,7 +91,7 @@ router.post('/settings', wrap(async (req, res) => {
   const updates = {
     parish_name: text(req.body.parish_name),
     default_member_password: memberPassword,
-    directory_title: text(req.body.directory_title) || 'Parish Directory',
+    directory_title: text(req.body.directory_title) || 'Family Parish Directory',
     relation_options: text(req.body.relation_options),
     approval_tiers: req.body.approval_tiers === '2' ? '2' : '1',
     routine_fields: routine.join(', '),
@@ -152,6 +152,8 @@ const AUDIT_EVENTS = [
   { value: 'family.rejected', label: 'Changes rejected' },
   { value: 'family.invited', label: 'Invitations marked sent' },
   { value: 'family.pin_issued', label: 'Verification slips issued' },
+  { value: 'family.published', label: 'Printed-directory inclusion' },
+  { value: 'family.ready_for_printing', label: 'Marked ready for printing' },
   { value: 'family.printed', label: 'Marked as printed' },
   { value: 'family.imported', label: 'Data imported' },
   { value: 'family.photos.imported', label: 'Photographs imported' },

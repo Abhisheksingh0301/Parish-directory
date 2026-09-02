@@ -321,108 +321,15 @@ input[type=file] { font: inherit; font-size: 14px; }
 }
 .password-field .toggle-password svg { width: 20px; height: 20px; display: block; }
 
-/* The date of marriage is day and month only, so it stays a pair of fields —
-   a date picker would insist on a year nobody supplied. */
-.daymonth { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+/* Both dates the directory records are day and month only, so each stays a
+   pair of fields — a date picker would insist on a year nobody supplied.
 
-/* ---------- date picker (datepicker.js) ---------- */
-
-.datepicker { position: relative; }
-.datepicker input[type=text] { background: #fff; }
-
-.dp-pop {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 6px);
-  left: 0;
-  width: 280px;
-  padding: 10px;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  box-shadow: 0 10px 26px rgba(44, 39, 33, .18);
-}
-.dp-pop.to-left { left: auto; right: 0; }
-
-.dp-head { display: flex; align-items: center; gap: 6px; }
-.dp-head select {
-  width: auto;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 5px 6px;
-  font-size: 14px;
-}
-.dp-head .dp-year { flex: 0 0 78px; }
-.dp-nav {
-  flex: 0 0 28px;
-  height: 28px;
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--ink-soft);
-  background: var(--paper-warm);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-.dp-nav:hover:not(:disabled) { background: var(--band); color: var(--ink); }
-.dp-nav:disabled { opacity: .35; cursor: default; }
-
-.dp-weekdays, .dp-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-.dp-weekdays {
-  margin: 10px 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  text-align: center;
-}
-.dp-day {
-  font: inherit;
-  font-size: 14px;
-  padding: 6px 0;
-  cursor: pointer;
-  color: var(--ink);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-}
-.dp-day:hover:not(:disabled) { background: var(--paper-warm); }
-.dp-day:disabled { color: #c9c2b6; cursor: default; }
-.dp-day.is-today { border-color: var(--band-dark); }
-.dp-day.is-selected { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.dp-day:focus-visible, .dp-nav:focus-visible, .dp-clear:focus-visible {
-  outline: 3px solid rgba(107, 79, 42, .35);
-  outline-offset: 1px;
-}
-
-.dp-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-  color: var(--ink-faint);
-}
-.dp-clear {
-  font: inherit;
-  font-size: 13px;
-  padding: 3px 9px;
-  cursor: pointer;
-  color: var(--ink-soft);
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-.dp-clear:hover { background: var(--paper-warm); color: var(--ink); }
+   The day box is held to what a two-digit number needs and no more, so the
+   rest of the track goes to the month, which has to show a word. `min-width:0`
+   because a select's default minimum is its longest option, which would push
+   the pair wider than its column instead of letting it fit. */
+.daymonth { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; }
+.daymonth select { min-width: 0; }
 
 .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
 .actions .spacer { margin-left: auto; }
@@ -471,6 +378,11 @@ input[type=file] { font: inherit; font-size: 14px; }
 .table tbody tr:hover td { background: var(--paper-warm); }
 .table td.right, .table th.right { text-align: right; }
 .table .nowrap { white-space: nowrap; }
+
+/* The tick column on the verification status list: a narrow gutter, and a box
+   big enough to hit on a phone without the row growing taller for it. */
+.table th.tick, .table td.tick { width: 34px; padding-right: 0; text-align: center; }
+.table .tick input[type="checkbox"] { width: 17px; height: 17px; margin: 0; vertical-align: middle; cursor: pointer; accent-color: var(--ink); }
 
 .tag {
   display: inline-block;
@@ -547,23 +459,100 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
 .stat .n { font-size: 32px; font-weight: 700; line-height: 1.1; }
 .stat .k { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
 
+/* ---------- comma-separated boxes (tag-input.js) ---------- */
+
+/* A member's mobile numbers and email addresses are one column holding a short
+   list. Committed values become chips so the boundary between them is visible;
+   see public/javascripts/tag-input.js. Without that script none of this is
+   rendered and the field stays a plain text input. */
+.tag-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 42px;
+  padding: 5px 7px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: text;
+}
+.tag-field:focus-within { border-color: var(--band-dark); }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px 2px 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--band);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.tag-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A warning, not a refusal — lib/phone.js and lib/email.js decide on save. */
+.tag.is-bad {
+  color: var(--danger);
+  background: #fff;
+  border-color: var(--danger);
+  border-style: dashed;
+}
+
+.tag-remove {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.tag-remove:hover { color: var(--ink); background: rgba(0, 0, 0, .07); }
+.tag.is-bad .tag-remove { color: var(--danger); }
+
+/* The box people type in. It is inside the bordered field, so it carries none
+   of its own, and it grows to fill whatever the chips left on the line. */
+.tag-entry {
+  flex: 1 1 90px;
+  min-width: 90px;
+  width: auto;
+  padding: 3px 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.tag-entry:focus { outline: none; box-shadow: none; }
+
 /* ---------- member editor ---------- */
 
 .members-editor { display: grid; gap: 12px; }
+
+/* Nine fields to a member now, which is more than fits across any screen the
+   parish office actually has — so the row wraps rather than pretending. Equal
+   tracks with a floor wide enough for a month name and a ten-digit number:
+   a fixed six-column grid put whichever field landed in the 140px column into
+   a box too narrow to read, and the month select was the one that showed it. */
 .member-row {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) 140px 190px minmax(120px, 1fr) minmax(100px, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 12px;
   align-items: end;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper-warm);
 }
-.member-row .field { margin: 0; }
-.member-row .drop { align-self: end; }
-/* Offered only on members whose date of birth was recorded without a year. */
-.keep-dob { font-size: 13px; gap: 6px; margin-top: 6px; color: var(--ink-faint); }
+.member-row .field { margin: 0; min-width: 0; }
+.member-row .drop { grid-column: 1 / -1; justify-self: end; align-self: end; }
 
 /* ---------- family detail ---------- */
 
@@ -867,8 +856,7 @@ body.auth {
   .detail-grid { grid-template-columns: 1fr; }
   .filter-bar select { min-width: 0; width: 100%; }
   .line-actions { justify-content: flex-start; }
-  .member-row { grid-template-columns: 1fr 1fr; }
-  .member-row .drop { grid-column: 1 / -1; }
+  .member-row { grid-template-columns: 1fr; }
   .table-wrap { overflow-x: auto; }
   .detail-grid dl { grid-template-columns: 1fr; }
   .detail-grid dt { border-radius: 4px 4px 0 0; }

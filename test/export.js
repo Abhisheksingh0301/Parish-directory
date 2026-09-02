@@ -174,11 +174,11 @@ async function main() {
 
     const id = await Family.create(churchId, {
       family_id: familyId, head_name: head, address: '1 Road',
-      hometown: '', home_parish: '', spouse_home: '', email: '',
+      hometown: '', home_parish: '', email: '',
       photo: stored, dom_day: null, dom_month: null, is_published: published,
       members: [
-        { name: `${head} one`, relation: 'Head', dob_day: null, dob_month: null, dob_year: null, mobile: '1', links: '' },
-        { name: `${head} two`, relation: 'Spouse', dob_day: null, dob_month: null, dob_year: null, mobile: '2', links: '' }
+        { name: `${head} one`, relation: 'Head', dob_day: null, dob_month: null, mobile: '1', emails: '' },
+        { name: `${head} two`, relation: 'Spouse', dob_day: null, dob_month: null, mobile: '2', emails: '' }
       ]
     });
 
@@ -254,7 +254,7 @@ async function main() {
     rows.length === 1 + 6, `${rows.length} rows for 3 families of 2`);
 
   check('a spreadsheet without photographs has no photograph column',
-    rows[0].endsWith('"Links"'), rows[0].slice(-40));
+    rows[0].endsWith('"Emails"'), rows[0].slice(-40));
 
   res = await admin('GET', '/admin/export.csv?drafts=0');
   rows = res.body.replace(/^﻿/, '').trim().split('\r\n');

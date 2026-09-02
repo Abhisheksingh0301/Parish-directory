@@ -123,7 +123,7 @@ function diff(existing, proposed, settings) {
 
   // --- the family's own fields ---
   for (const field of verification.FAMILY_FIELDS) {
-    if (field.key === 'dom' || field.key === 'photo') continue;
+    if (field.key === 'photo') continue;
 
     const was = text(existing[field.key]);
     const now = text(proposed[field.key]);
@@ -136,27 +136,6 @@ function diff(existing, proposed, settings) {
       existing: was,
       proposed: now,
       payload: { kind: 'family', key: field.key, value: now },
-      settings
-    }));
-  }
-
-  // The anniversary is two columns and one idea, so it moves as one line and
-  // is shown in the Directory's own format rather than as a pair of numbers.
-  const domWas = dayMonth.format(existing.dom_day, existing.dom_month);
-  const domNow = dayMonth.format(proposed.dom_day, proposed.dom_month);
-  if (domWas !== domNow) {
-    changes.push(line({
-      kind: 'family',
-      field: 'dom',
-      label: 'Wedding anniversary',
-      existing: domWas,
-      proposed: domNow,
-      payload: {
-        kind: 'family',
-        key: 'dom',
-        dom_day: proposed.dom_day,
-        dom_month: proposed.dom_month
-      },
       settings
     }));
   }
@@ -187,24 +166,31 @@ function diff(existing, proposed, settings) {
 
   for (const { existing: was, proposed: now } of pairs) {
     for (const field of verification.MEMBER_FIELDS) {
-      if (field.key === 'dob') {
-        const dobWas = dayMonth.formatFull(was.dob_day, was.dob_month, was.dob_year);
-        const dobNow = dayMonth.formatFull(now.dob_day, now.dob_month, now.dob_year);
-        if (dobWas === dobNow) continue;
+      /*
+       * A date is two columns and one idea, so it moves as a single line and
+       * is shown in the Directory's own format rather than as a pair of
+       * numbers a reviewer would have to decode.
+       */
+      if (field.key === 'dob' || field.key === 'dom') {
+        const day = `${field.key}_day`;
+        const month = `${field.key}_month`;
+
+        const dateWas = dayMonth.format(was[day], was[month]);
+        const dateNow = dayMonth.format(now[day], now[month]);
+        if (dateWas === dateNow) continue;
 
         changes.push(line({
           kind: 'member',
-          field: 'dob',
-          label: `${describeMember(was)} — Date of birth`,
-          existing: dobWas,
-          proposed: dobNow,
+          field: field.key,
+          label: `${describeMember(was)} — ${field.label}`,
+          existing: dateWas,
+          proposed: dateNow,
           payload: {
             kind: 'member',
             member_id: was.id,
-            key: 'dob',
-            dob_day: now.dob_day,
-            dob_month: now.dob_month,
-            dob_year: now.dob_year
+            key: field.key,
+            [day]: now[day],
+            [month]: now[month]
           },
           settings
         }));
@@ -485,13 +471,10 @@ function asFormData(family) {
     address: family.address,
     hometown: family.hometown,
     home_parish: family.home_parish,
-    spouse_home: family.spouse_home,
     prayer_group: family.prayer_group,
     area: family.area,
     email: family.email,
     photo: family.photo,
-    dom_day: family.dom_day,
-    dom_month: family.dom_month,
     is_published: family.is_published,
     members: (family.members || []).map((m) => ({
       id: m.id,
@@ -499,12 +482,13 @@ function asFormData(family) {
       relation: m.relation,
       dob_day: m.dob_day,
       dob_month: m.dob_month,
-      dob_year: m.dob_year,
+      dom_day: m.dom_day,
+      dom_month: m.dom_month,
       mobile: m.mobile,
       blood_group: m.blood_group,
       qualification: m.qualification,
       occupation: m.occupation,
-      links: m.links
+      emails: m.emails
     }))
   };
 }
@@ -520,10 +504,7 @@ function fold(data, payload) {
   if (!payload || !payload.kind) return data;
 
   if (payload.kind === 'family') {
-    if (payload.key === 'dom') {
-      data.dom_day = payload.dom_day ?? null;
-      data.dom_month = payload.dom_month ?? null;
-    } else if (payload.key === 'photo') {
+    if (payload.key === 'photo') {
       data.photo = payload.photo || null;
     } else {
       data[payload.key] = payload.value ?? '';
@@ -535,10 +516,9 @@ function fold(data, payload) {
     const member = data.members.find((m) => Number(m.id) === Number(payload.member_id));
     if (!member) return data;
 
-    if (payload.key === 'dob') {
-      member.dob_day = payload.dob_day ?? null;
-      member.dob_month = payload.dob_month ?? null;
-      member.dob_year = payload.dob_year ?? null;
+    if (payload.key === 'dob' || payload.key === 'dom') {
+      member[`${payload.key}_day`] = payload[`${payload.key}_day`] ?? null;
+      member[`${payload.key}_month`] = payload[`${payload.key}_month`] ?? null;
     } else {
       member[payload.key] = payload.value ?? '';
     }
@@ -553,12 +533,13 @@ function fold(data, payload) {
       relation: text(m.relation),
       dob_day: m.dob_day ?? null,
       dob_month: m.dob_month ?? null,
-      dob_year: m.dob_year ?? null,
+      dom_day: m.dom_day ?? null,
+      dom_month: m.dom_month ?? null,
       mobile: text(m.mobile),
       blood_group: text(m.blood_group),
       qualification: text(m.qualification),
       occupation: text(m.occupation),
-      links: text(m.links)
+      emails: text(m.emails)
     });
     return data;
   }

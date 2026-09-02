@@ -8,7 +8,6 @@ const Family = require('../models/family');
 const Churches = require('../models/church');
 const Pending = require('../models/pending');
 const dayMonth = require('../lib/daymonth');
-const relations = require('../lib/relations');
 const emails = require('../lib/email');
 const phones = require('../lib/phone');
 const freeText = require('../lib/free-text');
@@ -61,25 +60,20 @@ function allowOwnFamily(minRole) {
 // handler here runs, req.file and req.photoError are already populated.
 
 /**
- * A member's date of birth off the form. The picker sends one full date; a
- * member recorded before the year was collected sends the day and month it
- * already had on the "keep" checkbox instead, so editing the rest of that row
- * does not quietly throw the date away.
+ * One of a member's two dates off the form.
+ *
+ * Both are day and month only now, and both come off the same pair of selects,
+ * so there is one reader for the pair rather than a picker for one and a
+ * fallback for the other.
  */
-function readDob(m, label) {
-  if (String(m.dob ?? '').trim()) return dayMonth.parseISO(m.dob, label);
-
-  const [day, month] = String(m.dob_partial ?? '').split('-');
-  return { ...dayMonth.parse(day, month, label), year: null };
+function readMemberDate(m, key, label) {
+  return dayMonth.parse(m[`${key}_day`], m[`${key}_month`], label);
 }
 
 /** Pull a family (and its members) out of a submitted form. */
 function readForm(req) {
   const text = (value) => String(value ?? '').trim();
   const errors = [];
-
-  const dom = dayMonth.parse(req.body.dom_day, req.body.dom_month, 'Date of marriage');
-  if (dom.error) errors.push(dom.error);
 
   // qs gives an array for members[0][...], an object if the indices are sparse.
   const rawMembers = Object.values(req.body.members || {});
@@ -88,15 +82,23 @@ function readForm(req) {
     .filter((m) => m && text(m.name))
     .map((m, i) => {
       const who = text(m.name);
-      const dob = readDob(m, `Date of birth for "${who}"`);
+      const dob = readMemberDate(m, 'dob', `Date of birth for "${who}"`);
       if (dob.error) errors.push(dob.error);
+
+      // A date of marriage belongs to whoever is married, which in a household
+      // with a married son is more than one member. See migration 11.
+      const dom = readMemberDate(m, 'dom', `Date of marriage for "${who}"`);
+      if (dom.error) errors.push(dom.error);
 
       // The browser has already objected to most of these; a form can still
       // arrive without having been through a browser at all, so the row is
       // checked again here, named by the member it belongs to — with several
       // rows on one page, "that is not a mobile number" is no help on its own.
-      const badMobile = phones.problem(m.mobile, who);
+      const badMobile = phones.listProblem(m.mobile, who);
       if (badMobile) errors.push(badMobile);
+
+      const badEmails = emails.listProblem(m.emails, who);
+      if (badEmails) errors.push(badEmails);
 
       for (const field of Object.keys(freeText.LIMITS)) {
         const bad = freeText.problem(field, m[field], who);
@@ -112,22 +114,20 @@ function readForm(req) {
         relation: text(m.relation),
         dob_day: dob.day,
         dob_month: dob.month,
-        dob_year: dob.year,
-        // Stored as the ten digits alone, so the number a family typed with
-        // spaces in it and the same number typed without match each other —
-        // in a search, and in the diff a pending correction is read from.
-        mobile: phones.normalise(m.mobile),
+        dom_day: dom.day,
+        dom_month: dom.month,
+        // Stored as the ten digits alone, and comma-separated where there is
+        // more than one, so the number a family typed with spaces in it and
+        // the same number typed without match each other — in a search, and in
+        // the diff a pending correction is read from.
+        mobile: phones.normaliseList(m.mobile),
         blood_group: text(m.blood_group),
         qualification: text(m.qualification),
         occupation: text(m.occupation),
-        links: text(m.links),
+        emails: emails.normaliseList(m.emails),
         position: i
       };
     });
-
-  // Only worth asking once every date on the form is a date: comparing ages
-  // against numbers the member has already been told to fix helps nobody.
-  if (!errors.length) errors.push(...relations.generationErrors(members));
 
   const data = {
     family_id: text(req.body.family_id),
@@ -135,12 +135,9 @@ function readForm(req) {
     address: text(req.body.address),
     hometown: text(req.body.hometown),
     home_parish: text(req.body.home_parish),
-    spouse_home: text(req.body.spouse_home),
     prayer_group: text(req.body.prayer_group),
     area: text(req.body.area),
     email: text(req.body.email),
-    dom_day: dom.day,
-    dom_month: dom.month,
     is_published: req.body.is_published === '1',
     members
   };
@@ -148,8 +145,8 @@ function readForm(req) {
   if (!data.family_id) errors.push('Family ID is required.');
   if (!data.head_name) errors.push('Family head name is required.');
   if (!members.length) errors.push('Add at least one family member.');
-  // The address becomes the family's login, so it is checked properly and the
-  // reason is handed back rather than a flat "invalid".
+  // The family's email becomes its login username, so it is checked properly
+  // and the reason is handed back rather than a flat "invalid".
   const badEmail = emails.problem(data.email);
   if (badEmail) errors.push(badEmail);
   if (req.photoError) errors.push(req.photoError);
@@ -159,28 +156,19 @@ function readForm(req) {
 
 const BLOOD_GROUP_OPTIONS = ['', 'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
-/** Today as "2026-08-11", in the parish's own timezone rather than UTC. */
-function todayISO() {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
-}
-
 async function formLocals(req, extra) {
   const parishSettings = await settings.load(req.churchId);
   return {
     months: dayMonth.MONTH_OPTIONS,
-    // The date picker offers 1900 up to today — nobody in the directory was
-    // born before that, and nobody is born tomorrow.
-    earliestBirthDate: `${dayMonth.EARLIEST_BIRTH_YEAR}-01-01`,
-    today: todayISO(),
-    toISO: dayMonth.toISO,
     formatDayMonth: dayMonth.format,
     emailPattern: emails.HTML_PATTERN,
+    emailListPattern: emails.HTML_PATTERN_LIST,
+    maxEmails: emails.MAX_ADDRESSES,
     mobilePattern: phones.HTML_PATTERN,
+    mobilePatternOne: phones.HTML_PATTERN_ONE,
     mobileDigits: phones.DIGITS,
     mobileMaxInput: phones.MAX_INPUT,
+    maxMobiles: phones.MAX_NUMBERS,
     textLimits: freeText.LIMITS,
     textPattern: freeText.htmlPattern,
     relationOptions: settings.relationOptions(parishSettings),
@@ -216,7 +204,7 @@ router.get('/', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
 
   res.render('families/list', {
     title: 'Families',
-    families: families.map((f) => ({ ...f, dom: dayMonth.format(f.dom_day, f.dom_month) })),
+    families,
     search,
     canEdit: auth.atLeast(req.user, 'editor'),
     isAdmin: auth.atLeast(req.user, 'admin'),
@@ -375,10 +363,7 @@ async function issueSlips(req, families) {
 }
 
 router.post('/pins', isAdmin, wrap(async (req, res) => {
-  const ids = [].concat(req.body.family_ids || []).map(Number).filter(Number.isInteger);
-  const families = ids.length
-    ? (await Family.list(req.churchId, {})).filter((f) => ids.includes(f.id))
-    : await Family.list(req.churchId, {});
+  const families = pickFrom(req, await Family.list(req.churchId, {}));
 
   const { slips, skipped } = await issueSlips(req, families);
 
@@ -469,6 +454,39 @@ router.get('/status/print', familyLoginsGoHome, canBrowse, wrap(async (req, res)
 }));
 
 /**
+ * The families a batch button acts on.
+ *
+ * The status screen posts the rows the office actually ticked, and a
+ * `selection` marker alongside them so that "everything was unticked" can be
+ * told apart from a bare POST that carries no list at all — the two mean
+ * opposite things, and without the marker an unticked screen would read as
+ * "act on all of them".
+ *
+ * Ticked ids are intersected with the families the filter selected rather than
+ * trusted: a hand-made POST cannot reach a family this screen never showed,
+ * nor one belonging to another parish.
+ */
+function pickFrom(req, rows) {
+  const ids = new Set([].concat(req.body.family_ids || []).map(Number).filter(Number.isInteger));
+  if (!req.body.selection && !ids.size) return rows;
+  return rows.filter((f) => ids.has(f.id));
+}
+
+/** Back to the status screen, keeping the filter, with a word about what happened. */
+function backToStatus(res, filter, message, key = 'notice') {
+  const q = filterQuery(filter);
+  return res.redirect('/families/status' + q + (q ? '&' : '?') +
+    `${key}=` + encodeURIComponent(message));
+}
+
+/** How many families, said in words that read properly at one. */
+function howMany(n) {
+  return `${n} famil${n === 1 ? 'y' : 'ies'}`;
+}
+
+const NOTHING_SELECTED = 'No family was ticked, so nothing was changed.';
+
+/**
  * The office marks a batch as invited.
  *
  * One honest note, which belongs next to the code as much as in the answer to
@@ -479,20 +497,18 @@ router.get('/status/print', familyLoginsGoHome, canBrowse, wrap(async (req, res)
  */
 router.post('/invitations', isAdmin, wrap(async (req, res) => {
   const filter = readFilter(req);
-  const ids = [].concat(req.body.family_ids || []).map(Number).filter(Number.isInteger);
-  const targets = ids.length ? ids : await Family.idsIn(req.churchId, filter);
+  const targets = pickFrom(req, await Family.listByStatus(req.churchId, filter));
+  if (!targets.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
 
-  const moved = await Family.setStatusMany(req.churchId, targets, 'invitation_sent');
+  const moved = await Family.setStatusMany(req.churchId, targets.map((f) => f.id), 'invitation_sent');
   await audit.record(req, 'family.invited', {
     churchId: req.churchId,
     detail: `${moved} family/families marked as invited`
   });
 
-  res.redirect('/families/status' + filterQuery(filter) +
-    (filterQuery(filter) ? '&' : '?') + 'notice=' + encodeURIComponent(
-    `${moved} famil${moved === 1 ? 'y' : 'ies'} marked as invited. ` +
-    'This records that the parish office sent them, not that a mail server delivered them.'
-  ));
+  return backToStatus(res, filter,
+    `${howMany(moved)} marked as invited. ` +
+    'This records that the parish office sent them, not that a mail server delivered them.');
 }));
 
 /** The run has gone to the press: everything in the book is now Printed. */
@@ -505,10 +521,163 @@ router.post('/printed', isAdmin, wrap(async (req, res) => {
     detail: `${moved} family/families marked as printed`
   });
 
-  res.redirect('/families/status?notice=' + encodeURIComponent(
-    `${moved} famil${moved === 1 ? 'y' : 'ies'} marked as printed.`
-  ));
+  return backToStatus(res, {}, `${howMany(moved)} marked as printed.`);
 }));
+
+/**
+ * The office approves a batch outright.
+ *
+ * The honest path to Approved is a family submitting corrections and a
+ * reviewer clearing them one line at a time — routes/review.js, which is where
+ * a proposal stops being one. But most households have nothing to correct, and
+ * a parish will not hold up a directory waiting for fifty families to sign in
+ * and say so. This is the office recording its own decision: these entries are
+ * correct as they stand.
+ *
+ * Two things it deliberately will not do.
+ *
+ * It never approves over an open proposal. A family with corrections waiting
+ * in the review queue is left where it is and counted in the notice, however
+ * it was ticked on screen, because approving it here would bury a correction
+ * somebody took the trouble to send — and burying those is the one thing this
+ * exercise exists to prevent.
+ *
+ * It never runs on the whole parish by accident. The batch is exactly the rows
+ * ticked on the status screen, and the confirm dialog says how many that is
+ * before anything is written.
+ */
+router.post('/approved', isAdmin, wrap(async (req, res) => {
+  const filter = readFilter(req);
+  const picked = pickFrom(req, await Family.listByStatus(req.churchId, filter));
+  if (!picked.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
+
+  const targets = [];
+  let held = 0;
+  for (const family of picked) {
+    if (await Pending.familyHasOpen(req.churchId, family.id)) held += 1;
+    else targets.push(family);
+  }
+
+  const moved = await Family.setStatusMany(req.churchId, targets.map((f) => f.id), 'approved');
+
+  /*
+   * Approval is what sets the flag the print run reads, so a family that is
+   * already in the printed book follows straight on to Ready for Printing.
+   * That is not a second decision anybody has to remember — it is the same
+   * rule settleFamilyStatus applies in routes/review.js, and the two paths to
+   * Approved must not leave families in different places.
+   */
+  const ready = await Family.setStatusMany(
+    req.churchId,
+    targets.filter((f) => f.is_published).map((f) => f.id),
+    'ready_for_printing'
+  );
+
+  await audit.record(req, 'family.approved', {
+    churchId: req.churchId,
+    detail: `${moved} family/families approved as a batch by the parish office` +
+      (held ? `; ${held} left alone with corrections still in the review queue` : '')
+  });
+
+  const parts = [`${howMany(moved)} approved by the parish office.`];
+  if (ready) {
+    parts.push(`${ready} of them are in the printed book and are now Ready for Printing.`);
+  }
+  if (held) {
+    parts.push(
+      `${howMany(held)} left alone — corrections are still waiting in the review ` +
+      'queue, and those are approved line by line.'
+    );
+  }
+
+  return backToStatus(res, filter, parts.join(' '));
+}));
+
+/**
+ * The office decides which families the printed run contains.
+ *
+ * An import leaves every family a draft on purpose — a spreadsheet is not a
+ * decision about what to print (lib/import-families.js) — so straight after
+ * one the whole parish sits outside the book, and "Ready for Printing" has
+ * nothing it may move. Without this the only way in was the checkbox on each
+ * family's edit form, fifty times over.
+ *
+ * A family may never propose this about itself: inclusion in the Directory is
+ * the parish office's call, which is why `is_published` is in NEVER_EDITABLE
+ * (lib/verification.js). This is that call, made in one go.
+ */
+router.post('/published', isAdmin, wrap(async (req, res) => {
+  const filter = readFilter(req);
+  const picked = pickFrom(req, await Family.listByStatus(req.churchId, filter));
+  if (!picked.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
+
+  const include = req.body.include === '1';
+  const targets = picked.filter((f) => Boolean(f.is_published) !== include);
+  await Family.setPublished(req.churchId, targets.map((f) => f.id), include);
+
+  await audit.record(req, 'family.published', {
+    churchId: req.churchId,
+    detail: `${targets.length} family/families ` +
+      `${include ? 'added to' : 'taken out of'} the printed directory`
+  });
+
+  const already = picked.length - targets.length;
+  const parts = [include
+    ? `${howMany(targets.length)} now included in the printed directory.`
+    : `${howMany(targets.length)} taken out of the printed directory.`];
+  if (already) {
+    parts.push(`${howMany(already)} already ${include ? 'in' : 'out'}, and unchanged.`);
+  }
+  if (include && targets.length) {
+    parts.push('Approved families among them can now be marked Ready for Printing.');
+  }
+
+  return backToStatus(res, filter, parts.join(' '));
+}));
+
+/**
+ * The book is being assembled: approved entries become Ready for Printing.
+ *
+ * Only a family that has actually been approved, and is actually in the
+ * printed book, is moved. The forward-only rule in lib/verification.js would
+ * happily take a family here straight from Invitation Sent, which would put an
+ * unverified entry into the run — so eligibility is decided here, against the
+ * row, rather than left to that rule.
+ */
+router.post('/ready', isAdmin, wrap(async (req, res) => {
+  const filter = readFilter(req);
+  const picked = pickFrom(req, await Family.listByStatus(req.churchId, filter));
+  if (!picked.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
+
+  const eligible = picked.filter((f) => f.is_published && f.verify_status === 'approved');
+  const unapproved = picked.filter((f) => f.is_published &&
+    verification.nextStatus(f.verify_status, 'approved') !== f.verify_status).length;
+  const unpublished = picked.filter((f) => !f.is_published).length;
+
+  const moved = await Family.setStatusMany(req.churchId, eligible.map((f) => f.id), 'ready_for_printing');
+
+  await audit.record(req, 'family.ready_for_printing', {
+    churchId: req.churchId,
+    detail: `${moved} family/families marked ready for printing`
+  });
+
+  const parts = [`${howMany(moved)} marked Ready for Printing.`];
+  if (unapproved) {
+    parts.push(
+      `${howMany(unapproved)} not approved yet, and an entry goes into the book ` +
+      'only once it has been approved.'
+    );
+  }
+  if (unpublished) {
+    parts.push(
+      `${howMany(unpublished)} not in the printed directory — a draft entry is ` +
+      'not part of the run. Tick them and use "Include in the printed book" first.'
+    );
+  }
+
+  return backToStatus(res, filter, parts.join(' '));
+}));
+
 
 // ---------------------------------------------------------------------------
 // New / create
@@ -521,18 +690,16 @@ router.get('/new', canEdit, wrap(async (req, res) => {
     address: '',
     hometown: '',
     home_parish: '',
-    spouse_home: '',
     prayer_group: '',
     area: '',
     email: '',
     photo: null,
-    dom_day: null,
-    dom_month: null,
     is_published: true,
     members: [
       {
-        name: '', relation: 'Head', dob_day: null, dob_month: null, dob_year: null,
-        mobile: '', blood_group: '', qualification: '', occupation: '', links: ''
+        name: '', relation: 'Head',
+        dob_day: null, dob_month: null, dom_day: null, dom_month: null,
+        mobile: '', blood_group: '', qualification: '', occupation: '', emails: ''
       }
     ]
   };

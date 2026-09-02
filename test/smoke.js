@@ -115,7 +115,6 @@ async function seed(db, auth) {
     address: '1 Old Road',
     hometown: '',
     home_parish: '',
-    spouse_home: '',
     email: 'steve@example.com',
     dom_day: 14,
     dom_month: 3,
@@ -124,14 +123,14 @@ async function seed(db, auth) {
       {
         name: 'Mr. Steve Smith',
         relation: 'Head',
-        dob_day: 2, dob_month: 8, dob_year: 1975,
-        mobile: '111', links: ''
+        dob_day: 2, dob_month: 8,
+        mobile: '9876500111', emails: ''
       },
       {
         name: 'Mrs. Riva Smith',
         relation: 'Spouse',
-        dob_day: 11, dob_month: 5, dob_year: 1978,
-        mobile: '', links: ''
+        dob_day: 11, dob_month: 5,
+        mobile: '', emails: ''
       }
     ]
   });
@@ -256,6 +255,19 @@ async function main() {
   res = await request('GET', '/families?q=nothingmatchesthis');
   check('a search matching nothing still renders', res.status === 200);
 
+  console.log('\n--- the comma-separated boxes are wired for the chip editor ---');
+  res = await request('GET', '/families/1/edit');
+  check('the mobile box asks to be one', res.body.includes('data-tags'));
+  check('and carries a single-value pattern to judge each chip by',
+    res.body.includes('data-tag-pattern="0?[6-9][0-9]{9}"'), 'no single-number pattern');
+  check('and a limit that matches the one the server enforces',
+    res.body.includes('data-tag-max="3"'), 'no limit on the field');
+  check('the page loads the script that reads all that',
+    res.body.includes('javascripts/tag-input.js'), 'tag-input.js not included');
+  check('and the boxes keep their names, so the form posts what it always did',
+    res.body.includes('name="members[0][mobile]"') && res.body.includes('name="members[0][emails]"'),
+    'a field lost its name');
+
   console.log('\n--- saving a family ---');
   res = await request('GET', '/families/1/edit');
   res = await request('POST', '/families/1', {
@@ -265,7 +277,6 @@ async function main() {
     address: '12 New Lane',
     hometown: '',
     home_parish: '',
-    spouse_home: '',
     email: 'steve@example.com',
     dom_day: '14',
     dom_month: '3',
@@ -278,12 +289,12 @@ async function main() {
     'members[0][mobile]': '98765 43210',
     'members[0][qualification]': 'B.Sc. Nursing',
     'members[0][occupation]': 'Staff Nurse',
-    'members[0][links]': '',
+    'members[0][emails]': '',
     'members[1][name]': 'Mrs. Riva Smith',
     'members[1][relation]': 'Spouse',
     'members[1][dob]': '1978-05-11',
     'members[1][mobile]': '',
-    'members[1][links]': ''
+    'members[1][emails]': ''
   });
   check('saving redirects', res.status === 302, `status ${res.status}`);
 
@@ -306,7 +317,12 @@ async function main() {
     ['a mobile number starting with 1', { mobile: '1234567890' }],
     ['a qualification of only symbols', { qualification: '###$$$' }],
     ['an occupation longer than the cell', { occupation: 'x'.repeat(61) }],
-    ['links with a tag pasted into them', { links: '<script>alert(1)</script>' }]
+    ['an email address with no domain ending', { emails: 'steve@gmail' }],
+    ['more email addresses than the cell holds',
+      { emails: 'a@x.com, b@x.com, c@x.com, d@x.com' }],
+    ['the same mobile number listed twice', { mobile: '9876543210, 9876543210' }],
+    ['more mobile numbers than the cell holds',
+      { mobile: '9876543210, 9876543211, 9876543212, 9876543213' }]
   ];
 
   for (const [what, overrides] of badRows) {
@@ -318,7 +334,7 @@ async function main() {
       'members[0][mobile]': '9876543210',
       'members[0][qualification]': '',
       'members[0][occupation]': '',
-      'members[0][links]': ''
+      'members[0][emails]': ''
     };
     for (const [key, value] of Object.entries(overrides)) {
       row[`members[0][${key}]`] = value;

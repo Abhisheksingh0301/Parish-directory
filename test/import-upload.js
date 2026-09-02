@@ -125,15 +125,24 @@ async function signIn(request, username) {
   });
 }
 
-const HEAD = 'Family ID,Head of family,Address,Prayer group,Date of marriage,Member,Relation,Date of birth,Mobile\r\n';
+// Two email columns, because a sheet has two and they mean different things:
+// the family's own address is its login, a member's is their own.
+const HEAD = 'Family ID,Head of family,Address,Prayer group,Email,'
+  + 'Date of marriage,Member,Relation,Date of birth,Mobile,Emails\r\n';
 
 /** A sheet with two families in it, five people, nothing wrong. */
 const GOOD = HEAD
-  + 'F-001,Thomas Mathew,"12 Church Road\nTown",St Peter,14-Feb-1990,Thomas Mathew,HF,02-Aug-1965,9000000001\r\n'
-  + 'F-001,,,,,Mary Thomas,W,11-Mar-1968,9000000002\r\n'
-  + 'F-001,,,,,Anil Thomas,S,2001-06-30,\r\n'
-  + 'F-002,George Kurian,45 Hill View,St Paul,,George Kurian,HF,19-Sep-1972,9000000003\r\n'
-  + 'F-002,,,,,Sara George,W,04-Apr-1975,9000000004\r\n';
+  + 'F-001,Thomas Mathew,"12 Church Road\nTown",St Peter,thomas@example.com,'
+    + '14-Feb-1990,Thomas Mathew,HF,02-Aug-1965,9000000001,"thomas@example.com, thomas@work.in"\r\n'
+  + 'F-001,,,,,,Mary Thomas,W,11-Mar-1968,9000000002,mary@example.com\r\n'
+  + 'F-001,,,,,,Anil Thomas,S,2001-06-30,,\r\n'
+  + 'F-002,George Kurian,45 Hill View,St Paul,george@example.com,'
+    + ',George Kurian,HF,19-Sep-1972,9000000003,george@example.com\r\n'
+  + 'F-002,,,,,,Sara George,W,04-Apr-1975,9000000004,\r\n';
+
+/** The header again, with one family under it, for the checks that need one. */
+const oneFamily = (email, memberEmails) => HEAD
+  + `F-101,Anil Varkey,Road,,${email},,Anil Varkey,HF,,9000000009,${memberEmails}\r\n`;
 
 async function main() {
   const db = require('../db');
@@ -173,7 +182,7 @@ async function main() {
   console.log('');
   console.log('--- a sheet with something wrong in it imports nothing at all ---');
 
-  let res = await post('parish.csv', HEAD + 'F-001,Thomas,Road,,,Thomas,HF,31-Feb-1965,\r\n');
+  let res = await post('parish.csv', HEAD + 'F-001,Thomas,Road,,,,Thomas,HF,31-Feb-1965,,\r\n');
   check('an impossible date is refused',
     res.status === 200 && res.body.includes('Nothing was imported'),
     `status ${res.status}`);
@@ -185,7 +194,7 @@ async function main() {
 
   // The rule that costs the most to get wrong: one bad row must take its own
   // family down, and with this form, the whole file with it.
-  res = await post('parish.csv', GOOD + 'F-003,Bad Family,Road,,,Somebody,HF,not-a-date,\r\n');
+  res = await post('parish.csv', GOOD + 'F-003,Bad Family,Road,,,,Somebody,HF,not-a-date,,\r\n');
   check('one bad row at the end refuses the five good rows in front of it',
     res.body.includes('Nothing was imported')
     && (await db.Family.count({ where: { church_id: church.id } })) === 0,
@@ -209,6 +218,35 @@ async function main() {
     res.body.includes('renamed'), 'a zip was read as a spreadsheet');
 
   console.log('');
+  console.log('--- the email columns are checked before a single row is written ---');
+
+  res = await post('parish.csv', oneFamily('anil-at-example.com', 'anil@example.com'));
+  check('a family Email that is not an address is refused',
+    res.body.includes('Nothing was imported'), 'it was imported anyway');
+  check('and the report names the column, because a sheet has two of them',
+    /Email \(the family(&#39;|')s own\)/.test(res.body), 'the column was not named');
+
+  res = await post('parish.csv', oneFamily('anil@example.com', 'not-an-address'));
+  check("a member's Emails cell that is not an address is refused",
+    res.body.includes('Nothing was imported'), 'it was imported anyway');
+  check('and that report names its column too', res.body.includes('Emails:'), 'not named');
+
+  // The one the browser's own type=email would wave through. lib/email.js is
+  // deliberately stricter, and the importer has to be as strict as the form.
+  res = await post('parish.csv', oneFamily('anil@gmail', 'anil@example.com'));
+  check('a bare hostname is caught, which type=email would have accepted',
+    res.body.includes('missing the end of the domain'), 'it was accepted');
+
+  res = await post('parish.csv',
+    oneFamily('anil@example.com', '"a@x.com, b@x.com, c@x.com, d@x.com"'));
+  check('more addresses than the printed cell holds is refused',
+    res.body.includes('Nothing was imported'), 'it was imported anyway');
+
+  check('and not one of those four sheets wrote anything',
+    (await db.Family.count({ where: { church_id: church.id } })) === 0,
+    'a refused sheet still created a family');
+
+  console.log('');
   console.log('--- a clean sheet imports, whole ---');
 
   res = await post('parish.csv', GOOD);
@@ -229,9 +267,18 @@ async function main() {
     first && first.address.includes('12 Church Road'), JSON.stringify(first && first.address));
   check('and a two-line address survived the upload intact',
     first && first.address.includes('\n'), JSON.stringify(first && first.address));
-  check('the date of marriage was read',
-    first && first.dom_day === 14 && first.dom_month === 2,
-    `${first && first.dom_day}/${first && first.dom_month}`);
+  const head = await db.Member.findOne({ where: { family_id: first.id, relation: 'HF' } });
+  check('the date of marriage was read onto the member it belongs to',
+    head && head.dom_day === 14 && head.dom_month === 2,
+    `${head && head.dom_day}/${head && head.dom_month}`);
+  check('and the year in the sheet was dropped rather than refused',
+    head && head.dob_day === 2 && head.dob_month === 8,
+    `${head && head.dob_day}/${head && head.dob_month}`);
+  check("the family's own email went to the family",
+    first && first.email === 'thomas@example.com', JSON.stringify(first && first.email));
+  check('and a member carrying two addresses kept both',
+    head && head.emails === 'thomas@example.com,thomas@work.in',
+    JSON.stringify(head && head.emails));
 
   console.log('');
   console.log('--- and the same sheet again does not duplicate anything ---');
