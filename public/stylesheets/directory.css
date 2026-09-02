@@ -283,24 +283,34 @@ body.directory-body {
 
    ── The height budget, which is what governs the photograph ────────────────
 
-   On screen a page is 908px of content inside 1160px, less about 78px of
-   footer: some 1056px to fill. Spent, for a family of five:
+   Measured, not reasoned about: the layout is rendered for a five-member
+   family and printed to A4 through a headless browser, and the pages in the
+   resulting PDF are counted. Three families are tried at each size —
 
-       heading          80px    the ID pill and the name beneath it
-       photograph      518px    478 of picture, plus its mat and the gap
-       details         226px    five rows, whether or not they are filled in
-       members         182px    a header and five people at 30px each
-                      ------
-                       1006px
+       real      the largest household in the pilot parish
+       typical   five members, one number and one address each, a two-line
+                 residence. What most of a parish looks like once the
+                 households have filled their entries in.
+       worst     five members, every one with two mobile numbers, two email
+                 addresses, a long qualification and a long occupation, a
+                 three-line residence and a two-line home town. The guarantee
+                 has to hold for the entry nobody has typed yet.
 
-   which leaves a little in hand. Every further member costs 30px, so a family
-   of seven still fits and a family of ten runs the page long — the trade taken
-   deliberately, because a photograph sized for the largest family in the
-   parish would be a small photograph on every other page.
+   The worst case runs onto a second sheet at 74%. It is set to 68% rather
+   than 73% because that cliff is measured in one browser with one font: the
+   webfont may not load in a parish office printing offline, and the fallback
+   does not have the same metrics. Five points is the margin for that, not
+   timidity — at 73% a font that renders a hair taller costs a whole sheet.
 
-   Widening `--single-photo` past 640px costs three quarters of a pixel in
-   height for each one gained in width, so it is the number to change if the
-   budget above ever needs to move.
+   Re-measure rather than adjust by eye if the entry changes shape again. It
+   has already happened once: this budget previously read 62%, computed when
+   the details table had five rows and no cell could run to two lines. The
+   sixth row and the multi-value mobile and email cells put a full five-member
+   family onto two sheets, and nothing here said so until it was printed.
+
+   The details table pairs its rows two to a line in this layout, which is what
+   affords a photograph this size at all — stacked, the same guarantee held
+   only to 60%. See the `.page-single .details` rules below.
    ========================================================================== */
 
 .page-single {
@@ -314,7 +324,7 @@ body.directory-body {
    * is therefore a different share of the two, and the one that fits the
    * screen runs the printed sheet over.
    */
-  --single-photo: 62%;
+  --single-photo: 68%;
 }
 
 /*
@@ -396,21 +406,76 @@ body.directory-body {
 }
 .page-single .photo-empty { font-size: 15px; }
 
-/* The details, given the air the extra page affords. */
+/*
+ * The details, two pairs to a line.
+ *
+ * Six label-and-value rows stacked down the page is 45mm of sheet spent on
+ * six short answers — a prayer group and a ward number do not need half the
+ * width of an A4 between them. Paired up they take three lines instead of six,
+ * and the height that frees goes to the photograph, which is what the page is
+ * for. See --single-photo.
+ *
+ * Done by re-flowing the same table rather than by writing a second one:
+ * `_entry.ejs` is shared with the two-up book and the combined one, and a
+ * separate markup for this layout is exactly the drift that sharing prevents.
+ * The table becomes a grid of rows, each row a grid of label and value.
+ *
+ * `border-collapse` does not survive that, so the borders are drawn by hand —
+ * top and left on the table, right and bottom on every cell — which meets in
+ * the same single rule and cannot double up.
+ */
 .page-single .details {
+  display: block;
   font-size: 15px;
-  border-color: var(--rule);
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+.page-single .details tbody {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.page-single .details tr {
+  display: grid;
+  grid-template-columns: 38% 1fr;
+  min-width: 0;
+}
+/*
+ * The residence and the email address keep the full width. The residence is
+ * the one answer that runs to three lines and half a page is not enough for
+ * it; the email is last, and with an odd number of rows to pair up something
+ * has to be, or the table ends on a bordered empty cell that reads as a
+ * question nobody answered. Their label column is halved to 19% so it lines
+ * up with the labels in the left-hand pair above.
+ */
+.page-single .details tr:first-child,
+.page-single .details tr:last-child {
+  grid-column: 1 / -1;
+  grid-template-columns: 19% 1fr;
 }
 .page-single .details th,
-.page-single .details td { padding: 7px 14px; }
+.page-single .details td {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 14px;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
 .page-single .details th {
-  width: 26%;
+  width: auto;
   letter-spacing: .02em;
   text-transform: uppercase;
   font-size: 13px;
   color: var(--ink-soft);
 }
-.page-single .home-icon { width: 30px; height: 30px; }
+/* A value that outruns its half — a long parish name — wraps rather than
+   pushing the column wider and knocking the pairs out of line. */
+.page-single .details td { overflow-wrap: anywhere; }
+.page-single .details tr:first-child th,
+.page-single .details tr:first-child td { padding-top: 7px; padding-bottom: 7px; }
+.page-single .home-icon { width: 26px; height: 26px; }
 
 .page-single .members { font-size: 13px; }
 .page-single .members th { padding: 6px 7px; letter-spacing: .02em; }
