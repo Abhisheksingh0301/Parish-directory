@@ -40,7 +40,7 @@
             <td class="right"><%= z.church_count %></td>
             <td class="right nowrap">
               <form method="post" action="<%= base %>/super/zones/<%= z.id %>/delete" style="display:inline"
-                    onsubmit="return confirm('Dissolve <%= z.name %>? Its <%= z.church_count %> church(es) will become unzoned. Nothing is deleted.')">
+                    onsubmit="return confirm('Dissolve <%= z.name %>? Its <%= z.church_count %> <%= z.church_count === 1 ? 'church' : 'churches' %> will become unzoned. Nothing is deleted.')">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn danger small">Dissolve</button>
               </form>

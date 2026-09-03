@@ -143,7 +143,7 @@ function readForm(req) {
   };
 
   if (!data.family_id) errors.push('Family ID is required.');
-  if (!data.head_name) errors.push('Family head name is required.');
+  if (!data.head_name) errors.push('Family head is required.');
   if (!members.length) errors.push('Add at least one family member.');
   // The family's email becomes its login username, so it is checked properly
   // and the reason is handed back rather than a flat "invalid".
@@ -273,7 +273,10 @@ router.post('/logins', isAdmin, wrap(async (req, res) => {
 
   const parts = [`Created ${created} family ${created === 1 ? 'login' : 'logins'}, ` +
                  `each with the default password.`];
-  if (skipped.length) parts.push(`Skipped ${skipped.length}: ${skipped.join('; ')}.`);
+  if (skipped.length) {
+    parts.push(`Skipped ${skipped.length} famil${skipped.length === 1 ? 'y' : 'ies'}: ` +
+               `${skipped.join('; ')}.`);
+  }
 
   res.redirect('/families?notice=' + encodeURIComponent(parts.join(' ')));
 }));
@@ -410,14 +413,63 @@ function filterQuery(filter) {
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
+/**
+ * The families behind each tile of the chain, so the screen can offer a step's
+ * households the moment its tile is pressed.
+ *
+ * The chain is read whole — the status filter narrows the table underneath it,
+ * not the chain itself, and a screen filtered to "Approved" must still be able
+ * to move families out of "Invitation Sent". A status the code does not know
+ * reads as Not Started, exactly as `statusCounts` counts it, so a stray value
+ * in the column cannot leave families in a bucket with no tile.
+ */
+function byStage(families) {
+  const stages = Object.fromEntries(verification.STATUS_KEYS.map((key) => [key, []]));
+  for (const f of families) {
+    const key = verification.isStatus(f.verify_status) ? f.verify_status : 'not_started';
+    stages[key].push({
+      id: f.id,
+      family_id: f.family_id,
+      head_name: f.head_name,
+      area: f.area || '',
+      prayer_group: f.prayer_group || '',
+      is_published: !!f.is_published
+    });
+  }
+  return stages;
+}
+
+/**
+ * Which steps each step may be moved to, decided once here and sent to the
+ * screen, so a destination the chain would refuse is greyed out on the tile
+ * rather than accepted and quietly ignored. The rule itself stays in
+ * lib/verification.js; this only asks it of every pair.
+ */
+function chainMoves() {
+  return Object.fromEntries(verification.STATUS_KEYS.map((from) => [
+    from,
+    verification.STATUS_KEYS.filter((to) => to !== from && verification.canMove(from, to))
+  ]));
+}
+
 router.get('/status', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
   const filter = readFilter(req);
 
-  const [{ counts, total }, families, groupings] = await Promise.all([
+  /*
+   * One list, read once. The chain needs every step under this Area and Prayer
+   * Group whatever the status filter says, and the table below wants that same
+   * list narrowed to one step — so the narrowing happens here rather than in a
+   * second query that would have to agree with the first.
+   */
+  const [{ counts, total }, everyStatus, groupings] = await Promise.all([
     Family.statusCounts(req.churchId, filter),
-    Family.listByStatus(req.churchId, filter),
+    Family.listByStatus(req.churchId, { ...filter, status: '' }),
     Family.groupings(req.churchId)
   ]);
+
+  const families = verification.isStatus(filter.status)
+    ? everyStatus.filter((f) => f.verify_status === filter.status)
+    : everyStatus;
 
   res.render('families/status', {
     title: 'Verification status',
@@ -425,6 +477,8 @@ router.get('/status', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
     counts,
     total,
     families,
+    stages: byStage(everyStatus),
+    moves: chainMoves(),
     filter,
     query: filterQuery(filter),
     groupings,
@@ -470,6 +524,26 @@ function pickFrom(req, rows) {
   const ids = new Set([].concat(req.body.family_ids || []).map(Number).filter(Number.isInteger));
   if (!req.body.selection && !ids.size) return rows;
   return rows.filter((f) => ids.has(f.id));
+}
+
+/**
+ * Split a batch into the families an outright approval may touch, and the ones
+ * it must not.
+ *
+ * A household with a correction still waiting in the review queue is approved
+ * line by line, by a reviewer who can see what is being proposed — approving
+ * it in a batch would bury that correction, which is the one thing this
+ * exercise exists to prevent. Both routes that can reach Approved ask this,
+ * so the rule cannot hold on one screen and lapse on the other.
+ */
+async function withoutOpenProposals(req, families) {
+  const clear = [];
+  let held = 0;
+  for (const family of families) {
+    if (await Pending.familyHasOpen(req.churchId, family.id)) held += 1;
+    else clear.push(family);
+  }
+  return { clear, held };
 }
 
 /** Back to the status screen, keeping the filter, with a word about what happened. */
@@ -551,12 +625,7 @@ router.post('/approved', isAdmin, wrap(async (req, res) => {
   const picked = pickFrom(req, await Family.listByStatus(req.churchId, filter));
   if (!picked.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
 
-  const targets = [];
-  let held = 0;
-  for (const family of picked) {
-    if (await Pending.familyHasOpen(req.churchId, family.id)) held += 1;
-    else targets.push(family);
-  }
+  const { clear: targets, held } = await withoutOpenProposals(req, picked);
 
   const moved = await Family.setStatusMany(req.churchId, targets.map((f) => f.id), 'approved');
 
@@ -676,6 +745,136 @@ router.post('/ready', isAdmin, wrap(async (req, res) => {
   }
 
   return backToStatus(res, filter, parts.join(' '));
+}));
+
+
+/**
+ * Moving a batch from one step of the chain to another.
+ *
+ * The chain on the status screen is a pair of tiles as well as a set of
+ * counts: one step to move families *from*, one to move them *to*, and the
+ * families themselves ticked in between. This is the single route behind that,
+ * and the named buttons above it — invited, approved, ready for printing —
+ * remain as the shorthand for the three moves an office makes most often.
+ *
+ * It is deliberately not a free "set verify_status to whatever was posted".
+ * Every rule those buttons enforce is enforced here as well, because the same
+ * move made from a different control has to mean the same thing:
+ *
+ *   the chain's direction   a family is never taken backwards down the chain,
+ *                           except by the steps lib/verification.js allows to
+ *                           rewind — an entry does not become unapproved
+ *                           because somebody dropped it on an earlier tile
+ *   an open correction      a family with a proposal waiting in the review
+ *                           queue is never swept into Approved
+ *   the printed run         only an approved family already in the book is
+ *                           marked Ready for Printing
+ *
+ * Nothing the rules hold back is dropped quietly: every family left behind is
+ * counted, and the notice says which rule left it there.
+ */
+router.post('/status/move', isAdmin, wrap(async (req, res) => {
+  const filter = readFilter(req);
+  const from = String(req.body.from || '');
+  const to = String(req.body.to || '');
+
+  if (!verification.isStatus(to)) {
+    return backToStatus(res, filter,
+      'That is not a step on the chain, so nothing was changed.', 'error');
+  }
+  if (from === to) {
+    return backToStatus(res, filter,
+      'Those families are already at that step, so nothing was changed.', 'error');
+  }
+
+  /*
+   * The families the panel actually offered: the step being moved from, under
+   * this screen's Area and Prayer Group filter — and never the status the page
+   * happens to be filtered to, which narrows the table below and has nothing
+   * to do with which step the office is emptying.
+   */
+  const inSource = await Family.listByStatus(req.churchId, {
+    ...filter,
+    status: verification.isStatus(from) ? from : ''
+  });
+
+  const picked = pickFrom(req, inSource);
+  if (!picked.length) return backToStatus(res, filter, NOTHING_SELECTED, 'error');
+
+  const label = verification.statusLabel(to);
+  const notes = [];
+  let targets = picked;
+
+  if (to === 'approved') {
+    const { clear, held } = await withoutOpenProposals(req, targets);
+    targets = clear;
+    if (held) {
+      notes.push(
+        `${howMany(held)} left alone — corrections are still waiting in the ` +
+        'review queue, and those are approved line by line.'
+      );
+    }
+  }
+
+  if (to === 'ready_for_printing') {
+    const unapproved = targets.filter((f) => f.is_published && f.verify_status !== 'approved').length;
+    const unpublished = targets.filter((f) => !f.is_published).length;
+    targets = targets.filter((f) => f.is_published && f.verify_status === 'approved');
+
+    if (unapproved) {
+      notes.push(
+        `${howMany(unapproved)} not approved yet, and an entry goes into the ` +
+        'book only once it has been approved.'
+      );
+    }
+    if (unpublished) {
+      notes.push(
+        `${howMany(unpublished)} not in the printed directory — a draft entry ` +
+        'is not part of the run. Use "Include in the printed book" first.'
+      );
+    }
+  }
+
+  const backwards = targets.filter((f) => !verification.canMove(f.verify_status, to));
+  targets = targets.filter((f) => verification.canMove(f.verify_status, to));
+  if (backwards.length) {
+    notes.push(
+      `${howMany(backwards.length)} left where they were — the chain does not ` +
+      `run backwards to ${label}.`
+    );
+  }
+
+  const moved = await Family.setStatusMany(req.churchId, targets.map((f) => f.id), to);
+
+  /*
+   * Approval is what the print run reads, so a family already in the book
+   * follows straight on to Ready for Printing — the same rule the Approve
+   * button and routes/review.js both apply. The two paths to Approved must not
+   * leave families in different places.
+   */
+  let ready = 0;
+  if (to === 'approved') {
+    ready = await Family.setStatusMany(
+      req.churchId,
+      targets.filter((f) => f.is_published).map((f) => f.id),
+      'ready_for_printing'
+    );
+  }
+
+  await audit.record(req, 'family.stage_moved', {
+    churchId: req.churchId,
+    detail: `${moved} family/families moved from ` +
+      `${verification.statusLabel(from)} to ${label}` +
+      (notes.length ? `; ${picked.length - moved} left behind` : '')
+  });
+
+  const parts = [`${howMany(moved)} moved to ${label}.`];
+  if (ready) {
+    parts.push(`${ready} of them are in the printed book and are now Ready for Printing.`);
+  }
+
+  return backToStatus(res, filter, parts.concat(notes).join(' '),
+    moved ? 'notice' : 'error');
 }));
 
 
@@ -890,6 +1089,74 @@ router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) 
   if (existing.photo && existing.photo !== data.photo) removePhoto(req.churchId, existing.photo);
 
   res.redirect(`/families/${existing.id}`);
+}));
+
+/**
+ * Deleting a batch of families the office has ticked on the list.
+ *
+ * This exists for one job in particular: a parish that has imported a sheet,
+ * found it wrong, and wants the old entries out before importing the corrected
+ * one. Family IDs are unique within a parish and an import never overwrites
+ * one, so without a way to clear the old rows the second import skips every
+ * family in the file — and doing it one household at a time through the edit
+ * form is not a realistic instruction for four hundred of them.
+ *
+ * Two things it will not do.
+ *
+ * It will not act on a POST that carries no ids. On the status screen a bare
+ * POST means "the whole view", which is a convenience for the buttons that
+ * mark and approve; for a button that deletes it would be a way to lose a
+ * parish by pressing the wrong thing, so here an empty list means nothing and
+ * says so.
+ *
+ * It will not reach outside this church. The ticked ids are intersected with
+ * the families this church actually holds rather than trusted, so a hand-made
+ * POST cannot delete another parish's households.
+ */
+router.post('/delete', isAdmin, wrap(async (req, res) => {
+  const search = String(req.query.q || '');
+  const back = '/families' + (search ? '?q=' + encodeURIComponent(search) : '');
+  const say = (message, key = 'notice') =>
+    res.redirect(back + (search ? '&' : '?') + `${key}=` + encodeURIComponent(message));
+
+  const ids = [...new Set(
+    [].concat(req.body.family_ids || []).map(Number).filter(Number.isInteger)
+  )];
+  if (!ids.length) {
+    return say('No family was ticked, so nothing was deleted.', 'error');
+  }
+
+  /*
+   * Read each one first. `remove` is scoped to the church itself and would
+   * refuse anything else, but the rows are wanted anyway: the photograph has
+   * to be unlinked once the row that pointed at it is gone, and the audit line
+   * should name the families that went rather than only count them.
+   */
+  const found = [];
+  for (const id of ids) {
+    const family = await Family.findById(req.churchId, id);
+    if (family) found.push(family);
+  }
+  if (!found.length) {
+    return say('Those families are no longer in the directory.', 'error');
+  }
+
+  const gone = [];
+  for (const family of found) {
+    if (!await Family.remove(req.churchId, family.id)) continue;
+    if (family.photo) removePhoto(req.churchId, family.photo);
+    gone.push(`${family.family_id} ${family.head_name}`);
+  }
+
+  await audit.record(req, 'family.deleted', {
+    churchId: req.churchId,
+    detail: `${gone.length} family/families deleted: ${gone.join('; ')}`
+  });
+
+  return say(
+    `${howMany(gone.length)} deleted, with their members, photographs, logins ` +
+    'and any corrections that were waiting for review.'
+  );
 }));
 
 router.post('/:id(\\d+)/delete', canEdit, wrap(async (req, res, next) => {

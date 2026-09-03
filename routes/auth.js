@@ -200,7 +200,7 @@ router.post('/family-login', wrap(async (req, res) => {
   });
 
   if (isLockedOut(key)) {
-    return fail('Too many attempts. Please wait 15 minutes and try again.', 429);
+    return fail('Too many failed attempts. Please wait 15 minutes and try again.', 429);
   }
   if (!Number.isInteger(churchId) || !familyRef || !pin) {
     return fail('Choose your parish, and enter your Family ID and PIN.', 400);

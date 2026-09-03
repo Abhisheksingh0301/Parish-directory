@@ -245,6 +245,51 @@ a:hover { color: var(--ink); }
 }
 .field .help { font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
 
+/*
+ * A choice between two whole courses of action, rather than a value to type.
+ * Each option carries the paragraph that explains what it will do, because
+ * "skip" and "update" are the same length on screen and nothing else on the
+ * page says which one loses data.
+ */
+.field.choice {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px 6px;
+  margin: 0 0 16px;
+}
+.field.choice legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.choice-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  cursor: pointer;
+  /* Overrides .field label, which is the uppercase caption style. */
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  margin: 0;
+}
+.choice-row + .choice-row { border-top: 1px solid var(--line); }
+.choice-row input[type=radio] {
+  width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  flex: none;
+  cursor: pointer;
+  accent-color: var(--ink);
+}
+.choice-row .help { display: block; margin-top: 3px; }
+
 input[type=text], input[type=password], input[type=email], input[type=number],
 input[type=search], input[type=date], select, textarea {
   width: 100%;
@@ -747,6 +792,153 @@ body.auth {
   color: var(--ink-faint);
   margin-top: 3px;
 }
+
+/*
+ * The bar above the families list, where a ticked batch is deleted. It is the
+ * page's one destructive control, so it sits in a card of its own with the
+ * warning beside the button rather than under the table where the ticks are.
+ */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  border-color: #d9b4aa;
+}
+.bulk-bar .btn.danger[disabled] { opacity: .5; cursor: not-allowed; }
+.bulk-bar .help { flex: 1 1 320px; }
+
+/*
+ * The chain as a pair of ends rather than eight separate links.
+ *
+ * A step being moved *from* is inked in the page's own dark; the step being
+ * moved *to* takes the green this stylesheet already uses for anything
+ * settled, so which end is which is legible without reading the labels. The
+ * steps the chain will not run to are dimmed in place: their counts are still
+ * worth reading, and a tile that disappeared under the pointer would move the
+ * other seven out from under it.
+ */
+.chain-step { position: relative; }
+.chain-step .role {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
+  display: none;
+}
+.chain-step.is-source {
+  border-color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgba(44, 39, 33, .06);
+}
+.chain-step.is-source .role { display: inline-block; background: var(--ink); }
+.chain-step.is-target {
+  border-color: var(--ok);
+  background: var(--ok-bg);
+}
+.chain-step.is-target .n { color: var(--ok); }
+.chain-step.is-target .role { display: inline-block; background: var(--ok); }
+/* Dimmed, not disabled: it is still the link to those families. */
+.chain-step.is-unreachable { opacity: .4; }
+
+.chain-lede { margin: 0 0 12px; }
+.chain-hint {
+  margin: 14px 2px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ---------- moving a batch from one step to another ---------- */
+
+.move-panel {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper);
+}
+.move-panel[hidden] { display: none; }
+
+.move-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--paper-warm);
+  border-bottom: 1px solid var(--line);
+}
+.move-bar .route { display: flex; align-items: center; gap: 10px; }
+.move-bar .chip {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.move-bar .chip.from { background: var(--band); color: var(--ink); }
+.move-bar .chip.to { background: var(--ok-bg); color: var(--ok); }
+.move-bar .arrow { color: var(--ink-faint); }
+.move-count { margin-left: auto; font-size: 13px; color: var(--ink-faint); }
+.move-count b { color: var(--ink); }
+
+.move-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #6b4f2a;
+  cursor: pointer;
+}
+.linkbtn.muted { color: var(--ink-faint); }
+.linkbtn:hover { text-decoration: underline; }
+.move-see { margin-left: auto; font-size: 12.5px; }
+.move-see[hidden] { display: none; }
+
+/* Tall enough to scan a step at a glance, short enough that the tiles above
+   and the batch buttons below stay on the screen with it. */
+.move-list { max-height: 300px; overflow-y: auto; }
+.move-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.move-row:last-child { border-bottom: none; }
+.move-row:hover { background: var(--paper-warm); }
+.move-row input { width: 16px; height: 16px; cursor: pointer; }
+.move-who { font-weight: 500; }
+.move-meta { margin-left: auto; font-size: 12.5px; color: var(--ink-faint); }
+.move-empty { margin: 0; padding: 22px 14px; text-align: center; color: var(--ink-faint); }
+
+.move-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 14px;
+  background: var(--paper-warm);
+}
+.move-actions .move-note { margin: 0; flex: 1 1 240px; }
 
 .filter-bar {
   display: flex;

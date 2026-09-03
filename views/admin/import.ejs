@@ -49,19 +49,52 @@
 
 <% if (result) { %>
   <div class="alert notice">
+<%
+      /* "Imported 12 families and 41 people", "Updated 380 families already in
+         the directory", or both halves joined — built here rather than spelled
+         out in four nested conditions in the markup. */
+      const done = [];
+      if (result.families) {
+        done.push(`imported ${result.families} famil${result.families === 1 ? 'y' : 'ies'}` +
+          (result.people ? ` and ${result.people} ${result.people === 1 ? 'person' : 'people'}` : ''));
+      }
+      if (result.updated) {
+        done.push(`updated ${result.updated} famil${result.updated === 1 ? 'y' : 'ies'} ` +
+          'already in the directory');
+      }
+      const sentence = done.join(', and ');
+    %>
     <strong>
-      Imported <%= result.families %> famil<%= result.families === 1 ? 'y' : 'ies' %><%
-        %><%= result.people ? ` and ${result.people} people` : '' %><%
+      <%= sentence.charAt(0).toUpperCase() + sentence.slice(1) %><%
         %><%= fileName ? ` from ${fileName}` : '' %>.
     </strong>
-    <p style="margin:8px 0 0">
-      They arrived as <strong>drafts</strong>, so nothing has entered the
-      printed book yet &mdash; look them over in
-      <a href="<%= base %>/families">Families</a> and publish the
-      ones that are right. <strong>No logins were created:</strong> accounts
-      stay a separate, deliberate step on
-      <a href="<%= base %>/admin/users">User accounts</a>.
-    </p>
+
+    <% if (result.families) { %>
+      <p style="margin:8px 0 0">
+        The new families arrived as <strong>drafts</strong>, so nothing has
+        entered the printed book yet &mdash; look them over in
+        <a href="<%= base %>/families">Families</a> and publish the
+        ones that are right. <strong>No logins were created:</strong> accounts
+        stay a separate, deliberate step on
+        <a href="<%= base %>/admin/users">User accounts</a>.
+      </p>
+    <% } %>
+
+    <% if (result.updated) { %>
+      <p style="margin:8px 0 0">
+        The families that were already here kept their photographs, their place
+        in the printed book and their place on the verification chain; only the
+        cells your sheet filled in were written.
+        <% if (result.membersReplaced) { %>
+          <%= result.membersReplaced %> of them had
+          <%= result.membersReplaced === 1 ? 'its' : 'their' %> member list
+          rebuilt from the sheet.
+        <% } else { %>
+          Your sheet carried no member rows for them, so their households were
+          left as they were.
+        <% } %>
+      </p>
+    <% } %>
 
     <% if (result.adjusted.length) { %>
       <p style="margin:10px 0 4px">Decisions made for you, so you can check them:</p>
@@ -152,6 +185,56 @@
     </p>
   </div>
 
+  <%
+    /*
+     * The second sheet a parish uploads is usually the first one with the
+     * addresses put right, and every Family ID on it is already here. Left to
+     * itself the import skips all of them and the office is told, correctly
+     * and uselessly, that its whole parish is already in the directory.
+     *
+     * So the office says which of the two it means, and the safe reading is
+     * the one that is already chosen: a Family ID the directory holds stops
+     * the import unless somebody has deliberately said otherwise.
+     */
+  %>
+  <fieldset class="field choice">
+    <legend>A Family ID this directory already holds</legend>
+
+    <label class="choice-row">
+      <input type="radio" name="on_existing" value="skip"
+             <%= onExisting === 'update' ? '' : 'checked' %>>
+      <span>
+        <strong>Stop, and tell me which rows</strong>
+        <span class="help">
+          Nothing is written. Use this for families the directory does not
+          have yet.
+        </span>
+      </span>
+    </label>
+
+    <label class="choice-row">
+      <input type="radio" name="on_existing" value="update"
+             <%= onExisting === 'update' ? 'checked' : '' %>>
+      <span>
+        <strong>Update that family from the sheet</strong>
+        <span class="help">
+          For re-uploading a corrected sheet. Filled-in cells overwrite;
+          <strong>blank cells change nothing</strong>. If the sheet lists
+          members for a family, they <strong>replace that family&rsquo;s
+          member list</strong>. Photographs, printed-book inclusion and
+          verification status are left as they are.
+        </span>
+      </span>
+    </label>
+
+    <p class="help">
+      Replacing a family&rsquo;s members drops any correction it has waiting in
+      the <a href="<%= base %>/review">review queue</a>. Nothing breaks, but
+      that correction will not arrive &mdash; clear the queue first if it holds
+      anything you need.
+    </p>
+  </fieldset>
+
   <div class="actions">
     <button type="submit" class="btn">Check and import</button>
   </div>
@@ -172,11 +255,12 @@
     sheet is not wrong either way.
   </p>
   <p class="help">
-    Two families must never share a Family ID, and a Family ID this parish
-    already holds stops the import and is reported with its row number. Take
-    that family&rsquo;s rows out of the sheet, or give the new family a Family
-    ID of its own &mdash; a record the office has corrected by hand is never
-    overwritten by an import somebody runs twice.
+    Two families must never share a Family ID. A Family ID this parish already
+    holds stops the import and is reported with its row number, unless you have
+    asked for those families to be updated from the sheet &mdash; so a record
+    the office corrected by hand is never overwritten by an import somebody
+    runs twice by accident, and a corrected sheet can still be re-uploaded on
+    purpose.
   </p>
 </div>
 
@@ -205,7 +289,7 @@
           <td>
             <strong><%= columnLabels[field] %></strong>
             <% if (required.includes(field)) { %>
-              <span class="tag">required</span>
+              <span class="tag">Required</span>
             <% } %>
           </td>
           <td class="help">
@@ -272,7 +356,7 @@
   </p>
 
   <p class="help">
-    <strong>Mobile numbers.</strong> Ten digits beginning 6, 7, 8 or 9. A
+    <strong>Mobile numbers.</strong> Ten digits beginning with 6, 7, 8 or 9. A
     leading <code>0</code> is taken off rather than refused, spaces and dashes
     are ignored, and a member may list up to three numbers separated by commas.
   </p>
@@ -308,10 +392,11 @@
     work out the shape of afterwards.
   </p>
   <p class="help">
-    <strong>Nothing already here is touched.</strong> A Family ID this parish
-    already holds is reported as a problem to fix in the sheet, not merged and
-    not overwritten. A correction the office has made by hand cannot be undone
-    by an import somebody runs twice.
+    <strong>Nothing already here is touched unless you ask.</strong> A Family ID
+    this parish already holds is reported as a problem to fix in the sheet
+    &mdash; never merged, never overwritten &mdash; unless you chose to update
+    those families above. So an import run twice by accident cannot undo a
+    correction the office made by hand.
   </p>
   <p class="help">
     Everything that arrives arrives as a <strong>draft</strong> &mdash; nothing

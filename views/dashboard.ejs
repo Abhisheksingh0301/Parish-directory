@@ -88,7 +88,7 @@
     </a>
     <% if (waiting) { %>
       <a href="<%= base %>/review" class="btn">
-        Review <%= waiting %> waiting <%= waiting === 1 ? 'change' : 'changes' %>
+        Review <%= waiting %> <%= waiting === 1 ? 'change' : 'changes' %> waiting
       </a>
     <% } %>
   </div>
@@ -121,7 +121,7 @@
               </td>
               <td class="nowrap"><%= item.label %></td>
               <td class="nowrap right" style="color:var(--ink-faint)">
-                <%= item.inDays === 0 ? 'Today' : (item.inDays === 1 ? 'Tomorrow' : 'in ' + item.inDays + ' days') %>
+                <%= item.inDays === 0 ? 'Today' : (item.inDays === 1 ? 'Tomorrow' : 'In ' + item.inDays + ' days') %>
               </td>
             </tr>
           <% }); %>
@@ -146,7 +146,7 @@
         details — drafts stay out of the printed book.
       </li>
       <li>
-        <a href="<%= base %>/directory">Open the print directory</a> and use your browser's
+        <a href="<%= base %>/directory">Open the print directory</a> and use your browser&rsquo;s
         print dialog to save it as a PDF or send it to a printer.
       </li>
       <% if (isAdmin) { %>

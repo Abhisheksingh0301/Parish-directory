@@ -87,6 +87,47 @@
   </details>
 <% } %>
 
+<%
+  /*
+   * Deleting a batch of families.
+   *
+   * A parish re-importing a corrected spreadsheet needs the old entries out of
+   * the way first, or the Family IDs collide and the import skips every one of
+   * them. Doing that one family at a time through the edit form is not a
+   * realistic instruction for four hundred households.
+   *
+   * So the list ticks, exactly as the verification screen does — with one
+   * deliberate difference. That screen starts with everything ticked, because
+   * its buttons mark and approve. This one starts with nothing ticked, because
+   * its button deletes, and a delete control that arrives pre-loaded with the
+   * whole parish is a different kind of thing altogether.
+   *
+   * The server refuses a POST that carries no ids at all, so an empty tick
+   * list can never be read as "all of them" here.
+   */
+%>
+<% if (isAdmin && families.length) { %>
+  <form id="family-bulk" method="post"
+        action="<%= base %>/families/delete<%= search ? '?q=' + encodeURIComponent(search) : '' %>"
+        data-batch-form data-batch-start="none">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="card bulk-bar">
+      <button type="submit" class="btn danger"
+              data-batch-confirm="Delete %n permanently? Their members, photographs, logins and any corrections waiting in the review queue go with them. This cannot be undone."
+              disabled>
+        Delete <span data-batch-count>0</span> selected
+      </button>
+      <p class="help" style="margin:0">
+        Tick the families to delete. Deleting takes their members, photographs,
+        logins and any corrections still waiting in the review queue with them,
+        and cannot be undone &mdash;
+        <a href="<%= base %>/admin/export">download your data</a> first if you
+        are clearing the directory to re-import a corrected sheet.
+      </p>
+    </div>
+<% } %>
+
 <div class="card" style="padding:0;overflow:hidden">
   <% if (!families.length) { %>
     <div class="empty">
@@ -102,6 +143,12 @@
       <table class="table">
         <thead>
           <tr>
+            <% if (isAdmin) { %>
+              <th class="tick">
+                <input type="checkbox" data-batch-all
+                       aria-label="Select every family shown">
+              </th>
+            <% } %>
             <th style="width:90px">ID</th>
             <th>Family head</th>
             <th>Residence</th>
@@ -114,6 +161,12 @@
         <tbody>
           <% families.forEach(function (f) { %>
             <tr>
+              <% if (isAdmin) { %>
+                <td class="tick">
+                  <input type="checkbox" name="family_ids" value="<%= f.id %>"
+                         aria-label="Select <%= f.head_name %>">
+                </td>
+              <% } %>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
               <td>
                 <a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a>
@@ -150,6 +203,8 @@
   <% } %>
 </div>
 
+<% if (isAdmin && families.length) { %></form><% } %>
+
 <% if (families.length) { %>
   <p class="help" style="color:var(--ink-faint);font-size:14px">
     <%= families.length %> <%= families.length === 1 ? 'family' : 'families' %> shown.
@@ -157,5 +212,8 @@
 <% } %>
 
 <script src="<%= base %>/javascripts/copy-emails.js"></script>
+<% if (isAdmin) { %>
+  <script src="<%= base %>/javascripts/batch-select.js"></script>
+<% } %>
 
 <%- include('../partials/footer') %>

@@ -21,7 +21,7 @@
     <strong>
       No photographs were imported<%= fileName ? ` from ${fileName}` : '' %>.
       <% if (problemCount > 1) { %>
-        There are <%= problemCount %> files to put right first.
+        There are <%= problemCount %> files to fix first.
       <% } %>
     </strong>
     <ul>
@@ -29,7 +29,7 @@
         <li><%= problem.message %></li>
       <% }); %>
       <% if (problemsHidden) { %>
-        <li>&hellip;and <%= problemsHidden %> more. Put these right first &mdash;
+        <li>&hellip;and <%= problemsHidden %> more. Fix these first &mdash;
           the same mistake usually explains the rest.</li>
       <% } %>
     </ul>

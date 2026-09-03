@@ -57,10 +57,32 @@
   <% if (query) { %><a href="<%= base %>/families/status" class="btn ghost small">Clear</a><% } %>
 </form>
 
+<%
+  /*
+   * The chain, and the way families move along it.
+   *
+   * Each step is still a link to the families standing at it, which is what
+   * the tiles have always been and what they remain with scripting off. With
+   * scripting on they are also the two ends of a move: press the step to take
+   * families *from*, press the step to take them *to*, tick the households in
+   * between, and one POST carries them across.
+   *
+   * The counts are the whole view whatever the status filter says — a screen
+   * narrowed to "Approved" must still be able to empty "Invitation Sent" — so
+   * the filter above narrows the table below, never the chain itself.
+   */
+%>
 <div class="card">
   <h2>The chain <span class="hint">— <%= total %> famil<%= total === 1 ? 'y' : 'ies' %> in this view</span></h2>
 
-  <div class="chain">
+  <% if (isAdmin) { %>
+    <p class="help chain-lede">
+      Pick a step to move families <strong>from</strong>, then the step to move
+      them <strong>to</strong>, and tick the households to carry across.
+    </p>
+  <% } %>
+
+  <div class="chain" id="chain">
     <% statuses.forEach(function (step) { %>
       <%
         const stepQuery = [
@@ -70,12 +92,62 @@
         ].filter(Boolean).join('&');
       %>
       <a class="chain-step <%= counts[step.key] ? '' : 'is-empty' %> <%= filter.status === step.key ? 'is-current' : '' %>"
-         href="<%= base %>/families/status?<%= stepQuery %>">
+         href="<%= base %>/families/status?<%= stepQuery %>"
+         data-stage="<%= step.key %>" data-label="<%= step.label %>">
+        <span class="role" aria-hidden="true"></span>
         <span class="n"><%= counts[step.key] %></span>
         <span class="k"><%= step.label %></span>
       </a>
     <% }); %>
   </div>
+
+  <% if (isAdmin) { %>
+    <p class="chain-hint" id="chain-hint" hidden></p>
+
+    <%#
+      The panel the move happens in. It is a real form with real checkboxes
+      posting to a real route: the script fills the list and the two hidden
+      steps, and everything the server acts on came back in that POST. It
+      starts hidden and stays hidden with scripting off, because a panel with
+      no families in it is a control that does nothing.
+    %>
+    <form class="move-panel" id="chain-move" method="post"
+          action="<%= base %>/families/status/move<%= query %>" hidden>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%# The same marker the batch buttons use: "nothing ticked" and "no list
+          sent" mean opposite things, and this is what tells them apart. %>
+      <input type="hidden" name="selection" value="1">
+      <input type="hidden" name="from" value="" data-move-from>
+      <input type="hidden" name="to" value="" data-move-to>
+
+      <div class="move-bar">
+        <span class="route">
+          <span class="chip from" data-move-from-label>—</span>
+          <span class="arrow" aria-hidden="true">&rarr;</span>
+          <span class="chip to" data-move-to-label>—</span>
+        </span>
+        <span class="move-count"><b data-move-count>0</b> ticked</span>
+      </div>
+
+      <div class="move-tools">
+        <button type="button" class="linkbtn" data-move-all>Tick all</button>
+        <button type="button" class="linkbtn muted" data-move-none>Clear</button>
+        <a class="move-see" data-move-see href="<%= base %>/families/status">See them in the list below</a>
+      </div>
+
+      <div class="move-list" data-move-list></div>
+
+      <div class="move-actions">
+        <button type="submit" class="btn" data-move-go disabled>Move 0 families</button>
+        <button type="button" class="btn ghost" data-move-cancel>Cancel</button>
+        <span class="help move-note" data-move-note></span>
+      </div>
+    </form>
+
+    <script type="application/json" id="chain-data">
+      <%- JSON.stringify({ stages: stages, moves: moves }).replace(/</g, '\u003c') %>
+    </script>
+  <% } %>
 </div>
 
 <%
@@ -180,7 +252,8 @@
 <% } %>
 
 <% if (isAdmin) { %>
-  <form id="<%= batchForm %>" method="post" action="<%= base %>/families/approved<%= query %>">
+  <form id="<%= batchForm %>" method="post" action="<%= base %>/families/approved<%= query %>"
+        data-batch-form>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <%# Tells the server this POST carries a tick-list, so "none ticked" cannot
         be mistaken for "no list sent, act on the whole view". %>
@@ -242,6 +315,7 @@
 
 <% if (isAdmin) { %>
   <script src="<%= base %>/javascripts/batch-select.js"></script>
+  <script src="<%= base %>/javascripts/chain-transfer.js"></script>
 <% } %>
 
 <%- include('../partials/footer') %>

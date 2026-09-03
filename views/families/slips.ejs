@@ -45,7 +45,7 @@
 
   <% if (skipped.length) { %>
     <div class="warn">
-      <strong>No slip for <%= skipped.length %>:</strong>
+      <strong>No slip for <%= skipped.length %> famil<%= skipped.length === 1 ? 'y' : 'ies' %>:</strong>
       <ul style="margin:6px 0 0"><% skipped.forEach(function (why) { %><li><%= why %></li><% }); %></ul>
     </div>
   <% } %>

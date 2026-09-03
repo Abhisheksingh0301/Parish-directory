@@ -68,7 +68,7 @@
              data-tag-pattern="<%= mobilePatternOne %>"
              data-tag-strip="[\s()\-.]"
              maxlength="<%= mobileMaxInput %>" pattern="<%= mobilePattern %>"
-             title="Up to <%= maxMobiles %> numbers, one at a time — type a number and press comma. Each is <%= mobileDigits %> digits beginning 6, 7, 8 or 9, like 9876543210. A leading 0 is fine; letters and a country code are not."
+             title="Up to <%= maxMobiles %> numbers, one at a time — type a number and press comma. Each is <%= mobileDigits %> digits beginning with 6, 7, 8 or 9, like 9876543210. A leading 0 is fine; letters and a country code are not."
              placeholder="9876543210, then comma">
     </div>
 
@@ -168,7 +168,7 @@
       </div>
 
       <div class="field">
-        <label for="head_name">Family head name</label>
+        <label for="head_name">Family head</label>
         <input type="text" id="head_name" name="head_name" value="<%= family.head_name %>" required>
         <p class="help">
           Prints in the large band at the top of the entry. Kept the same as
@@ -210,7 +210,7 @@
 
     <div class="grid-2">
       <div class="field">
-        <label for="prayer_group">Prayer group</label>
+        <label for="prayer_group">Prayer Group</label>
         <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>"
                list="prayer-group-names">
       </div>
@@ -254,7 +254,7 @@
                    <%= family.is_published ? 'checked' : '' %>>
             Include this family when printing
           </label>
-          <p class="help">Uncheck to keep it as a draft while details are still being collected.</p>
+          <p class="help">Untick to keep it as a draft while details are still being collected.</p>
         </div>
       <% } %>
     </div>
@@ -288,10 +288,11 @@
   <div class="card">
     <h2>Family members</h2>
     <p class="help" style="margin:-8px 0 14px">
-      The first two rows share the DOM cell in the printed table, matching the
-      directory layout — so put the spouse second. If the second row is a son
-      or daughter the cell stays on the first row instead, rather than reading
-      as a child's wedding date. Rows with an empty name are ignored.
+      The first two rows share the Date of marriage cell in the printed table,
+      matching the directory layout — so put the spouse second. If the second
+      row is a son or daughter, the cell stays on the first row instead, rather
+      than reading as a child&rsquo;s wedding date. Rows with an empty name are
+      ignored.
     </p>
 
     <div class="members-editor" id="members-editor">
@@ -323,8 +324,8 @@
           <button type="button" class="btn ghost" id="add-relation-go">Add to the list</button>
         </div>
         <p class="help" id="add-relation-note">
-          Adds to the relations every family form suggests. You can also just type
-          a one-off relation straight into a member row above, or edit the whole
+          Adds to the relations every family form suggests. You can also type a
+          one-off relation straight into a member row above, or edit the whole
           list under <a href="<%= base %>/admin/settings">Settings</a>.
         </p>
       </div>
@@ -346,7 +347,7 @@
 
   <div class="actions">
     <button type="submit" class="btn">
-      <%= isNew ? 'Create family' : (isOwnEntry ? 'Send our corrections' : 'Save changes') %>
+      <%= isNew ? 'Add family' : (isOwnEntry ? 'Send our corrections' : 'Save changes') %>
     </button>
     <a href="<%= base + (isNew ? '/families' : '/families/' + family.id) %>" class="btn ghost">Cancel</a>
 
@@ -363,7 +364,7 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <h2 style="color:var(--danger)">Delete this family</h2>
     <p class="help" style="margin:-8px 0 14px">
-      Removes the entry, its members and its photograph permanently.
+      Deletes the entry, its members and its photograph permanently.
     </p>
     <button type="submit" class="btn danger">Delete <%= family.head_name %></button>
   </form>

@@ -1,4 +1,4 @@
-/* Keeps "Family head name" and the first member row's name the same.
+/* Keeps "Family head" and the first member row's name the same.
 
    The family's head is always its first member row — the help text on this
    form already asks for the spouse second — so the two fields are really one

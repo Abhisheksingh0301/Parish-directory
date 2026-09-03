@@ -89,13 +89,19 @@ function makeClient() {
   };
 
   /** POST a file to `urlPath` as multipart/form-data. */
-  client.upload = async (urlPath, { field = 'sheet', filename, content, csrf }) => {
+  client.upload = async (urlPath, { field = 'sheet', filename, content, csrf, fields = {} }) => {
     const boundary = `----parishtest${Date.now().toString(16)}`;
+    // The plain fields the form posts beside the file: the CSRF token, and
+    // whatever the office chose on the page.
+    const plain = Object.entries({ _csrf: csrf, ...fields })
+      .map(([name, value]) => `--${boundary}\r\n`
+        + `Content-Disposition: form-data; name="${name}"\r\n\r\n`
+        + `${value}\r\n`)
+      .join('');
+
     const body = Buffer.concat([
       Buffer.from(
-        `--${boundary}\r\n`
-        + 'Content-Disposition: form-data; name="_csrf"\r\n\r\n'
-        + `${csrf}\r\n`
+        plain
         + `--${boundary}\r\n`
         + `Content-Disposition: form-data; name="${field}"; filename="${filename}"\r\n`
         + 'Content-Type: text/csv\r\n\r\n', 'utf8'
@@ -176,8 +182,8 @@ async function main() {
   await signIn(admin, 'alpha-admin');
 
   const token = csrfFrom((await admin('GET', '/admin/import')).body);
-  const post = (filename, content) =>
-    admin.upload('/admin/import', { filename, content, csrf: token });
+  const post = (filename, content, fields) =>
+    admin.upload('/admin/import', { filename, content, csrf: token, fields });
 
   console.log('');
   console.log('--- a sheet with something wrong in it imports nothing at all ---');
@@ -294,6 +300,92 @@ async function main() {
     'a re-upload changed the directory');
 
   console.log('');
+  console.log('--- unless the office asks for those families to be updated ---');
+
+  /*
+   * The second sheet a parish uploads is the first one with the addresses put
+   * right, and every Family ID on it is already here. Asked for, that is an
+   * update rather than a clash — and the checks below are mostly about what an
+   * update must leave alone.
+   */
+
+  // The office has since published F-001 and given it a photograph. Neither is
+  // the sheet's business: there is no column for either.
+  const before = await db.Family.findOne({
+    where: { church_id: church.id, family_id: 'F-001' }
+  });
+  await before.update({ is_published: true, photo: 'kept.jpg' });
+
+  const CORRECTED = HEAD
+    + 'F-001,Thomas Mathew,"13 New Road\nTown",,thomas@example.com,'
+      + '14-Feb-1990,Thomas Mathew,HF,02-Aug-1965,9000000001,thomas@example.com\r\n'
+    + 'F-001,,,,,,Susan Thomas,D,05-May-2003,9000000005,\r\n'
+    + 'F-003,Peter Jacob,9 Market Street,St Peter,peter@example.com,'
+      + ',Peter Jacob,HF,01-Jan-1980,9000000006,\r\n';
+
+  res = await post('corrected.csv', CORRECTED, { on_existing: 'update' });
+  check('the sheet is accepted rather than refused as a clash',
+    res.status === 200 && !res.body.includes('Nothing was imported'), `status ${res.status}`);
+  check('and the page separates what arrived from what was updated',
+    res.body.includes('Imported 1 family and 1 person') &&
+    res.body.includes('updated 1 family already in the directory'),
+    'the report did not say what it did');
+
+  const updated = await db.Family.findOne({
+    where: { church_id: church.id, family_id: 'F-001' }, raw: true
+  });
+  check('a corrected cell is written', updated.address.includes('13 New Road'), updated.address);
+  check('a blank cell changes nothing',
+    updated.prayer_group === 'St Peter', JSON.stringify(updated.prayer_group));
+  check('the photograph is not wiped by a sheet that has no column for it',
+    updated.photo === 'kept.jpg', JSON.stringify(updated.photo));
+  check("and neither is the office's decision to print the family",
+    !!updated.is_published, 'an import took a family out of the printed book');
+
+  const household = await db.Member.findAll({
+    where: { family_id: updated.id }, order: [['position', 'ASC']], raw: true
+  });
+  check('the member list is the sheet, whole',
+    household.length === 2 && household.map((m) => m.name).join(', ')
+      === 'Thomas Mathew, Susan Thomas',
+    household.map((m) => m.name).join(', '));
+
+  check('a family not on the sheet is left alone',
+    (await db.Member.count({
+      where: {
+        family_id: (await db.Family.findOne({
+          where: { church_id: church.id, family_id: 'F-002' }, raw: true
+        })).id
+      }
+    })) === 2, 'F-002 lost members to a sheet it was not on');
+
+  const arrived = await db.Family.findOne({
+    where: { church_id: church.id, family_id: 'F-003' }, raw: true
+  });
+  check('a family that is genuinely new still arrives in the same pass', !!arrived);
+  check('and arrives as a draft like any other import',
+    arrived && !arrived.is_published, 'an updating import published a new family');
+
+  // A sheet correcting only the family's own columns, with no member rows on
+  // it at all, is not an instruction to empty the household.
+  const FAMILY_ONLY = HEAD + 'F-001,,,St Jude,,,,,,,\r\n';
+  res = await post('areas.csv', FAMILY_ONLY, { on_existing: 'update' });
+  check('a sheet with no member rows is accepted',
+    !res.body.includes('Nothing was imported'), 'a family-only sheet was refused');
+  check('and leaves the household exactly as it was',
+    (await db.Member.count({ where: { family_id: updated.id } })) === 2,
+    'a family-only sheet emptied a household');
+  check('while still correcting the family column it carried',
+    (await db.Family.findOne({
+      where: { church_id: church.id, family_id: 'F-001' }, raw: true
+    })).prayer_group === 'St Jude', 'the corrected cell was not written');
+
+  // And the default is still to refuse: the option has to be asked for.
+  res = await post('corrected.csv', CORRECTED);
+  check('without asking, a Family ID already here still stops the import',
+    res.body.includes('Nothing was imported'), 'a clash was accepted by default');
+
+  console.log('');
   console.log('--- nothing to upload ---');
   res = await admin('POST', '/admin/import', { _csrf: token });
   check('posting the form with no file chosen says so',
@@ -302,6 +394,8 @@ async function main() {
 
   console.log('');
   console.log('--- who may do it ---');
+
+  const settledCount = await db.Family.count({ where: { church_id: church.id } });
 
   const editor = makeClient();
   await signIn(editor, 'alpha-editor');
@@ -319,7 +413,7 @@ async function main() {
     res.status === 403, `status ${res.status}`);
 
   check('neither of them changed anything',
-    (await db.Family.count({ where: { church_id: church.id } })) === 2,
+    (await db.Family.count({ where: { church_id: church.id } })) === settledCount,
     'an unauthorised upload reached the database');
 
   // The file is parsed before the CSRF check can see `_csrf`, so the check has

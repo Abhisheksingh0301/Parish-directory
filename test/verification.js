@@ -51,7 +51,18 @@ function makeClient() {
   let cookie = '';
   return function request(method, urlPath, body) {
     return new Promise((resolve, reject) => {
-      const data = body ? new URLSearchParams(body).toString() : null;
+      /*
+       * A form posts a repeated field once per value, and URLSearchParams
+       * given an array flattens it to one comma-joined value instead — which
+       * is how a batch of ticked ids arrives at the server as a single
+       * unreadable number. Arrays are expanded here so the test posts what the
+       * browser posts.
+       */
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(body || {})) {
+        for (const one of [].concat(value)) params.append(key, one);
+      }
+      const data = body ? params.toString() : null;
       const req = http.request({
         host: '127.0.0.1',
         port: PORT,
@@ -589,6 +600,101 @@ async function main() {
 
   // -------------------------------------------------------------------------
   console.log('');
+  console.log('--- moving a batch from one step of the chain to another ---');
+
+  // The chain on the status screen is a pair of ends as well as eight counts:
+  // a step to move families from, a step to move them to. One route is behind
+  // it, and it has to hold every rule the named batch buttons hold.
+  const movingId = await Family.create(church.id, {
+    family_id: '0005',
+    head_name: 'Zeta Fernandes',
+    address: '5 North Lane',
+    hometown: '', home_parish: '',
+    prayer_group: 'St Thomas', area: 'North',
+    email: '',
+    is_published: true,
+    members: [
+      { name: 'Zeta Fernandes', relation: 'Head', dob_day: null, dob_month: null,
+        dom_day: null, dom_month: null, mobile: '9444444444', blood_group: '',
+        qualification: '', occupation: '', emails: '' }
+    ]
+  });
+
+  res = await office('GET', '/families/status');
+  check('the screen carries the families behind each step',
+    res.body.includes('id="chain-data"'));
+  check('and the panel that moves them', res.body.includes('/families/status/move'));
+
+  // The panel is driven entirely by this blob, so a page that renders and a
+  // blob that parses are two different things worth checking apart.
+  const chainBlob = (res.body.match(
+    /<script type="application\/json" id="chain-data">([\s\S]*?)<\/script>/) || [])[1];
+  let chainData = null;
+  try { chainData = JSON.parse(chainBlob); } catch (err) { chainData = null; }
+  check('the step lists parse as JSON', !!chainData, chainBlob);
+  check('every step of the chain has a list of its own',
+    !!chainData && ['not_started', 'invitation_sent', 'family_reviewing',
+      'changes_submitted', 'under_parish_review', 'approved',
+      'ready_for_printing', 'printed'].every((k) => Array.isArray(chainData.stages[k])));
+  check('a family is offered under the step it is actually standing at',
+    !!chainData && chainData.stages.not_started.some((f) => f.family_id === '0005'));
+  check('the chain will not offer a step it refuses to run to',
+    !!chainData && chainData.moves.ready_for_printing.indexOf('family_reviewing') === -1 &&
+    chainData.moves.not_started.indexOf('approved') !== -1);
+
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'not_started', to: 'family_reviewing', family_ids: String(movingId) });
+  check('a ticked family moves to the step it was dropped on',
+    (await statusOf(movingId)) === 'family_reviewing', await statusOf(movingId));
+
+  // The move panel is not a way around the chain's own direction.
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'ready_for_printing', to: 'family_reviewing',
+      family_ids: String(unpublishedId) });
+  check('the chain does not run backwards',
+    (await statusOf(unpublishedId)) === 'ready_for_printing', await statusOf(unpublishedId));
+  check('and the notice says why',
+    /does not run backwards/.test(decodeURIComponent(res.location || '')), res.location);
+
+  // Nor around the rule that keeps a correction from being buried.
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: beforeBatch, to: 'approved', family_ids: String(familyId) });
+  check('a family with a correction waiting is not swept into Approved by it',
+    (await statusOf(familyId)) === beforeBatch, await statusOf(familyId));
+  check('and its correction is still open for a reviewer',
+    await Pending.familyHasOpen(church.id, familyId));
+
+  // Nor around the rule that keeps an unverified entry out of the print run.
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'family_reviewing', to: 'ready_for_printing',
+      family_ids: String(movingId) });
+  check('an unapproved entry is not carried into the run by it',
+    (await statusOf(movingId)) === 'family_reviewing', await statusOf(movingId));
+  check('and the notice says it has not been approved',
+    /not approved yet/.test(decodeURIComponent(res.location || '')), res.location);
+
+  // Approval through the panel carries a family already in the book on to
+  // Ready for Printing, exactly as the Approve button does.
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'family_reviewing', to: 'approved', family_ids: String(movingId) });
+  check('approving through the panel takes a family in the book on to the run',
+    (await statusOf(movingId)) === 'ready_for_printing', await statusOf(movingId));
+
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'not_started', to: 'nowhere', family_ids: String(movingId) });
+  check('a step that is not on the chain is refused',
+    res.status === 302 && /error=/.test(res.location || ''), res.location);
+
+  res = await post(office, '/families/status', '/families/status/move',
+    { selection: '1', from: 'ready_for_printing', to: 'printed' });
+  check('an empty tick-list is refused here too',
+    /error=/.test(res.location || ''), res.location);
+
+  const movedLog = await auditLib.list({ churchId: church.id, action: 'family.stage_moved' });
+  check('and a move is recorded in the audit log', movedLog.length > 0);
+
+  // -------------------------------------------------------------------------
+  console.log('');
   console.log('--- a family with no email address: Family ID and PIN ---');
 
   res = await post(office, `/families/${noEmailId}`, `/families/${noEmailId}/pin`);
@@ -663,6 +769,75 @@ async function main() {
   const oneQueue = await settingsLib.load(church.id);
   check('with one queue, every line is significant and approved on its own',
     verification.tierOf('mobile', oneQueue) === 'significant');
+
+  // -------------------------------------------------------------------------
+  console.log('');
+  console.log('--- clearing a batch of families off the list ---');
+
+  /*
+   * A parish that has imported a sheet, found it wrong, and wants the old
+   * entries out before importing the corrected one. The list ticks; the button
+   * deletes what is ticked and nothing else.
+   */
+  const doomedA = await Family.create(church.id, {
+    family_id: '0006', head_name: 'Eta Pinto', address: '6 East Lane',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', area: 'East',
+    email: '', is_published: false,
+    members: [{ name: 'Eta Pinto', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '9555555555', blood_group: '',
+      qualification: '', occupation: '', emails: '' }]
+  });
+  const doomedB = await Family.create(church.id, {
+    family_id: '0007', head_name: 'Theta Coelho', address: '7 East Lane',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', area: 'East',
+    email: '', is_published: false,
+    members: [{ name: 'Theta Coelho', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '9666666666', blood_group: '',
+      qualification: '', occupation: '', emails: '' }]
+  });
+
+  const familyCount = async () => (await Family.list(church.id)).length;
+  const standing = await familyCount();
+
+  res = await office('GET', '/families');
+  check('the families list offers a tick against every family',
+    res.body.includes('name="family_ids"'));
+  check('and a select-all in the header', res.body.includes('data-batch-all'));
+  check('the ticks start empty, because this button deletes',
+    res.body.includes('data-batch-start="none"'));
+
+  // A POST carrying no ids is not "all of them" — on a delete it is nothing.
+  res = await post(office, '/families', '/families/delete');
+  check('a delete with nothing ticked is refused',
+    res.status === 302 && /error=/.test(res.location || ''), res.location);
+  check('and the directory is untouched by it',
+    (await familyCount()) === standing, 'an empty delete removed families');
+
+  res = await post(office, '/families', '/families/delete',
+    { family_ids: [String(doomedA), String(doomedB)] });
+  check('the ticked families are deleted', res.status === 302, `status ${res.status}`);
+  check('and only those',
+    (await familyCount()) === standing - 2, `${await familyCount()} left of ${standing}`);
+  check('their members went with them',
+    (await Family.findById(church.id, doomedA)) === null &&
+    (await Family.findById(church.id, doomedB)) === null);
+
+  const deletedLog = await auditLib.list({ churchId: church.id, action: 'family.deleted' });
+  check('the deletion is recorded, naming the families',
+    deletedLog.length > 0 && /0006|0007/.test(deletedLog[0].detail),
+    JSON.stringify(deletedLog[0] && deletedLog[0].detail));
+
+  // Clearing a batch is the administrator's own decision, and a household
+  // signed in to correct its own entry is the last account that should reach
+  // it. The token is the office's, so this is the guard being tested and not
+  // the CSRF check standing in for it.
+  res = await family('POST', '/families/delete', {
+    _csrf: csrfFrom((await office('GET', '/families')).body),
+    family_ids: String(familyId)
+  });
+  check('a family login may not clear a batch', res.status === 403, `status ${res.status}`);
+  check('and nothing went with the attempt',
+    !!(await Family.findById(church.id, familyId)), 'a family login deleted a family');
 
   // -------------------------------------------------------------------------
   console.log('');

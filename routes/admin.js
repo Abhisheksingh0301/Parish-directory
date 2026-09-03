@@ -151,6 +151,8 @@ const AUDIT_EVENTS = [
   { value: 'family.approved', label: 'Changes approved' },
   { value: 'family.rejected', label: 'Changes rejected' },
   { value: 'family.invited', label: 'Invitations marked sent' },
+  { value: 'family.stage_moved', label: 'Moved along the chain' },
+  { value: 'family.deleted', label: 'Families deleted' },
   { value: 'family.pin_issued', label: 'Verification slips issued' },
   { value: 'family.published', label: 'Printed-directory inclusion' },
   { value: 'family.ready_for_printing', label: 'Marked ready for printing' },
@@ -361,7 +363,7 @@ router.post('/relations', wrap(async (req, res) => {
   const fail = (message) => res.status(400).json({ ok: false, message });
 
   if (!name) return fail('Type a relation before adding it.');
-  if (name.length > 40) return fail('That is too long for a relation.');
+  if (name.length > 40) return fail('A relation may be up to 40 characters.');
   // The setting is one comma-separated string, so a comma would split it in two.
   if (name.includes(',')) return fail('A relation cannot contain a comma.');
 
@@ -388,6 +390,10 @@ router.post('/relations', wrap(async (req, res) => {
 function importLocals(req) {
   return {
     title: 'Import members from a spreadsheet',
+    // What to do about a Family ID the directory already holds. Carried back
+    // so a sheet that comes back with problems does not also silently reset
+    // the choice the office made about it.
+    onExisting: req.body && req.body.on_existing === 'update' ? 'update' : 'skip',
     fields: importColumns.FIELDS,
     // Not `labels`: that name already belongs to the diocese/zone vocabulary
     // every view is given.
@@ -465,11 +471,22 @@ router.post('/import', wrap(async (req, res) => {
   // The check. This is the import itself with the writing turned off — the
   // same code, reaching the same tables — rather than a second implementation
   // that describes what the first one would do and drifts away from it.
+  /*
+   * A Family ID this directory already holds is either a mistake or the whole
+   * point, and only the office knows which. Left alone it is a problem that
+   * stops the import, as it always was — a record somebody corrected by hand
+   * is not overwritten by an import run twice by accident. Asked for, it is an
+   * update: the second sheet a parish uploads is usually the first one with
+   * the addresses put right, and every Family ID on it is already here.
+   */
+  const onExisting = req.body.on_existing === 'update' ? 'update' : 'skip';
+
   const check = await importer.runImport({
     churchId: req.churchId,
     churchName: req.church.name,
     families: sheet.families,
-    dryRun: true
+    dryRun: true,
+    onExisting
   });
 
   const problems = [];
@@ -515,12 +532,15 @@ router.post('/import', wrap(async (req, res) => {
     churchId: req.churchId,
     churchName: req.church.name,
     families: sheet.families,
-    dryRun: false
+    dryRun: false,
+    onExisting
   });
 
   await audit.record(req, 'family.imported', {
     churchId: req.churchId,
-    detail: `${outcome.created.length} family/families imported from ${fileName}`
+    detail: `${outcome.created.length} family/families imported` +
+      (outcome.updated.length ? `, ${outcome.updated.length} updated` : '') +
+      ` from ${fileName}`
   });
 
   return page({
@@ -530,6 +550,11 @@ router.post('/import', wrap(async (req, res) => {
       families: outcome.created.length,
       rows: sheet.usable.length,
       people: outcome.created.reduce((total, f) => total + f.members, 0),
+      updated: outcome.updated.length,
+      // How many of the updated families had their member list rebuilt from
+      // the sheet, as against the ones whose rows carried family columns only
+      // and whose households were left as they were.
+      membersReplaced: outcome.updated.filter((f) => f.members_replaced).length,
       adjusted: outcome.adjusted,
       // The check said there was nothing wrong, so anything here happened in
       // the seconds between the two passes — somebody else importing or adding
