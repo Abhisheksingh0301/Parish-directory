@@ -43,10 +43,10 @@
       <input type="text" id="default_member_password" name="default_member_password"
              value="<%= values.default_member_password %>" required minlength="8">
       <p class="help">
-        The one password every household in <em>this church</em> is given when
-        its login is created, so the office can put it in a single email. It is
-        yours alone &mdash; no other church can see it, and each family is asked
-        to change it once they are in.
+        Every household in <em>this church</em> is given this one password
+        when its login is created, so the office can put it in a single
+        email. It belongs to your church alone &mdash; no other church can see
+        it &mdash; and each family is asked to change it once they sign in.
       </p>
     </div>
   </div>
@@ -88,8 +88,8 @@
         <input type="radio" name="approval_tiers" value="2" <%= twoTier ? 'checked' : '' %>>
         <span>
           <strong>Two tiers.</strong>
-          Routine changes may be cleared by an editor, and offered as a single
-          batch; everything else is approved individually by an administrator.
+          An editor may clear routine changes as a single batch. Everything
+          else is approved one at a time by an administrator.
         </span>
       </label>
     </div>
@@ -115,9 +115,9 @@
 
     <p class="help">
       <strong>Never editable by a family:</strong>
-      the Family ID, and inclusion in the printed directory. These are not
-      proposals a family can make at all — they remain with the parish office,
-      and a submission carrying them is ignored.
+      the Family ID, and inclusion in the printed directory. A family cannot
+      propose changes to these at all. They stay with the parish office, and
+      any submission carrying them is ignored.
     </p>
   </div>
 
@@ -149,9 +149,10 @@
       <label for="relation_options">Relations</label>
       <input type="text" id="relation_options" name="relation_options" value="<%= values.relation_options %>">
       <p class="help">
-        Comma-separated — Head, Spouse, Son, Daughter and so on. Offered as
-        suggestions in the member editor and printed as typed, so use whole
-        words rather than codes unless your parish already prints codes.
+        Separate with commas &mdash; Head, Spouse, Son, Daughter and so on.
+        These are offered as suggestions in the member editor and printed
+        exactly as typed, so use whole words rather than codes, unless your
+        parish already prints codes.
       </p>
     </div>
   </div>
@@ -185,5 +186,60 @@
   <p class="help" style="margin:-8px 0 14px">Put the five printed colours back to the template defaults.</p>
   <button type="submit" class="btn ghost">Reset to template colours</button>
 </form>
+
+<div class="card danger-zone" style="margin-top:24px">
+  <h2>Danger zone</h2>
+  <p class="help danger-zone-intro">
+    Actions here affect the entire directory and cannot be undone. Only an
+    administrator should use them.
+  </p>
+
+  <div class="danger-zone-item">
+    <div>
+      <div class="label">Delete family directory database</div>
+      <p class="help" style="margin:4px 0 0">
+        Permanently removes every family, member and pending change from
+        this parish&rsquo;s directory. The complete database is wiped, and
+        you start fresh with an empty directory &mdash; parish settings
+        above are kept. This cannot be reversed, so
+        <a href="<%= base %>/admin/export">export or print a copy</a> first
+        if you need one.
+      </p>
+    </div>
+
+    <form method="post" action="<%= base %>/admin/settings/delete-database"
+          id="delete-database-form" class="danger-zone-confirm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="text" name="confirm_name" autocomplete="off" required
+             aria-label="Type the parish name to confirm"
+             placeholder="Type &ldquo;<%= church.name %>&rdquo; to confirm">
+      <button type="submit" class="btn danger" id="delete-database-button">
+        Delete family directory database
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('delete-database-form');
+  if (!form) return;
+  var input = form.querySelector('input[name="confirm_name"]');
+  var button = document.getElementById('delete-database-button');
+  var expected = <%- JSON.stringify(church.name).replace(/</g, '\\u003c') %>;
+
+  function refresh() { button.disabled = input.value !== expected; }
+  input.addEventListener('input', refresh);
+  refresh();
+
+  form.addEventListener('submit', function (event) {
+    var ok = window.confirm(
+      'This permanently deletes every family, member, photograph, login ' +
+      'and pending change in ' + expected + '. This cannot be undone. Continue?'
+    );
+    if (!ok) event.preventDefault();
+  });
+})();
+</script>
 
 <%- include('../partials/footer') %>

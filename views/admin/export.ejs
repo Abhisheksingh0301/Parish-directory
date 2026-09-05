@@ -3,9 +3,9 @@
 <div class="page-head">
   <h1>Download your data</h1>
   <p class="sub">
-    Everything this parish has entered, in a form you can keep, print from or
-    take to another system. The records are yours; this page is how you get a
-    copy of them without asking anyone.
+    Everything this parish has entered, in a form you can keep, print, or move
+    to another system. The records are yours. This page is how you get a copy
+    of them without asking anyone.
   </p>
 </div>
 
@@ -48,22 +48,22 @@
 
   <p class="help">
     The full archive holds <code>families.csv</code> and a <code>photos</code>
-    folder. Each photograph is named after the family it belongs to, and the
-    last column of the spreadsheet gives that name &mdash; so a row and a face
-    can be matched without opening the application.
+    folder. Each photograph is named after the family it belongs to. The last
+    column of the spreadsheet gives that same name, so you can match a row to
+    a face without opening the app.
   </p>
 
   <p class="help">
     <% if (photos) { %>
-      <strong>Photographs only</strong> is the same pictures with nothing else,
-      and each file is named for its <strong>Family ID</strong> alone &mdash;
+      <strong>Photographs only</strong> gives you just the pictures, each file
+      named for its <strong>Family ID</strong> alone, like
       <code>F-001.jpg</code>. That is exactly what
-      <a href="<%= base %>/admin/photos">Import photographs</a> reads back, so
+      <a href="<%= base %>/admin/photos">Import photographs</a> reads back. So
       you can take the folder out, replace the pictures that are wrong, and
       upload the same folder again without renaming a single file.
     <% } else { %>
-      <strong>Photographs only</strong> is unavailable because no family in
-      this parish has a photograph yet. Add them from each family&rsquo;s own
+      <strong>Photographs only</strong> is not available yet because no family
+      in this parish has a photograph. Add them from each family&rsquo;s own
       page, or a folder at a time on
       <a href="<%= base %>/admin/photos">Import photographs</a>.
     <% } %>
@@ -73,22 +73,22 @@
 <div class="card">
   <h2>Before you send it anywhere</h2>
   <p class="help" style="margin-top:0">
-    This file is every address, telephone number and date of birth in the
-    parish, together with the photographs. It carries no password of any kind.
-    Treat it the way the parish would treat the printed directory before it is
-    handed out &mdash; and delete the copy in your downloads folder once it has
-    reached wherever it was going.
+    This file holds every address, phone number and date of birth in the
+    parish, along with the photographs. It has no password. Treat it the way
+    the parish would treat the printed directory before it is handed out, and
+    delete the copy in your downloads folder once it has reached wherever it
+    was going.
   </p>
   <p class="help">
     The spreadsheet has one row per person, with the family&rsquo;s details
-    repeated on each of their rows. That is the shape that sorts and filters in
-    Excel; a file with one row per family cannot hold the members at all.
+    repeated on each of their rows. That is the shape Excel can sort and
+    filter. A file with one row per family cannot hold all the members.
   </p>
   <p class="help">
-    A download of a few thousand photographs takes minutes and runs to hundreds
-    of megabytes. It starts immediately and nothing is stored on the server
-    while it runs &mdash; but if the browser looks idle, it is still working.
-    Clicking again starts a second one.
+    A download of a few thousand photographs takes minutes and runs to
+    hundreds of megabytes. It starts right away, and nothing is stored on the
+    server while it runs. If the browser looks idle, it is still working, so
+    do not click again &mdash; that starts a second download.
   </p>
 </div>
 

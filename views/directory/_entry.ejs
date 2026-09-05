@@ -14,8 +14,13 @@
    * carries its own date and there is no merge to get wrong — which is what a
    * household with a married son in it always needed.
    */
+  // Flattened for the on-page search box: name, area, and every "place" field.
+  const searchText = [
+    f.head_name, f.family_id, f.area, f.address, f.hometown, f.home_parish
+  ].concat(f.members.map(function (m) { return m.name; }))
+   .filter(Boolean).join(' ').toLowerCase();
 %>
-<section class="entry">
+<section class="entry" data-search="<%= searchText %>">
   <div class="entry-head">
     <div class="head-id">FAMILY ID : <%= f.family_id %></div>
     <div class="head-name"><%= f.head_name %></div>

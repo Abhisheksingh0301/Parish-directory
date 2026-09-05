@@ -25,6 +25,8 @@
     %><% if (includeDrafts) { %> — including drafts<% } %>.
   </span>
 
+  <input type="search" id="dir-search" class="dir-search" placeholder="Search by name, area or place…" aria-label="Search families">
+
   <span class="spacer"></span>
 
   <% if (canEdit) { %>
@@ -47,6 +49,8 @@
   </div>
 <% } %>
 
+<p id="dir-search-empty" class="dir-search-empty" hidden>No families match your search.</p>
+
 <% pages.forEach(function (page) { %>
   <div class="page<%= page.single ? ' page-single' : '' %>">
     <div class="entries">
@@ -66,6 +70,38 @@
     </div>
   </div>
 <% }); %>
+
+<script>
+(function () {
+  var input = document.getElementById('dir-search');
+  var empty = document.getElementById('dir-search-empty');
+  if (!input) return;
+
+  var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+
+  input.addEventListener('input', function () {
+    var term = input.value.trim().toLowerCase();
+    var visibleCount = 0;
+
+    pages.forEach(function (page) {
+      var entries = page.querySelectorAll('.entry');
+      if (!entries.length) return; // the "no families yet" placeholder page
+
+      var pageHasMatch = false;
+      entries.forEach(function (entry) {
+        var match = !term || (entry.dataset.search || '').indexOf(term) !== -1;
+        entry.hidden = !match;
+        if (match) pageHasMatch = true;
+      });
+
+      page.hidden = !pageHasMatch;
+      if (pageHasMatch) visibleCount++;
+    });
+
+    empty.hidden = visibleCount > 0 || !term;
+  });
+})();
+</script>
 
 </body>
 </html>

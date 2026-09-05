@@ -19,8 +19,8 @@
 <div class="card">
   <h2>Work in this church</h2>
   <p class="help" style="margin-top:0">
-    Opens the ordinary screens as this parish sees them. A bar at the top of
-    every page will say which church you are in until you leave it.
+    Opens the ordinary screens the way this parish sees them. A bar at the
+    top of every page shows which church you are in, until you leave it.
   </p>
   <div class="actions">
     <% if (church.is_active) { %>
@@ -58,8 +58,8 @@
           <% }); %>
         </select>
         <p class="help">
-          Moving it to another <%= labels.diocese.toLowerCase() %> means choosing
-          a <%= labels.zone.toLowerCase() %> from that one, or none.
+          Moving it to another <%= labels.diocese.toLowerCase() %> means
+          choosing a <%= labels.zone.toLowerCase() %> from that one, or none.
         </p>
       </div>
       <div class="field">
@@ -127,8 +127,8 @@
   <p class="help" style="margin-top:0">
     Printed as &ldquo;<%= churchSettings.parish_name %>&rdquo;, titled
     &ldquo;<%= churchSettings.directory_title %>&rdquo;,
-    <%= churchSettings.per_page %> families to a page. Open the church to change
-    any of it — these belong to the parish, not to you.
+    <%= churchSettings.per_page %> families to a page. Open the church to
+    change any of this &mdash; it belongs to the parish, not to you.
   </p>
 </div>
 
@@ -136,8 +136,9 @@
   <h2><%= church.is_active ? 'Deactivate' : 'Reactivate' %> this church</h2>
   <p class="help" style="margin-top:0">
     <% if (church.is_active) { %>
-      Its people are signed out immediately and cannot sign back in. Nothing is
-      deleted — its families, members and photographs stay exactly as they are.
+      Its people are signed out right away and cannot sign back in. Nothing
+      is deleted &mdash; its families, members and photographs stay exactly
+      as they are.
     <% } else { %>
       Its staff will be able to sign in again.
     <% } %>

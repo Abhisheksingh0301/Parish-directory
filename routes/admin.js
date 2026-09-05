@@ -18,6 +18,7 @@ const importUpload = require('../lib/import-upload');
 const importer = require('../lib/import-families');
 const photoImporter = require('../lib/import-photos');
 const unzip = require('../lib/unzip');
+const { removePhoto } = require('../lib/upload');
 const { slugify } = require('../lib/slug');
 const wrap = require('../lib/async');
 
@@ -52,7 +53,8 @@ router.get('/settings', wrap(async (req, res) => {
     values: await settings.load(req.churchId),
     ...settingsLocals(),
     errors: [],
-    notice: null
+    error: req.query.error || null,
+    notice: req.query.notice || null
   });
 }));
 
@@ -182,6 +184,39 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
   );
   await settings.save(req.churchId, defaults);
   res.redirect('/admin/settings');
+}));
+
+/**
+ * Empty the directory, on purpose.
+ *
+ * Every family, member, login and pending change this church holds, gone in
+ * one transaction — the escape hatch for a parish re-importing a corrected
+ * sheet that would otherwise collide on every Family ID already here.
+ * Settings are untouched: the church itself is not being un-created, just
+ * emptied.
+ *
+ * The typed parish name is not a security boundary — the role guard above
+ * already is one — it is a second look at what is about to happen, matched
+ * server-side so a stale or replayed form cannot slip through on the
+ * confirmation dialog alone.
+ */
+router.post('/settings/delete-database', wrap(async (req, res) => {
+  const typed = String(req.body.confirm_name || '').trim();
+  if (typed !== req.church.name) {
+    return res.redirect('/admin/settings?error=' +
+      encodeURIComponent('Type the parish name exactly to confirm. Nothing was deleted.'));
+  }
+
+  const result = await Family.removeAll(req.churchId);
+  for (const filename of result.photos) removePhoto(req.churchId, filename);
+
+  await audit.record(req, 'family.deleted', {
+    churchId: req.churchId,
+    detail: `Entire directory cleared: ${result.count} famil${result.count === 1 ? 'y' : 'ies'} deleted`
+  });
+
+  res.redirect('/admin/settings?notice=' +
+    encodeURIComponent(`${result.count} famil${result.count === 1 ? 'y' : 'ies'} deleted. The directory is now empty.`));
 }));
 
 // ---------------------------------------------------------------------------

@@ -228,6 +228,32 @@ a:hover { color: var(--ink); }
 .card > h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: .02em; }
 .card > h2 .hint { font-weight: 500; font-size: 13px; color: var(--ink-faint); }
 
+/* A card of destructive, irreversible actions — visually set apart from the
+   ordinary settings cards above it so nobody scrolls past this by habit. */
+.danger-zone { border-color: #d9b4aa; }
+.danger-zone > h2 { color: var(--danger); }
+.danger-zone-intro { margin: 0 0 18px; }
+.danger-zone-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.danger-zone-item + .danger-zone-item { margin-top: 16px; }
+.danger-zone-item .label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.danger-zone-item p { max-width: 480px; }
+.danger-zone-confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.danger-zone-confirm input[type="text"] { min-width: 220px; }
+
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 .stack > * + * { margin-top: 14px; }
 
@@ -428,6 +454,18 @@ input[type=file] { font: inherit; font-size: 14px; }
    big enough to hit on a phone without the row growing taller for it. */
 .table th.tick, .table td.tick { width: 34px; padding-right: 0; text-align: center; }
 .table .tick input[type="checkbox"] { width: 17px; height: 17px; margin: 0; vertical-align: middle; cursor: pointer; accent-color: var(--ink); }
+
+/* A small landscape thumbnail in a table row — the same 4:3 crop as the
+   photo-box, just small enough that a row of them still reads as a list. */
+.table th.photo, .table td.photo { width: 56px; }
+.table .thumb, .table .thumb-empty {
+  width: 44px;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  display: block;
+}
+.table .thumb { object-fit: cover; border: 1px solid var(--rule); }
+.table .thumb-empty { border: 1px dashed var(--rule); background: var(--paper-warm); }
 
 .tag {
   display: inline-block;

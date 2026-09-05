@@ -200,7 +200,7 @@ router.post('/decide', wrap(async (req, res) => {
     lines.push(line);
   }
 
-  if (!lines.length) return done('Those changes have already been dealt with.');
+  if (!lines.length) return done('Those changes have already been decided.');
 
   const result = await Pending.decide(req.churchId, lines.map((l) => l.id), {
     outcome,

@@ -121,9 +121,8 @@
       Fill in whatever is missing and correct anything that is wrong. Your family
       ID and whether the entry is printed are set by the parish office.
     <% } %>
-    A date of birth is picked as a full date, and a son or daughter has to be
-    younger than their parents. The date of marriage is day and month only —
-    no year, in the form or in the printed directory.
+    Both the date of birth and the date of marriage are day and month only
+    &mdash; no year, either in the form or in the printed directory.
   </p>
 </div>
 
@@ -171,9 +170,9 @@
         <label for="head_name">Family head</label>
         <input type="text" id="head_name" name="head_name" value="<%= family.head_name %>" required>
         <p class="help">
-          Prints in the large band at the top of the entry. Kept the same as
-          the first family member below — type it in either place, and the
-          other follows, until you deliberately make the two different.
+          Prints in the large band at the top of the entry. It stays the same
+          as the first family member below &mdash; type it in either place and
+          the other follows, until you deliberately make the two different.
         </p>
       </div>
     </div>
@@ -289,10 +288,10 @@
     <h2>Family members</h2>
     <p class="help" style="margin:-8px 0 14px">
       The first two rows share the Date of marriage cell in the printed table,
-      matching the directory layout — so put the spouse second. If the second
-      row is a son or daughter, the cell stays on the first row instead, rather
-      than reading as a child&rsquo;s wedding date. Rows with an empty name are
-      ignored.
+      matching the directory layout, so put the spouse second. If the second
+      row is a son or daughter instead, the cell stays on the first row, so it
+      does not read as a child&rsquo;s wedding date. Rows with an empty name
+      are ignored.
     </p>
 
     <div class="members-editor" id="members-editor">
@@ -336,11 +335,11 @@
     <div class="card">
       <h2>What happens when you send this</h2>
       <p class="help" style="margin:0">
-        Nothing you send changes the parish directory on its own. Your
-        corrections go to the parish office as a proposal, and each one is
-        looked at and approved before it reaches the record that is printed.
-        You will see what was approved — and the reason for anything that was
-        not — the next time you sign in.
+        Sending this does not change the parish directory right away. Your
+        corrections go to the parish office as a request, and each one is
+        checked and approved before it reaches the printed record. You will
+        see what was approved, and the reason for anything that was not, the
+        next time you sign in.
       </p>
     </div>
   <% } %>

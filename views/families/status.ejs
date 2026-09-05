@@ -3,8 +3,8 @@
 <div class="page-head">
   <h1>Verification status</h1>
   <p class="sub">
-    Where every family has got to, from the invitation to the printed book.
-    Narrow it to one Area or Prayer Group and the same filter produces the
+    Where every family stands, from the invitation to the printed book.
+    Narrow it to one Area or Prayer Group, and the same filter produces the
     follow-up sheet the Area Representative carries.
   </p>
   <div class="spacer"></div>
@@ -145,7 +145,7 @@
     </form>
 
     <script type="application/json" id="chain-data">
-      <%- JSON.stringify({ stages: stages, moves: moves }).replace(/</g, '\u003c') %>
+      <%- JSON.stringify({ stages: stages, moves: moves }).replace(/</g, '\\u003c') %>
     </script>
   <% } %>
 </div>
@@ -208,45 +208,48 @@
     </div>
 
     <p class="help">
-      Every button here except the last acts on the families <strong>ticked in the
-      list below</strong>, which starts with all of them ticked: narrow the view with
-      the filter above, untick the few to leave out, and the count on the button
-      follows. &ldquo;Mark the printed book as printed&rdquo; is the exception &mdash;
-      it is about the whole run, not this view.
+      Every button here except the last acts on the families
+      <strong>ticked in the list below</strong>, which starts with all of them
+      ticked. Narrow the view with the filter above, untick the few to leave
+      out, and the count on the button follows. &ldquo;Mark the printed book
+      as printed&rdquo; is the exception &mdash; it acts on the whole run, not
+      this view.
     </p>
 
     <p class="help">
-      <strong>Invitation Sent</strong> records that the parish office sent the
-      invitations. The application sends no email itself &mdash; messages go out from
-      the parish&rsquo;s own account &mdash; so this is a record of the office&rsquo;s
-      action, not a delivery receipt. Families without an email address are
-      reached with a <strong>verification slip</strong>: their Family ID and a
-      short PIN, which is all they need to sign in.
+      <strong>Invitation Sent</strong> means the parish office has sent the
+      invitations. The app sends no email itself &mdash; messages go out from
+      the parish&rsquo;s own account &mdash; so this only records that the
+      office did it, not that it was delivered. Families without an email
+      address are reached with a <strong>verification slip</strong>: their
+      Family ID and a short PIN, which is all they need to sign in.
     </p>
 
     <p class="help">
-      <strong>Approve</strong> records the office&rsquo;s own decision that these
-      entries are correct as they stand, for the households that have nothing to
-      correct and will never sign in to say so. A family with corrections still
-      waiting in the <a href="<%= base %>/review">review queue</a> is left alone
-      however it is ticked: those are approved line by line, by a reviewer who
-      can see what is being proposed.
+      <strong>Approve</strong> records the office&rsquo;s own decision that
+      these entries are correct as they stand, for households that have
+      nothing to correct and will never sign in to say so. A family with
+      corrections still waiting in the
+      <a href="<%= base %>/review">review queue</a> is left alone no matter
+      how it is ticked &mdash; those are approved line by line, by a reviewer
+      who can see what is being proposed.
     </p>
 
     <p class="help">
-      <strong>In book</strong> is a separate decision from the chain, and the
-      office&rsquo;s alone: an imported family arrives as a <span class="tag draft">Draft</span>,
-      because a spreadsheet is not a decision about what to print. Only families
-      in the book can be marked Ready for Printing, so after an import put them
-      in with <strong>Include in the printed book</strong> first.
+      <strong>In book</strong> is a separate decision from the chain, and it
+      belongs to the office alone. An imported family arrives as a
+      <span class="tag draft">Draft</span>, because a spreadsheet is not a
+      decision about what to print. Only families already in the book can be
+      marked Ready for Printing, so after an import, put them in with
+      <strong>Include in the printed book</strong> first.
     </p>
 
     <p class="help">
-      <strong>Ready for Printing</strong> follows approval on its own for a family
-      already in the book, so that button is only needed where inclusion was
-      decided after the entry was approved &mdash; which is exactly what happens
-      after an import. It moves approved families only: an entry nobody has
-      verified does not go into the run.
+      <strong>Ready for Printing</strong> normally follows approval on its
+      own, so this button is only needed where inclusion was decided after
+      the entry was approved &mdash; which is exactly what happens after an
+      import. It moves approved families only: an entry nobody has verified
+      does not go into the run.
     </p>
   </div>
 <% } %>
@@ -274,6 +277,7 @@
                        aria-label="Select every family in this view">
               </th>
             <% } %>
+            <th class="photo"><span class="sr-only">Photo</span></th>
             <th style="width:90px">ID</th>
             <th>Family head</th>
             <th>Area</th>
@@ -293,6 +297,13 @@
                          aria-label="Select <%= f.head_name %>">
                 </td>
               <% } %>
+              <td class="photo">
+                <% if (f.photo_url) { %>
+                  <img class="thumb" src="<%= f.photo_url %>" alt="">
+                <% } else { %>
+                  <span class="thumb-empty" aria-hidden="true"></span>
+                <% } %>
+              </td>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
               <td><a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a></td>
               <td><%= f.area || '—' %></td>

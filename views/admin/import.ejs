@@ -3,9 +3,9 @@
 <div class="page-head">
   <h1>Import members from a spreadsheet</h1>
   <p class="sub">
-    The parish already holds its families somewhere &mdash; a register, a
-    ledger, somebody&rsquo;s spreadsheet. Nobody should type it in twice.
-    Download the sheet below, fill it in, and upload it here.
+    The parish already has its families written down somewhere: a register, a
+    ledger, or somebody&rsquo;s spreadsheet. Nobody should have to type it in
+    twice. Download the sheet below, fill it in, and upload it here.
   </p>
 </div>
 
@@ -35,13 +35,13 @@
         </li>
       <% }); %>
       <% if (problemsHidden) { %>
-        <li>&hellip;and <%= problemsHidden %> more. Fix these first &mdash; the same
-          mistake usually explains the rest.</li>
+        <li>&hellip;and <%= problemsHidden %> more. Fix these first &mdash; the
+          same mistake usually explains the rest.</li>
       <% } %>
     </ul>
     <p style="margin:10px 0 0">
       Correct those rows in your spreadsheet, save it again as
-      <code>.csv</code>, and upload it once more. The directory has not been
+      <code>.csv</code>, and upload it once more. Nothing in the directory has
       changed, so there is nothing to undo.
     </p>
   </div>
@@ -71,20 +71,20 @@
 
     <% if (result.families) { %>
       <p style="margin:8px 0 0">
-        The new families arrived as <strong>drafts</strong>, so nothing has
-        entered the printed book yet &mdash; look them over in
-        <a href="<%= base %>/families">Families</a> and publish the
-        ones that are right. <strong>No logins were created:</strong> accounts
-        stay a separate, deliberate step on
+        The new families arrived as <strong>drafts</strong>, so none of them
+        are in the printed book yet. Look them over in
+        <a href="<%= base %>/families">Families</a> and publish the ones that
+        are right. <strong>No logins were created</strong> &mdash; accounts
+        are a separate, deliberate step on
         <a href="<%= base %>/admin/users">User accounts</a>.
       </p>
     <% } %>
 
     <% if (result.updated) { %>
       <p style="margin:8px 0 0">
-        The families that were already here kept their photographs, their place
-        in the printed book and their place on the verification chain; only the
-        cells your sheet filled in were written.
+        The families that were already here kept their photographs, their
+        place in the printed book, and their place on the verification chain.
+        Only the cells your sheet filled in were written.
         <% if (result.membersReplaced) { %>
           <%= result.membersReplaced %> of them had
           <%= result.membersReplaced === 1 ? 'its' : 'their' %> member list
@@ -107,9 +107,9 @@
 
     <% if (result.unexpected.length) { %>
       <p style="margin:10px 0 4px">
-        These were checked as fine a moment earlier and then were not &mdash;
-        somebody else was very likely working on the directory at the same
-        time. Nothing was overwritten:
+        These looked fine a moment earlier and then did not &mdash; somebody
+        else was probably working on the directory at the same time. Nothing
+        was overwritten:
       </p>
       <ul>
         <% result.unexpected.forEach(function (item) { %>
@@ -130,9 +130,9 @@
       directory stores, so whatever is in
       <%= unknownColumns.length === 1 ? 'it' : 'them' %>
       <%= result ? 'has not been kept' : 'would not be kept' %>. This is
-      reported rather than passed over in silence; it is not itself a reason to
-      stop. If one of them is a column this directory does hold under another
-      name, the table below says what to call it.
+      reported rather than silently ignored, but it does not stop the import
+      on its own. If one of these is a column this directory does hold, under
+      another name, the table below says what to call it.
     </p>
   </div>
 <% } %>
@@ -140,10 +140,10 @@
 <div class="card">
   <h2>Get the template</h2>
   <p class="help" style="margin-top:0">
-    A comma-separated file, which Excel, LibreOffice and Google Sheets all open
-    by double-clicking. Fill it in there and save it back as
-    <code>.csv</code> &mdash; save it as <code>.xlsx</code> and it can no
-    longer be read.
+    A comma-separated file. Excel, LibreOffice and Google Sheets all open it
+    just by double-clicking. Fill it in there and save it back as
+    <code>.csv</code>. If you save it as <code>.xlsx</code> instead, this app
+    cannot read it.
   </p>
 
   <div class="actions">
@@ -168,8 +168,8 @@
     The whole file is read and checked before anything is written. If there is
     a problem anywhere in it &mdash; a date nobody could read, an email address
     that is not one, a mobile number too short to ring, a family with no name,
-    a Family ID this parish already has &mdash; it is listed at the top of this
-    page in plain words, with the row number, and
+    or a Family ID this parish already has &mdash; it is listed at the top of
+    this page in plain words, with the row number, and
     <strong>nothing at all is imported</strong>. Fix the sheet and upload it
     again. There is no half-finished state to clean up.
   </p>
@@ -218,19 +218,20 @@
       <span>
         <strong>Update that family from the sheet</strong>
         <span class="help">
-          For re-uploading a corrected sheet. Filled-in cells overwrite;
-          <strong>blank cells change nothing</strong>. If the sheet lists
-          members for a family, they <strong>replace that family&rsquo;s
-          member list</strong>. Photographs, printed-book inclusion and
-          verification status are left as they are.
+          Use this when you re-upload a corrected sheet. Filled-in cells
+          overwrite the old value; <strong>blank cells change nothing</strong>.
+          If the sheet lists members for a family, they
+          <strong>replace that family&rsquo;s member list</strong>.
+          Photographs, printed-book inclusion and verification status are left
+          as they are.
         </span>
       </span>
     </label>
 
     <p class="help">
-      Replacing a family&rsquo;s members drops any correction it has waiting in
-      the <a href="<%= base %>/review">review queue</a>. Nothing breaks, but
-      that correction will not arrive &mdash; clear the queue first if it holds
+      Replacing a family&rsquo;s members drops any correction it has waiting
+      in the <a href="<%= base %>/review">review queue</a>. Nothing breaks,
+      but that correction will not arrive. Clear the queue first if it holds
       anything you need.
     </p>
   </fieldset>
@@ -244,36 +245,36 @@
   <h2>The one rule that matters</h2>
   <p class="help" style="margin-top:0">
     <strong>One row per person, not one row per family.</strong> A family of
-    five is five rows carrying the same <strong>Family ID</strong>, and that
-    column is what ties them together. It is the only column the import
-    refuses a sheet without.
+    five is five rows, all carrying the same <strong>Family ID</strong>. That
+    column is what ties them together, and it is the only column the import
+    refuses to work without.
   </p>
   <p class="help">
     The family&rsquo;s own details &mdash; address, prayer group, date of
     marriage &mdash; are read from the <em>first</em> row carrying that Family
-    ID. Leave them blank on the rest of the household, or repeat them; the
-    sheet is not wrong either way.
+    ID. You can leave them blank on the rest of the household&rsquo;s rows, or
+    repeat them. Either way is fine.
   </p>
   <p class="help">
-    Two families must never share a Family ID. A Family ID this parish already
-    holds stops the import and is reported with its row number, unless you have
-    asked for those families to be updated from the sheet &mdash; so a record
-    the office corrected by hand is never overwritten by an import somebody
-    runs twice by accident, and a corrected sheet can still be re-uploaded on
-    purpose.
+    Two families must never share a Family ID. If this parish already has a
+    Family ID from the sheet, the import stops and reports the row number,
+    unless you asked for that family to be updated from the sheet instead.
+    This way, a record the office corrected by hand is never overwritten by an
+    accidental second import, but a corrected sheet can still be re-uploaded
+    on purpose.
   </p>
 </div>
 
 <div class="card">
   <h2>The columns</h2>
   <p class="help" style="margin-top:0">
-    Column order does not matter, and neither does letter case, spacing or
-    punctuation in the headings &mdash; &ldquo;Family ID&rdquo;,
-    &ldquo;family_id&rdquo; and &ldquo;FAMILY&nbsp;&nbsp;ID.&rdquo; are one
-    column. If the parish sheet already calls a column something else, check
-    the alternatives here before renaming anything: it is probably recognised
-    as it stands. A column that is recognised by no heading at all is reported
-    when the sheet is read, never dropped in silence.
+    Column order does not matter. Letter case, spacing and punctuation in the
+    headings do not matter either &mdash; &ldquo;Family ID&rdquo;,
+    &ldquo;family_id&rdquo; and &ldquo;FAMILY&nbsp;&nbsp;ID.&rdquo; are all read
+    as the same column. If the parish sheet already calls a column something
+    else, check the alternatives here before renaming anything: it is
+    probably already recognised as it stands. A column that matches no known
+    heading is reported when the sheet is read, never dropped silently.
   </p>
 
   <table class="table">
@@ -305,103 +306,105 @@
   <h2>Filling in the awkward columns</h2>
 
   <p class="help" style="margin-top:0">
-    <strong>Relation.</strong> Use this parish&rsquo;s own codes, the same ones
-    the member editor offers:
+    <strong>Relation.</strong> Use this parish&rsquo;s own codes, the same
+    ones the member editor offers:
     <% if (relations.length) { %>
       <% relations.forEach((relation, i) => { %><code><%= relation %></code><%= i < relations.length - 1 ? ', ' : '' %><% }) %>.
     <% } else { %>
-      none are set &mdash; add them on the
+      none are set yet &mdash; add them on the
       <a href="<%= base %>/admin/settings">Settings</a> page first.
     <% } %>
-    Change them on Settings and the template you download changes with them.
+    Change them on Settings, and the template you download changes with them.
   </p>
 
   <p class="help">
     <strong>Dates.</strong> Write them however the register has them.
     <code>02-Aug-1975</code>, <code>2/8/1975</code>, <code>1975-08-02</code>
-    and <code>Aug 1975</code> are all read, and where two numbers are
-    ambiguous the <em>day comes first</em> &mdash; <code>03/04/1978</code> is
-    the third of April. A date that cannot be read at all is reported as a
-    rejected row rather than quietly blanked.
+    and <code>Aug 1975</code> are all read correctly. Where two numbers could
+    mean either order, the <em>day comes first</em> &mdash; so
+    <code>03/04/1978</code> means the third of April. A date that cannot be
+    read at all is reported and the row is rejected, not silently left blank.
   </p>
 
   <p class="help">
-    <strong>Years are dropped.</strong> This directory prints the day and month
-    of both dates and stores no year for either &mdash; it says when to wish
-    somebody, not how old they are. Write the year if the register has it: it
-    is read and then dropped, not refused, so no sheet has to be stripped
-    before it is handed over.
+    <strong>Years are dropped.</strong> This directory prints only the day and
+    month for both dates, and stores no year for either. It says when to wish
+    somebody, not how old they are. You can still write the year if the
+    register has it &mdash; it is read and then dropped, not refused, so you
+    do not need to strip it out of the sheet first.
   </p>
 
   <p class="help">
     <strong>Date of marriage</strong> belongs to the member, not the family, so
-    it goes on the row of each person who was married &mdash; both partners, and
-    both again for a married son or daughter living in the same household.
+    it goes on the row of each person who was married: both partners, and both
+    again for a married son or daughter living in the same household.
   </p>
 
   <p class="help">
-    <strong>Email addresses.</strong> There are two columns and they are not the
-    same thing. <code>Email</code> is the family&rsquo;s own, and it doubles as
-    the household&rsquo;s sign-in name, so a typo there is a family that cannot
-    verify its own entry. <code>Emails</code> is the member&rsquo;s, and one
-    member may list up to three, separated by commas.
+    <strong>Email addresses.</strong> There are two columns, and they are not
+    the same thing. <code>Email</code> is the family&rsquo;s own address, and
+    it doubles as the household&rsquo;s sign-in name &mdash; a typo here means
+    that family cannot sign in to verify its own entry. <code>Emails</code> is
+    the member&rsquo;s own, and one member may list up to three, separated by
+    commas.
   </p>
 
   <p class="help">
-    Both are checked properly rather than loosely: <code>steve@gmail</code> is
-    refused, because a bare hostname is a real address on an office network and
-    no address at all on the internet. Anything that is not an address &mdash;
-    a name, a phone number, a note &mdash; stops the whole file with the row
-    number against it.
+    Both are checked properly, not loosely. <code>steve@gmail</code> is
+    refused, because a bare hostname like that is a real address only on an
+    office network, not on the internet. Anything that is not an email address
+    at all &mdash; a name, a phone number, a note &mdash; stops the whole file,
+    with the row number reported.
   </p>
 
   <p class="help">
-    <strong>Mobile numbers.</strong> Ten digits beginning with 6, 7, 8 or 9. A
-    leading <code>0</code> is taken off rather than refused, spaces and dashes
-    are ignored, and a member may list up to three numbers separated by commas.
+    <strong>Mobile numbers.</strong> Ten digits, beginning with 6, 7, 8 or 9. A
+    leading <code>0</code> is removed rather than refused, spaces and dashes
+    are ignored, and a member may list up to three numbers separated by
+    commas.
   </p>
 
   <p class="help">
-    <strong>Head of family.</strong> If it is blank, the first member listed
-    for that family is taken as the head, and the import says so. A family with
-    no head and no members is refused &mdash; a printed entry has to have a
-    title.
+    <strong>Head of family.</strong> If this is left blank, the first member
+    listed for that family is taken as the head, and the import tells you so.
+    A family with no head and no members is refused, since a printed entry
+    must have a title.
   </p>
 
   <p class="help">
-    <strong>Address.</strong> A line break inside the cell is fine &mdash; the
-    two-line address you get from pressing Alt+Enter in Excel survives intact.
+    <strong>Address.</strong> A line break inside the cell is fine. The
+    two-line address you get from pressing Alt+Enter in Excel comes through
+    intact.
   </p>
 
   <p class="help">
     <strong>Photographs</strong> are not part of this sheet. Import the
     families first, then send the pictures as their own folder on
-    <a href="<%= base %>/admin/photos">Import photographs</a> &mdash; each file
-    named after the Family ID it belongs to. A single late photograph is still
-    added from the family&rsquo;s own page.
+    <a href="<%= base %>/admin/photos">Import photographs</a>, with each file
+    named after the Family ID it belongs to. A single late photograph can
+    still be added from the family&rsquo;s own page.
   </p>
 </div>
 
 <div class="card">
   <h2>What the import will and will not do</h2>
   <p class="help" style="margin-top:0">
-    <strong>All of the sheet, or none of it.</strong> The file is read through
-    to the end before a single family is written, and one problem anywhere
-    stops the lot. A run that says it imported is a run that imported
-    everything in the file &mdash; there is never a half-loaded directory to
-    work out the shape of afterwards.
+    <strong>All of the sheet, or none of it.</strong> The file is read all the
+    way through before a single family is written, and one problem anywhere
+    stops the whole run. If it says the import succeeded, everything in the
+    file was imported &mdash; you never end up with a half-loaded directory.
   </p>
   <p class="help">
-    <strong>Nothing already here is touched unless you ask.</strong> A Family ID
-    this parish already holds is reported as a problem to fix in the sheet
-    &mdash; never merged, never overwritten &mdash; unless you chose to update
-    those families above. So an import run twice by accident cannot undo a
-    correction the office made by hand.
+    <strong>Nothing already here is touched unless you ask.</strong> A Family
+    ID this parish already holds is reported as a problem to fix in the sheet.
+    It is never merged and never overwritten, unless you chose to update
+    those families above. So running the same import twice by accident can
+    never undo a correction the office made by hand.
   </p>
   <p class="help">
-    Everything that arrives arrives as a <strong>draft</strong> &mdash; nothing
-    enters the printed book until somebody has looked at it &mdash; and
-    <strong>no logins are created</strong>. Accounts stay a separate,
+    Everything that comes in arrives as a <strong>draft</strong>, so nothing
+    enters the printed book until somebody has looked at it. And
+    <strong>no logins are created</strong> &mdash; accounts are a separate,
     deliberate step on
     <a href="<%= base %>/admin/users">User accounts</a>.
   </p>
@@ -430,7 +433,7 @@
     <code>npm run import-families -- --church <%= church.slug %> --file parish.csv --dry-run</code>
   </p>
   <p class="help">
-    Running it again without <code>--dry-run</code> does the load; adding
+    Running it again without <code>--dry-run</code> loads the file. Adding
     <code>--rejects bad.csv</code> writes out exactly the rows that failed,
     with the reason in the last column, ready to be fixed and imported again.
   </p>

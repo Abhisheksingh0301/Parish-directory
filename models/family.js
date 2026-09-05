@@ -458,6 +458,43 @@ async function remove(churchId, id) {
   });
 }
 
+/**
+ * Every family this church holds, gone at once — members, logins and
+ * pending changes with them. Settings are untouched; this empties the
+ * directory, it does not un-create the church.
+ *
+ * Photographs are handed back rather than deleted here: the files live on
+ * disk, not in this transaction, and the caller unlinks them only once the
+ * rows that pointed at them have actually been committed.
+ */
+async function removeAll(churchId) {
+  const { church_id: owner } = scope(churchId);
+
+  return sequelize.transaction(async (transaction) => {
+    const families = await Family.findAll({
+      attributes: ['id', 'photo'],
+      where: { church_id: owner },
+      transaction,
+      raw: true
+    });
+    if (!families.length) return { count: 0, photos: [] };
+
+    const ids = families.map((f) => f.id);
+    const where = { family_id: ids };
+    await db.PendingChange.destroy({ where, transaction });
+    await db.Submission.destroy({ where, transaction });
+    await Member.destroy({ where, transaction });
+    await User.destroy({ where, transaction });
+
+    await Family.destroy({ where: { church_id: owner }, transaction });
+
+    return {
+      count: families.length,
+      photos: families.map((f) => f.photo).filter(Boolean)
+    };
+  });
+}
+
 async function stats(churchId) {
   const where = scope(churchId);
 
@@ -749,7 +786,7 @@ async function listByStatus(churchId, { status = '', area = '', prayerGroup = ''
     where,
     attributes: [
       'id', 'family_id', 'head_name', 'area', 'prayer_group', 'email',
-      'verify_status', 'verify_status_at', 'is_published'
+      'verify_status', 'verify_status_at', 'is_published', 'photo', 'church_id'
     ],
     include: [{
       model: Member,
@@ -767,7 +804,10 @@ async function listByStatus(churchId, { status = '', area = '', prayerGroup = ''
       return {
         ...family,
         contact: contact || '',
-        status_label: verification.statusLabel(family.verify_status)
+        status_label: verification.statusLabel(family.verify_status),
+        photo_url: family.photo
+          ? `${config.basePath}/uploads/${family.church_id}/${family.photo}`
+          : null
       };
     })
     .sort(byFamilyId);
@@ -816,6 +856,7 @@ module.exports = {
   create,
   update,
   remove,
+  removeAll,
   stats,
   photoCount,
   photoFiles,

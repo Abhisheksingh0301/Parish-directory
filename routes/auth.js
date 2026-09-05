@@ -262,7 +262,7 @@ router.post('/account', auth.requireAuth, wrap(async (req, res) => {
   if (!(await auth.verifyPassword(current || '', stored.password_hash))) {
     return res.status(400).render('auth/account', {
       title: 'My account',
-      error: 'Your current password is not correct.',
+      error: 'Your current password is incorrect.',
       notice: null
     });
   }

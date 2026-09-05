@@ -89,6 +89,31 @@ body.directory-body {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
+.dir-toolbar .dir-search {
+  font: inherit;
+  min-width: 240px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+}
+.dir-toolbar .dir-search:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.dir-search-empty {
+  max-width: 960px;
+  margin: 0 auto 22px;
+  background: #fffdf9;
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.page[hidden] { display: none; }
 
 /* ---------- page ---------- */
 .page {
@@ -508,6 +533,7 @@ body.directory-body {
 @media print {
   body.directory-body { background: #fff; padding: 0; }
   .dir-toolbar { display: none; }
+  .dir-search-empty { display: none; }
   .page {
     box-shadow: none;
     max-width: none;

@@ -3,9 +3,9 @@
 <div class="page-head">
   <h1>Import photographs</h1>
   <p class="sub">
-    The parish already has the pictures &mdash; a folder of them, one per
-    household. Name each file after the family it belongs to, zip the folder,
-    and upload it here once instead of visiting two hundred pages.
+    The parish already has the pictures, one per household in a folder. Name
+    each file after the family it belongs to, zip the folder, and upload it
+    here once, instead of visiting two hundred pages.
   </p>
 </div>
 
@@ -35,7 +35,7 @@
     </ul>
     <p style="margin:10px 0 0">
       Correct the folder, make the zip again, and upload it once more. Not one
-      photograph was stored, so there is nothing to undo and no family has been
+      photograph was stored, so there is nothing to undo and no family has
       changed.
     </p>
   </div>
@@ -56,7 +56,7 @@
       <%= withPhotos %> of this parish&rsquo;s <%= totalFamilies %>
       famil<%= totalFamilies === 1 ? 'y' : 'ies' %> now
       <%= withPhotos === 1 ? 'has' : 'have' %> a photograph. Nothing else about
-      any family was touched &mdash; a draft is still a draft, and a published
+      any family changed &mdash; a draft is still a draft, and a published
       entry is still published.
     </p>
 
@@ -69,8 +69,8 @@
 
     <% if (result.failed.length) { %>
       <p style="margin:10px 0 4px">
-        These were checked as fine a moment earlier and then were not &mdash;
-        somebody else was very likely working on the directory at the same time:
+        These looked fine a moment earlier and then did not &mdash; somebody
+        else was probably working on the directory at the same time:
       </p>
       <ul>
         <% result.failed.forEach(function (item) { %>
@@ -84,29 +84,29 @@
 <div class="card">
   <h2>Naming the files</h2>
   <p class="help" style="margin-top:0">
-    <strong>Each file is named after the family&rsquo;s Family ID</strong>
-    &mdash; the same reference the directory holds and the spreadsheet import
-    groups by. Family <code>F-001</code> gets <code>F-001.jpg</code>. Nothing
-    else about the name matters: letter case is ignored, so
+    <strong>Each file is named after the family&rsquo;s Family ID</strong>,
+    the same reference the directory holds and the spreadsheet import groups
+    by. Family <code>F-001</code> gets <code>F-001.jpg</code>. Nothing else
+    about the name matters: letter case is ignored, so
     <code>f-001.JPG</code> is the same family.
   </p>
   <p class="help">
-    One photograph per family. Two files named for the same family &mdash;
-    <code>F-001.jpg</code> beside <code>F-001.png</code> &mdash; stop the
-    import rather than have this application guess which one the parish meant.
+    One photograph per family. Two files named for the same family, like
+    <code>F-001.jpg</code> alongside <code>F-001.png</code>, stop the import
+    rather than have this app guess which one the parish meant.
   </p>
   <p class="help">
     Put them all in one folder, then right-click the folder and choose
     <strong>Send to &rarr; Compressed (zipped) folder</strong> on Windows, or
-    <strong>Compress</strong> on a Mac. Folders inside the zip are fine &mdash;
+    <strong>Compress</strong> on a Mac. Folders inside the zip are fine, since
     only the file names are read.
   </p>
   <p class="help">
     <%= extensions.join(', ') %> are accepted, up to
     <%= maxPhotoMb %>&nbsp;MB each and <%= maxArchiveMb %>&nbsp;MB for the
     whole archive. Every photograph must be <strong>landscape</strong>, wider
-    than it is tall: the printed directory sets them in a landscape frame, and
-    a portrait picture would lose the top of somebody&rsquo;s head.
+    than it is tall. The printed directory sets them in a landscape frame, and
+    a portrait picture would cut off the top of somebody&rsquo;s head.
   </p>
 </div>
 
@@ -118,10 +118,10 @@
   <p class="help" style="margin-top:0">
     Every image in the archive is opened and checked before a single one is
     stored. If anything is wrong anywhere &mdash; a name that matches no
-    family, a picture that is portrait, a file that is not really the kind of
-    image its name claims &mdash; it is listed at the top of this page in plain
-    words and <strong>nothing at all is imported</strong>. Fix the folder and
-    upload it again.
+    family, a picture that is portrait, or a file that is not really the kind
+    of image its name claims &mdash; it is listed at the top of this page in
+    plain words, and <strong>nothing at all is imported</strong>. Fix the
+    folder and upload it again.
   </p>
 
   <div class="field">
@@ -143,19 +143,18 @@
   <p class="help" style="margin-top:0">
     <strong>All of the folder, or none of it.</strong> One bad file stops the
     whole archive, so an import that reports success has stored every
-    photograph you sent it. There is never a half-loaded folder to work out the
-    shape of afterwards.
+    photograph you sent it. You never end up with a half-loaded folder.
   </p>
   <p class="help">
-    <strong>A family that already has a photograph gets the new one</strong>,
-    and the old file is removed once the new one is safely stored. Every
+    <strong>A family that already has a photograph gets the new one</strong>.
+    The old file is removed once the new one is safely stored. Every
     replacement is listed by Family ID in the summary, so re-uploading a
-    corrected folder is a normal thing to do and never a silent one.
+    corrected folder is a normal, visible thing to do.
   </p>
   <p class="help">
-    <strong>Nothing else about a family changes.</strong> No entry is published,
-    unpublished or edited, and no logins are created. A family with no
-    photograph in the archive simply keeps whatever it had.
+    <strong>Nothing else about a family changes.</strong> No entry is
+    published, unpublished or edited, and no logins are created. A family with
+    no photograph in the archive simply keeps whatever it had.
   </p>
   <p class="help">
     Photographs can still be added or removed one at a time from each
