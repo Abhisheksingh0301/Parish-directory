@@ -10,7 +10,7 @@
     <% if (!isOwnEntry) { %><a href="<%= base %>/families" class="btn ghost">Back to families</a><% } %>
     <% if (canEdit) { %>
       <a href="<%= base %>/families/<%= family.id %>/edit" class="btn">
-        <%= isOwnEntry ? 'Complete our entry' : 'Edit' %>
+        <%= isOwnEntry ? 'Review Family Details' : 'Edit' %>
       </a>
     <% } %>
   </div>

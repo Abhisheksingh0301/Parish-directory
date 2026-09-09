@@ -103,6 +103,21 @@ body.directory-body {
   outline-offset: 2px;
 }
 
+/* How many families the current term matched -- sits beside the search box. */
+.dir-toolbar .dir-search-count {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* The term itself, marked inside every matching entry. */
+mark.dir-hit {
+  background: #ffe9a8;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 .dir-search-empty {
   max-width: 960px;
   margin: 0 auto 22px;
@@ -534,6 +549,8 @@ body.directory-body {
   body.directory-body { background: #fff; padding: 0; }
   .dir-toolbar { display: none; }
   .dir-search-empty { display: none; }
+  /* A filtered book still prints; the on-screen marking does not. */
+  mark.dir-hit { background: none; padding: 0; }
   .page {
     box-shadow: none;
     max-width: none;

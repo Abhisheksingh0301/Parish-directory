@@ -26,6 +26,7 @@
   </span>
 
   <input type="search" id="dir-search" class="dir-search" placeholder="Search by name, area or place…" aria-label="Search families">
+  <span id="dir-search-count" class="dir-search-count" role="status" aria-live="polite" hidden></span>
 
   <span class="spacer"></span>
 
@@ -75,30 +76,108 @@
 (function () {
   var input = document.getElementById('dir-search');
   var empty = document.getElementById('dir-search-empty');
+  var count = document.getElementById('dir-search-count');
   if (!input) return;
 
   var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
 
+  /*
+   * Marking the hits.
+   *
+   * The search itself reads the flattened data-search attribute, but a reader
+   * scanning a matched entry still has to find the word on the page — so the
+   * term is wrapped in <mark> where it shows in the entry.
+   *
+   * Only the cells holding a family's own words are marked, never the printed
+   * labels beside them: a short term would otherwise light up "Relation" and
+   * "Email ID" in every entry on the page. Entries that carry a mark are
+   * remembered so the next keystroke unwraps those alone, which keeps a long
+   * book from being rewritten letter by letter.
+   */
+  var MARKABLE = '.head-name, .head-id, .details td, .members tbody td:first-child';
+  var marked = [];
+
+  function unmark() {
+    marked.forEach(function (entry) {
+      var hits = entry.querySelectorAll('mark.dir-hit');
+      Array.prototype.forEach.call(hits, function (hit) {
+        var parent = hit.parentNode;
+        parent.replaceChild(document.createTextNode(hit.textContent), hit);
+        parent.normalize();
+      });
+    });
+    marked = [];
+  }
+
+  function mark(entry, term) {
+    var texts = [];
+
+    Array.prototype.forEach.call(entry.querySelectorAll(MARKABLE), function (cell) {
+      var walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue.toLowerCase().indexOf(term) !== -1) texts.push(node);
+      }
+    });
+    if (!texts.length) return;
+
+    texts.forEach(function (text) {
+      var value = text.nodeValue;
+      var lower = value.toLowerCase();
+      var frag = document.createDocumentFragment();
+      var at = 0;
+      var hit;
+
+      while ((hit = lower.indexOf(term, at)) !== -1) {
+        if (hit > at) frag.appendChild(document.createTextNode(value.slice(at, hit)));
+        var el = document.createElement('mark');
+        el.className = 'dir-hit';
+        el.textContent = value.slice(hit, hit + term.length);
+        frag.appendChild(el);
+        at = hit + term.length;
+      }
+      if (at < value.length) frag.appendChild(document.createTextNode(value.slice(at)));
+
+      text.parentNode.replaceChild(frag, text);
+    });
+
+    marked.push(entry);
+  }
+
   input.addEventListener('input', function () {
     var term = input.value.trim().toLowerCase();
-    var visibleCount = 0;
+    var families = 0;
+    var visiblePages = 0;
+
+    unmark();
 
     pages.forEach(function (page) {
       var entries = page.querySelectorAll('.entry');
       if (!entries.length) return; // the "no families yet" placeholder page
 
       var pageHasMatch = false;
-      entries.forEach(function (entry) {
+      Array.prototype.forEach.call(entries, function (entry) {
         var match = !term || (entry.dataset.search || '').indexOf(term) !== -1;
         entry.hidden = !match;
-        if (match) pageHasMatch = true;
+        if (match) {
+          pageHasMatch = true;
+          families++;
+          if (term) mark(entry, term);
+        }
       });
 
       page.hidden = !pageHasMatch;
-      if (pageHasMatch) visibleCount++;
+      if (pageHasMatch) visiblePages++;
     });
 
-    empty.hidden = visibleCount > 0 || !term;
+    empty.hidden = visiblePages > 0 || !term;
+
+    if (count) {
+      count.hidden = !term;
+      count.textContent = families === 0 ? 'No results found'
+        : families === 1 ? '1 result found'
+        : families + ' results found';
+    }
   });
 })();
 </script>
