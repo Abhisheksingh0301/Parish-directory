@@ -7,11 +7,32 @@
 </head>
 <body class="app">
 
+<%
+  /*
+   * The initials on the account plate.
+   *
+   * Two letters at most, taken from the name the person set, and falling back
+   * to the username when they have not set one — a household that signs in
+   * with a Family ID has no full name, and an empty circle in the corner of
+   * every page would look like a fault rather than a fact.
+   */
+  const whoName = String(currentUser.full_name || currentUser.username || '').trim();
+  const initials = whoName.split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(function (word) { return word[0]; }).join('').toUpperCase() || '\u00b7';
+%>
+
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="<%= base + (isSuperAdmin && !churchId ? '/super' : '/') %>">
-      <%= settings.directory_title %>
-      <small><%= church ? church.name : settings.parish_name %></small>
+      <%# The mark: a cross standing inside the circle of the parish. %>
+      <svg class="mark" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+        <path d="M15 3V27M8 9H22" stroke="#B08A3E" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="15" r="13" stroke="#B08A3E" stroke-width=".9" opacity=".45"/>
+      </svg>
+      <span class="name">
+        <%= settings.directory_title %>
+        <small><%= church ? church.name : settings.parish_name %></small>
+      </span>
     </a>
 
 <%
@@ -86,8 +107,20 @@
       <% } %>
     </nav>
 
+    <%#
+      Who is signed in, as a plate rather than a line of text: the initials,
+      the name, and the role underneath it. The role is there because a
+      directory has five of them and what you are allowed to do on the page
+      you are looking at follows from it.
+    %>
     <div class="whoami">
-      <a href="<%= base %>/account"><strong><%= currentUser.full_name || currentUser.username %></strong></a>
+      <a href="<%= base %>/account">
+        <span class="who">
+          <strong><%= whoName %></strong>
+          <span class="role"><%= roleLabel(currentUser.role) %></span>
+        </span>
+        <span class="ava" aria-hidden="true"><%= initials %></span>
+      </a>
       <form method="post" action="<%= base %>/logout">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn ghost small">Sign out</button>

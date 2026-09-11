@@ -4,6 +4,25 @@
 <%- include('../partials/head-assets') %>
 <title><%= title %> · <%= settings.parish_name %></title>
 <link rel="stylesheet" href="<%= base %>/stylesheets/directory.css">
+<%
+  /*
+   * The page margin, which has to follow the book rather than sit in the
+   * stylesheet.
+   *
+   * A sheet carrying one family draws the engraved keyline, and the keyline
+   * needs somewhere to sit that is not paid for out of the entry's height
+   * budget. So the margin gives up 6mm and .page-single takes it back as its
+   * own padding (see directory.css): the text lands exactly where it always
+   * did, 12mm in, and the frame is drawn in the 6mm between. A two-up sheet
+   * has no frame and keeps the 12mm it has always had.
+   *
+   * @page cannot be selected on a class, so the choice is made here. Only a
+   * book that is one family to a sheet the whole way through qualifies — a
+   * combined book may hold churches that set it differently.
+   */
+  const allSingle = pages.length > 0 && pages.every(function (p) { return p.single; });
+%>
+<style>@page { size: A4 portrait; margin: <%= allSingle ? '6mm' : '12mm' %>; }</style>
 </head>
 <%
   // The parish's saved palette overrides the defaults in directory.css.

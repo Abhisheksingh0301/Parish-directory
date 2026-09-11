@@ -1,12 +1,15 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1><%= church.name %></h1>
-  <p class="sub">
-    <%= church.diocese_name %><% if (church.zone_name) { %> · <%= church.zone_name %><% } %>
-    <% if (church.city) { %> · <%= church.city %><% } %>
-    <% if (!church.is_active) { %> <span class="tag draft">Deactivated</span><% } %>
-  </p>
+  <div class="titleblock">
+    <p class="eyebrow">System</p>
+    <h1><%= church.name %></h1>
+    <p class="sub">
+      <%= church.diocese_name %><% if (church.zone_name) { %> · <%= church.zone_name %><% } %>
+      <% if (church.city) { %> · <%= church.city %><% } %>
+      <% if (!church.is_active) { %> <span class="tag draft">Deactivated</span><% } %>
+    </p>
+  </div>
 </div>
 
 <%- include('../partials/messages') %>

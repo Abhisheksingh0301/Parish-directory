@@ -1,10 +1,13 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1>
-    <%= family.head_name %>
-    <span class="tag"><%= family.family_id %></span>
-  </h1>
+  <div class="titleblock">
+    <p class="eyebrow">Review</p>
+    <h1>
+      <%= family.head_name %>
+      <span class="tag"><%= family.family_id %></span>
+    </h1>
+  </div>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
     <a href="<%= base %>/review" class="btn ghost">Back to the queue</a>

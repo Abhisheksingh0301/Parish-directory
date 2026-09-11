@@ -5,15 +5,20 @@
 <title><%= title %></title>
 <link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
+<%#
+  The one screen that is deliberately not the split plate. An error is not a
+  frontispiece: it is a single centred card saying what went wrong and one way
+  out of it, so `body.auth` is used without `.split`.
+%>
 <body class="auth">
 
 <div class="auth-card">
+  <p class="eyebrow">Something went wrong</p>
   <h1><%= title %></h1>
-  <p class="parish"><%= message %></p>
+  <p class="lede"><%= message %></p>
 
   <% if (error && error.stack) { %>
-    <pre style="background:#f7f4ee;border:1px solid #ded7c9;border-radius:6px;
-                padding:12px;font-size:12px;overflow:auto;max-height:320px"><%= error.stack %></pre>
+    <pre><%= error.stack %></pre>
   <% } %>
 
   <a href="<%= base %>/" class="btn" style="margin-top:8px">Back to the directory</a>

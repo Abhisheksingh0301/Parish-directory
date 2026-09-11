@@ -5,62 +5,70 @@
 <title><%= title %> · <%= settings.parish_name %></title>
 <link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 </head>
-<body class="auth">
+<body class="auth split">
 
-<div class="auth-card">
-  <h1><%= settings.directory_title %></h1>
-  <p class="parish">Sign in with your Family ID</p>
+<%- include('../partials/auth-plate') %>
 
-  <%- include('../partials/messages') %>
+<section class="auth-stage">
+  <div class="auth-card">
+    <p class="eyebrow">For families</p>
+    <h1>Sign in with your Family ID</h1>
+    <p class="lede">
+      No email address is needed. Everything you need is printed on the
+      verification slip the parish handed you.
+    </p>
 
-  <form method="post" action="<%= base %>/family-login" autocomplete="off">
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../partials/messages') %>
 
-    <% if (churches.length > 1) { %>
+    <form method="post" action="<%= base %>/family-login" autocomplete="off">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <% if (churches.length > 1) { %>
+        <div class="field">
+          <label for="church_id">Parish</label>
+          <select id="church_id" name="church_id" required>
+            <option value="">Choose your parish</option>
+            <% churches.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= String(church_id) === String(c.id) ? 'selected' : '' %>>
+                <%= c.name %><%= c.city ? ', ' + c.city : '' %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+      <% } else if (churches.length === 1) { %>
+        <input type="hidden" name="church_id" value="<%= churches[0].id %>">
+      <% } %>
+
       <div class="field">
-        <label for="church_id">Parish</label>
-        <select id="church_id" name="church_id" required>
-          <option value="">Choose your parish</option>
-          <% churches.forEach(function (c) { %>
-            <option value="<%= c.id %>" <%= String(church_id) === String(c.id) ? 'selected' : '' %>>
-              <%= c.name %><%= c.city ? ', ' + c.city : '' %>
-            </option>
-          <% }); %>
-        </select>
+        <label for="family_ref">Family ID</label>
+        <input type="text" id="family_ref" name="family_ref" value="<%= family_ref %>"
+               inputmode="text" autofocus required
+               placeholder="0001">
+        <p class="help">The number printed at the top of your verification slip.</p>
       </div>
-    <% } else if (churches.length === 1) { %>
-      <input type="hidden" name="church_id" value="<%= churches[0].id %>">
-    <% } %>
 
-    <div class="field">
-      <label for="family_ref">Family ID</label>
-      <input type="text" id="family_ref" name="family_ref" value="<%= family_ref %>"
-             inputmode="text" autofocus required
-             placeholder="0001">
-      <p class="help">The number printed at the top of your verification slip.</p>
-    </div>
+      <div class="field">
+        <label for="pin">PIN</label>
+        <input type="password" id="pin" name="pin" inputmode="numeric"
+               autocomplete="one-time-code" required>
+        <p class="help">The six digits on the same slip.</p>
+      </div>
 
-    <div class="field">
-      <label for="pin">PIN</label>
-      <input type="password" id="pin" name="pin" inputmode="numeric"
-             autocomplete="one-time-code" required>
-      <p class="help">The six digits on the same slip.</p>
-    </div>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
 
-    <button type="submit" class="btn">Sign in</button>
-  </form>
+    <p class="alt">
+      Do you have an email address on file with the parish?
+      <a href="<%= base %>/login">Sign in with that instead</a>.
+      <br>
+      Lost your slip, or never had one? Ask the parish office or your Area
+      Representative. They can issue a new PIN, or enter your corrections for
+      you.
+    </p>
+  </div>
 
-  <p class="help" style="margin-top:18px">
-    Do you have an email address on file with the parish?
-    <a href="<%= base %>/login">Sign in with that instead</a>.
-    <br>
-    Lost your slip, or never had one? Ask the parish office or your Area
-    Representative. They can issue a new PIN, or enter your corrections for
-    you.
-  </p>
-</div>
-
-<%- include('../partials/indus-badge') %>
+  <%- include('../partials/indus-badge') %>
+</section>
 
 <script src="<%= base %>/javascripts/password-toggle.js"></script>
 </body>

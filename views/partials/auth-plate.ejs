@@ -1,0 +1,52 @@
+<%
+  /*
+   * The ceremonial half of a sign-in screen.
+   *
+   * Shared by the three ways into this application — a staff password, a
+   * household's Family ID and PIN, and the first-run setup — so all three
+   * open on the same plate and none of them has to invent its own.
+   *
+   * It carries no form and no link anyone has to use. It is the frontispiece:
+   * the crest, the name of the book, and one sentence about what the book is
+   * for. Below 900px it collapses to the crest alone (see app.css), because
+   * on a phone the form is the whole screen and scenery would push it under
+   * the fold.
+   */
+%>
+<section class="auth-plate">
+  <div class="crest">
+    <%# The cross of the parish, resting on the two arcs of the ornament that
+        closes every page of the printed directory. One drawing, used at both
+        ends of the book. %>
+    <svg class="mark" viewBox="0 0 48 60" fill="none"
+         role="img" aria-label="<%= settings.parish_name %>">
+      <g stroke="#B08A3E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 9V45"/><path d="M11 22H37"/>
+        <path d="M16 52Q24 45 32 52"/><path d="M12 55Q24 46 36 55"/>
+      </g>
+      <g fill="#B08A3E">
+        <circle cx="24" cy="9" r="2.3"/><circle cx="11" cy="22" r="2.3"/>
+        <circle cx="37" cy="22" r="2.3"/><circle cx="24" cy="45" r="2.3"/>
+      </g>
+    </svg>
+    <div>
+      <span class="wordmark"><%= settings.directory_title %></span>
+      <span class="sub"><%= settings.parish_name %></span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <p class="kicker">Est. in faith &amp; fellowship</p>
+    <h1>A record of <em>every family</em> in our congregation.</h1>
+    <p>
+      One verified directory &mdash; kept current by the parish office, and by
+      the families themselves. Signed, sealed, and always at hand.
+    </p>
+  </div>
+
+  <div class="plate-foot">
+    <span><%= settings.parish_name %></span>
+    <span class="dot"></span>
+    <span>Family Directory</span>
+  </div>
+</section>

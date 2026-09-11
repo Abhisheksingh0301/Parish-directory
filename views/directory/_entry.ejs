@@ -36,6 +36,11 @@
       <% } %>
     </div>
 
+    <div class="leaf-caption">
+      <span class="t">Household</span>
+      <span class="line"></span>
+    </div>
+
     <table class="details">
       <tbody>
         <tr>
@@ -55,35 +60,56 @@
     </table>
   </div>
 
+  <div class="leaf-caption">
+    <span class="t">Members</span>
+    <span class="line"></span>
+    <span class="n"><%= f.members.length %> on register</span>
+  </div>
+
   <table class="members">
     <thead>
       <tr>
-        <th>Family Members</th>
+        <%# "Member", not "Family Members": the caption above the table already
+            says whose members these are, and the longer wording was the second
+            heading on the row to wrap onto two lines and set the band taller. %>
+        <th>Member</th>
         <th class="c">Relation</th>
         <th class="c">DOB</th>
         <th class="c">DOM</th>
         <th class="c">Mobile</th>
-        <th class="c">Blood Group</th>
+        <th class="c">Blood</th>
         <th class="c">Qualification</th>
         <th class="c">Occupation</th>
         <th class="c">Emails</th>
       </tr>
     </thead>
     <tbody>
+      <%
+        /*
+         * A missing value is written as a dash rather than left blank. An
+         * empty cell in a printed register reads as "nobody asked", and every
+         * one of these was asked; a dash says the household did not give it.
+         * It costs no height — the row is already as tall as its other cells.
+         */
+      %>
       <% f.members.forEach(function (m) { %>
         <tr>
-          <td><%= m.name %></td>
-          <td class="c"><%= m.relation %></td>
-          <td class="c d"><%= m.dob %></td>
-          <td class="c d"><%= m.dom %></td>
+          <td class="nm"><%= m.name %></td>
+          <td class="c rel"><% if (m.relation) { %><%= m.relation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+          <td class="c d"><% if (m.dob) { %><%= m.dob %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+          <td class="c d"><% if (m.dom) { %><%= m.dom %><% } else { %><span class="dash">&mdash;</span><% } %></td>
           <%# A member may hold more than one of either, one to a line. Each is
               escaped on its own rather than joined into a blob of markup. %>
-          <td class="c"><% m.mobiles.forEach(function (n, j) { %><%
+          <td class="c"><% if (!m.mobiles.length) { %><span class="dash">&mdash;</span><% } %><%
+            %><% m.mobiles.forEach(function (n, j) { %><%
             %><%= n %><% if (j < m.mobiles.length - 1) { %><br><% } %><% }) %></td>
-          <td class="c"><%= m.blood_group %></td>
-          <td class="c"><%= m.qualification %></td>
-          <td class="c"><%= m.occupation %></td>
-          <td class="c"><% m.email_list.forEach(function (a, j) { %><%
+          <%# The one value on the row that is read at a glance in an emergency,
+              so it is the one that is set apart rather than merely printed. %>
+          <td class="c"><% if (m.blood_group) { %><span class="bg"><%= m.blood_group %></span><% } else { %><span class="dash">&mdash;</span><% } %></td>
+          <td class="c"><% if (m.qualification) { %><%= m.qualification %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+          <td class="c"><% if (m.occupation) { %><%= m.occupation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+          <td class="c em"><% if (!m.email_list.length) { %><span class="dash">&mdash;</span><% } %><%
+            %><% m.email_list.forEach(function (a, j) { %><%
             %><%= a %><% if (j < m.email_list.length - 1) { %><br><% } %><% }) %></td>
         </tr>
       <% }); %>

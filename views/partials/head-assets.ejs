@@ -4,7 +4,17 @@
 <link rel="apple-touch-icon" href="<%= base %>/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<%# Playfair Display is only used by the IndusDefender wordmark on the sign-in
-    screens. It rides along on the request Quicksand already makes, and a
-    browser downloads a face only where it is actually used. %>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<%#
+    Two faces, and only two.
+
+    Fraunces sets everything the eye reads as a title or a quantity — page
+    headings, the figures in the ledger, the counts along the verification
+    chain — and Inter everything read as an instruction. That division is the
+    whole typographic idea: a register, not a dashboard.
+
+    Fraunces is a variable font, so the optical-size axis comes along with the
+    weights and a 44px heading is drawn with finer detail than a 15px one
+    without a second file. The italic is asked for because the eyebrow above
+    every page title and the "anniversary" mark in the almanac are set in it.
+%>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

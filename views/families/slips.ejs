@@ -12,13 +12,14 @@
    * bcrypt hash, so this page is the one moment it exists in readable form —
    * print it before leaving, and issue a new PIN if a slip is lost.
    */
-  body { background: #fff; color: #000; margin: 0; font-size: 12pt; }
+  body { background: #fff; color: #000; margin: 0; font-size: 12pt; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   .sheet { max-width: 780px; margin: 0 auto; padding: 24px; }
   .slips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .slip { border: 1px dashed #777; padding: 12px 14px; break-inside: avoid; }
-  .slip h3 { margin: 0 0 2px; font-size: 12.5pt; }
+  .slip h3 { margin: 0 0 2px; font-size: 12.5pt; font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif; font-weight: 500; }
   .slip .ref { color: #444; font-size: 10pt; margin: 0 0 8px; }
-  .slip .pin { font-size: 20pt; letter-spacing: .18em; font-weight: 700; margin: 0; }
+  .slip .pin { font-size: 20pt; letter-spacing: .18em; font-weight: 700; margin: 0;
+                font-variant-numeric: tabular-nums; }
   .slip .how { font-size: 9.5pt; color: #333; margin: 8px 0 0; line-height: 1.35; }
   .warn { border: 1px solid #999; background: #f4f0e8; padding: 12px 14px; margin: 0 0 18px; font-size: 11pt; }
   .no-print { margin-bottom: 16px; }

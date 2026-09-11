@@ -115,15 +115,18 @@
 <% } %>
 
 <div class="page-head">
-  <h1><%= isNew ? 'Add a family' : (isOwnEntry ? 'Our entry' : 'Edit family') %></h1>
-  <p class="sub">
-    <% if (isOwnEntry) { %>
+  <div class="titleblock">
+    <p class="eyebrow">Families</p>
+    <h1><%= isNew ? 'Add a family' : (isOwnEntry ? 'Our entry' : 'Edit family') %></h1>
+    <p class="sub">
+      <% if (isOwnEntry) { %>
       Fill in whatever is missing and correct anything that is wrong. Your family
       ID and whether the entry is printed are set by the parish office.
-    <% } %>
-    Both the date of birth and the date of marriage are day and month only
-    &mdash; no year, either in the form or in the printed directory.
-  </p>
+      <% } %>
+      Both the date of birth and the date of marriage are day and month only
+      &mdash; no year, either in the form or in the printed directory.
+    </p>
+  </div>
 </div>
 
 <%- include('../partials/messages') %>
@@ -248,7 +251,7 @@
       <% if (!isOwnEntry) { %>
         <div class="field">
           <div class="label">In the printed directory</div>
-          <label class="checkline" style="text-transform:none;font-weight:500;letter-spacing:0">
+          <label class="checkline">
             <input type="checkbox" name="is_published" value="1"
                    <%= family.is_published ? 'checked' : '' %>>
             Include this family when printing

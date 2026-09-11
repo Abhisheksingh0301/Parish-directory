@@ -1,11 +1,14 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1><%= labels.diocese %>s</h1>
-  <p class="sub">
-    The top of the hierarchy. Every church belongs to one, whether or not it
-    has been put in a <%= labels.zone.toLowerCase() %> yet.
-  </p>
+  <div class="titleblock">
+    <p class="eyebrow">System</p>
+    <h1><%= labels.diocese %>s</h1>
+    <p class="sub">
+      The top of the hierarchy. Every church belongs to one, whether or not it
+      has been put in a <%= labels.zone.toLowerCase() %> yet.
+    </p>
+  </div>
 </div>
 
 <%- include('../partials/messages') %>

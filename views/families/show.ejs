@@ -1,10 +1,13 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1>
-    <%= family.head_name %>
-    <% if (!family.is_published) { %><span class="tag draft">Draft</span><% } %>
-  </h1>
+  <div class="titleblock">
+    <p class="eyebrow">Family <%= family.family_id %></p>
+    <h1>
+      <%= family.head_name %>
+      <% if (!family.is_published) { %><span class="tag draft">Draft</span><% } %>
+    </h1>
+  </div>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
     <% if (!isOwnEntry) { %><a href="<%= base %>/families" class="btn ghost">Back to families</a><% } %>

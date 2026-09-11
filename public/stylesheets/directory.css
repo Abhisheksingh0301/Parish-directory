@@ -8,18 +8,32 @@
    ========================================================================== */
 
 .directory {
-  --ink:       #2c2721;
-  --ink-soft:  #4a4239;
-  --band:      #cec4b3;
-  --band-dark: #b6ab97;
+  /*
+   * The five variables the server overrides inline are --band, --band-dark,
+   * --member-a, --member-b and --rule. They are the parish's own choice, made
+   * on the Settings page, and the values here are only the fallback for a
+   * church that has never opened it — so the engraving below is drawn in
+   * --gilt and --ink, which no parish sets and which therefore look the same
+   * in every book.
+   */
+  --ink:       #141B2E;
+  --ink-soft:  #4A5268;
+  --ink-mute:  #7B8296;
+  --gilt:      #B08A3E;
+  --gilt-deep: #8F6E2C;
+  --claret:    #7C3B3B;
+  --parchment: #F7F4ED;
+  --vellum:    #EFEADE;
+  --band:      #EFEADE;
+  --band-dark: #DED6C4;
   --row-a:     #ffffff;
-  --row-b:     #f2efe9;
-  --member-a:  #d9d2c4;
-  --member-b:  #cec6b6;
-  --rule:      #a99e8a;
-  --page:      #ffffff;
+  --row-b:     #F7F4ED;
+  --member-a:  #ffffff;
+  --member-b:  #F7F4ED;
+  --rule:      #DED6C4;
+  --page:      #FCFAF4;
   --frame:     #ffffff;
-  --radius:    10px;
+  --radius:    4px;
 
   /*
    * The photograph's share of the row it shares with the details table.
@@ -45,11 +59,20 @@
 
 body.directory-body {
   margin: 0;
-  background: #8d8577;
-  font-family: 'Quicksand', 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif;
+  /* The desk, lit from above the sheet rather than flat behind it. */
+  background: #E7E0D0;
+  background-image: radial-gradient(120% 90% at 50% 22%, #F1ECDF 0%, #E7E0D0 55%, #DAD1BE 100%);
+  background-attachment: fixed;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink);
   padding: 28px 16px 60px;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Anything read as a title, a name or a number is set in the serif. */
+.directory-body h1, .directory-body h2,
+.head-name, .folio, .pname, .section-title h2 {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
 }
 
 /* ---------- controls (screen only) ---------- */
@@ -60,47 +83,62 @@ body.directory-body {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  background: #fffdf9;
-  border-radius: var(--radius);
-  padding: 14px 18px;
-  font-size: 14px;
+  background: #FFFDF9;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 13px 18px;
+  font-size: 13.5px;
   color: var(--ink-soft);
+  box-shadow: 0 10px 30px -18px rgba(20, 27, 46, .4);
 }
-.dir-toolbar strong { font-weight: 700; color: var(--ink); }
+.dir-toolbar strong {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+}
 .dir-toolbar .spacer { margin-left: auto; }
 .dir-toolbar a, .dir-toolbar button {
   font: inherit;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  background: var(--band-dark);
-  color: #1f1b16;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+  background: var(--ink);
+  color: #F7F4ED;
+  border: 1px solid var(--ink);
+  padding: 9px 16px;
+  border-radius: 3px;
 }
 .dir-toolbar a.ghost, .dir-toolbar button.ghost {
   background: transparent;
-  border: 1px solid var(--rule);
+  border-color: #C4B9A2;
   color: var(--ink-soft);
 }
-.dir-toolbar a:hover, .dir-toolbar button:hover { background: var(--rule); color: #1f1b16; }
+.dir-toolbar a:hover, .dir-toolbar button:hover { background: #1D273F; border-color: #1D273F; color: #F7F4ED; }
+.dir-toolbar a.ghost:hover, .dir-toolbar button.ghost:hover {
+  background: var(--vellum);
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
 .dir-toolbar a:focus-visible, .dir-toolbar button:focus-visible {
-  outline: 3px solid var(--ink);
+  outline: 2px solid var(--gilt);
   outline-offset: 2px;
 }
 .dir-toolbar .dir-search {
   font: inherit;
+  font-size: 13.5px;
   min-width: 240px;
-  padding: 8px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
+  padding: 9px 14px;
+  border: 1px solid #C4B9A2;
+  border-radius: 3px;
   background: #fff;
   color: var(--ink);
 }
 .dir-toolbar .dir-search:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--gilt);
+  box-shadow: 0 0 0 3px rgba(176, 138, 62, .16);
 }
 
 /* How many families the current term matched -- sits beside the search box. */
@@ -112,7 +150,7 @@ body.directory-body {
 
 /* The term itself, marked inside every matching entry. */
 mark.dir-hit {
-  background: #ffe9a8;
+  background: rgba(176, 138, 62, .3);
   color: inherit;
   border-radius: 2px;
   padding: 0 1px;
@@ -121,10 +159,13 @@ mark.dir-hit {
 .dir-search-empty {
   max-width: 960px;
   margin: 0 auto 22px;
-  background: #fffdf9;
-  border-radius: var(--radius);
+  background: #FFFDF9;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
   padding: 18px;
   text-align: center;
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
   color: var(--ink-soft);
 }
 
@@ -135,12 +176,62 @@ mark.dir-hit {
   max-width: 960px;
   margin: 0 auto 26px;
   background: var(--page);
-  padding: 26px 26px 0;
+  /* The keyline sits at 12px; the footer's own 18px of padding then clears it
+     comfortably, which the old padding-bottom of 0 did not. */
+  padding: 26px 26px 10px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  box-shadow: 0 34px 80px -34px rgba(20, 27, 46, .42),
+              0 6px 16px -8px rgba(20, 27, 46, .2),
+              0 0 0 1px rgba(20, 27, 46, .05);
   display: flex;
   flex-direction: column;
   min-height: 1160px;
+}
+
+/*
+ * The engraved double keyline, on the sheet that carries one family.
+ *
+ * It costs that sheet no height, and the fitting is the whole point. The
+ * budget further down governs how much of an A4 an entry may occupy, and a
+ * border that pushed the content inwards would have been paid for out of the
+ * photograph. So the whitespace is not added, it is moved: the page margin
+ * drops from 12mm to 6mm and .page-single takes that 6mm back as padding of
+ * its own, which leaves the text exactly where it was, 12mm in from the paper
+ * on every side. The keyline is drawn in the 6mm that now belongs to the
+ * sheet rather than to the printer — 7.5mm and 8.9mm from the paper's edge,
+ * the mockup's 8mm and 9.4mm within half a millimetre, and still clear of the
+ * ~5mm a printer cannot reach.
+ *
+ * Why only this layout. The same trick was tried on the two-up book and cost
+ * it a sheet: padding on a block that is itself paginated changes where
+ * Chrome fragments it, and a page that had just fitted no longer did. Trimming
+ * the footer to win the height back did not help, which is what showed it to
+ * be a fragmentation effect rather than a few millimetres of overflow. A
+ * frame is not worth a sheet of paper in every copy of the book, and a sheet
+ * holding two families is not what the leaf design is for.
+ *
+ * Measured rather than reasoned about, the way the budget below is: the book
+ * is printed to PDF and the sheets counted. One-up 49 -> 49, two-up 26 -> 26.
+ *
+ * The margin itself is set by the two directory templates, not here, because
+ * it has to follow the book: 6mm only when every sheet carries one family.
+ */
+.page-single::before,
+.page-single::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+.page-single::before {
+  inset: 12px;
+  border: 1.2px solid var(--gilt);
+  border-radius: 2px;
+}
+.page-single::after {
+  inset: 15px;
+  border: .6px solid rgba(143, 110, 44, .55);
+  border-radius: 1px;
 }
 
 /*
@@ -167,26 +258,52 @@ mark.dir-hit {
   gap: 10px;
   align-items: stretch;
   margin-bottom: 10px;
+  /* A tapered gilt rule, brightest under the name and fading to nothing at
+     both ends — the divider the printed book has always wanted under a
+     heading, in place of the band that used to be behind it. */
+  position: relative;
+  padding-bottom: 7px;
 }
+.entry-head::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent, rgba(176, 138, 62, .18) 6%, var(--gilt) 45%,
+    var(--gilt) 55%, rgba(176, 138, 62, .18) 94%, transparent);
+}
+/*
+ * The name is set, not boxed.
+ *
+ * Both of these were solid bands of --band with the name reversed out in
+ * capitals. A band is a cheap way to make a heading loud, and it costs the
+ * page its quiet: two of them to an entry and four to a sheet is a lot of
+ * furniture around six lines of data. The name is now simply the largest
+ * thing on the entry, which is what a name in a register should be, and the
+ * parish's --band is kept for the plate around the reference beside it — the
+ * one place on the entry where a tint still does work.
+ */
 .head-name {
-  background: var(--band);
-  border-radius: var(--radius);
-  padding: 9px 20px;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  padding: 6px 0;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -.01em;
   line-height: 1.15;
+  color: var(--ink);
   display: flex;
   align-items: center;
 }
 .head-id {
   background: var(--band);
-  border-radius: var(--radius);
-  padding: 9px 20px;
-  font-size: 22px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 7px 14px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: .02em;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
   display: flex;
   align-items: center;
   white-space: nowrap;
@@ -220,7 +337,15 @@ mark.dir-hit {
   text-align: left;
   vertical-align: middle;
 }
-.details th { width: 31%; font-weight: 600; background: var(--row-b); }
+.details th {
+  width: 31%;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  background: var(--row-b);
+}
 .details td { background: var(--row-a); }
 .details tr:first-child th,
 .details tr:first-child td { padding-top: 12px; padding-bottom: 12px; }
@@ -266,28 +391,100 @@ mark.dir-hit {
 }
 .members th {
   background: var(--band-dark);
-  font-weight: 700;
-  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 7px 8px;
   text-align: left;
+  /* The gilt hairline under the header is what separates the column names
+     from the people; the parish's own --band-dark is the fill above it. */
+  border-bottom: 1px solid var(--gilt);
 }
 .members th.c, .members td.c { text-align: center; }
-.members td { padding: 6px 8px; border: none; }
+.members td { padding: 6px 8px; border: none; font-variant-numeric: tabular-nums; }
+
+/* The name carries the row, so it is the one cell set in the ink. */
+.members td.nm { font-weight: 600; color: var(--ink); }
+
+/* The relation is not data the way a number is — it is the word that places
+   the person in the household — so it is set in the italic serif, the same
+   voice the book uses for its captions. */
+.members td.rel {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  color: var(--gilt-deep);
+}
+
+/*
+ * The blood group, as a struck chip rather than two more characters in a row
+ * of them. It is the one value on the line that somebody may one day need to
+ * find in a hurry, and the claret is the only place this palette uses a warm
+ * red — nothing else on the sheet can be mistaken for it.
+ *
+ * line-height 1.3 and no vertical padding on purpose: the chip has to sit
+ * inside the height the row already had. A taller row costs 7mm a family on
+ * the printed sheet, which is the difference between two households on a page
+ * and one.
+ */
+.members .bg {
+  display: inline-block;
+  padding: 0 7px;
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-weight: 600;
+  font-size: .92em;
+  line-height: 1.3;
+  color: var(--claret);
+  background: rgba(124, 59, 59, .05);
+  border: 1px solid rgba(124, 59, 59, .3);
+  border-radius: 20px;
+}
+
+/* A value the household did not give. Quiet enough not to speckle the page,
+   dark enough to be seen as a mark rather than a blemish. */
+.members .dash { color: #C7BEA9; }
 .members tbody tr:nth-child(odd)  td { background: var(--member-a); }
 .members tbody tr:nth-child(even) td { background: var(--member-b); }
 .members td[rowspan] { text-align: center; vertical-align: middle; }
 /* A date of birth carries a year: "02 - Aug - 1975" must not wrap. */
 .members .d { white-space: nowrap; }
 
+/*
+ * The section captions. Hidden here, and shown by .page-single below.
+ *
+ * They are in the shared markup rather than in a copy of it made for the
+ * one-up sheet, for the same reason everything else in _entry.ejs is: two
+ * copies of an entry drift, and the drift shows up in a printed book that
+ * nobody proof-reads twice.
+ */
+.leaf-caption { display: none; }
+
 /* ---------- footer ---------- */
 .page-foot { margin-top: auto; position: relative; padding: 30px 0 18px; }
+/*
+ * The ornament that closes the page.
+ *
+ * This was a lattice watermark bled 150px up behind the last entry — a
+ * pattern the eye had to look past to read the family printed over it. It is
+ * now the cross-and-rule device the sign-in plate carries, sitting in the
+ * footer's own space and rising into nothing: the same drawing at both ends
+ * of the book, and no ink where the data is.
+ *
+ * It keeps the class name because _entry.ejs and both directory views write
+ * <div class="lattice">, and those templates are shared with the combined
+ * book.
+ */
 .lattice {
   position: absolute;
-  left: -26px; right: -26px; bottom: 0;
-  height: 150px;
-  opacity: .55;
+  left: 0; right: 0; bottom: 100%;
+  height: 30px;
+  margin-bottom: 9px;
   pointer-events: none;
-  background-size: 88px 88px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cg fill='none' stroke='%23ded7c9' stroke-width='7'%3E%3Cpath d='M44 4 L84 44 L44 84 L4 44 Z'/%3E%3Cpath d='M4 4 L84 84 M84 4 L4 84'/%3E%3Ccircle cx='44' cy='44' r='15'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: auto 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='60' viewBox='0 0 48 60' fill='none'%3E%3Cg stroke='%238F6E2C' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M24 9V45'/%3E%3Cpath d='M11 22H37'/%3E%3Cpath d='M16 52Q24 45 32 52'/%3E%3Cpath d='M12 55Q24 46 36 55'/%3E%3C/g%3E%3Cg fill='%238F6E2C'%3E%3Ccircle cx='24' cy='9' r='2.3'/%3E%3Ccircle cx='11' cy='22' r='2.3'/%3E%3Ccircle cx='37' cy='22' r='2.3'/%3E%3Ccircle cx='24' cy='45' r='2.3'/%3E%3C/g%3E%3C/svg%3E");
 }
 .foot-row {
   position: relative;
@@ -296,17 +493,30 @@ mark.dir-hit {
   align-items: flex-end;
   border-top: 1px solid var(--rule);
   /*
-   * The name and the folio stay at the two ends, but pulled in from them. In
-   * print `.page` drops its padding to nothing, which put both hard against
-   * the edge of the printable area. The padding sits inside the border, so
-   * the rule above them still runs the full width of the page — an inset
-   * line under a full-width rule, rather than a shorter rule.
+   * The name and the folio stay at the two ends, but pulled in from them, so
+   * that neither sits hard against the edge of the text area. The padding is
+   * inside the border, so the rule above them still runs the full width of
+   * the page — an inset line under a full-width rule, rather than a shorter
+   * rule.
    */
   padding: 8px 18mm 0;
   font-size: 17px;
 }
-.parish-name { font-weight: 500; }
-.folio { font-weight: 600; }
+.parish-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.folio {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
 
 /* ==========================================================================
    One family to a sheet.
@@ -383,37 +593,51 @@ mark.dir-hit {
   align-items: end;
   gap: 16px;
   margin-bottom: 16px;
-  padding-bottom: 8px;
-  /* One rule under both, rather than an accent under the name alone: with the
-     two pushed to opposite ends, a rule under only one of them reads as a
-     mistake. */
-  border-bottom: 3px solid var(--band-dark);
+  /*
+   * One rule under both, rather than an accent under the name alone: with the
+   * two pushed to opposite ends, a rule under only one of them reads as a
+   * mistake.
+   *
+   * It used to be 3px of --band-dark, which is the parish's own colour doing
+   * a structural job — the sheet's one horizontal line got heavier or lighter
+   * depending on the band a parish had picked for its members table. It is now
+   * the tapered gilt rule .entry-head::after draws for every layout, and only
+   * the room above it is set here.
+   */
+  padding-bottom: 10px;
 }
 .page-single .head-name {
   order: 1;
   justify-self: start;
   justify-content: flex-start;
   text-align: left;
-  font-size: 26px;
-  letter-spacing: .05em;
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: -.015em;
   /* No band and no box: the name is the title of the page it is on, not
      another cell in another table. */
   background: transparent;
   padding: 0;
   border-radius: 0;
 }
+/*
+ * The reference, as an engraved plate rather than a pill: a keyline, and a
+ * second one struck inside it. The sheet it sits on is drawn that way, and a
+ * rounded pill on a ruled page reads as something pasted onto it.
+ */
 .page-single .head-id {
   order: 2;
   justify-self: end;
   align-self: end;
-  background: transparent;
-  border: 1px solid var(--rule);
+  background: linear-gradient(180deg, #FFFDF8, #FBF6EC);
+  border: 1px solid var(--gilt);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 3px #FCFAF3, inset 0 0 0 3.7px rgba(143, 110, 44, .45);
   color: var(--ink-soft);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .18em;
-  padding: 5px 16px;
-  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  padding: 9px 20px;
   /* Sat on the same baseline as the name, not on the rule itself. */
   margin-bottom: 3px;
 }
@@ -517,9 +741,78 @@ mark.dir-hit {
 .page-single .details tr:first-child td { padding-top: 7px; padding-bottom: 7px; }
 .page-single .home-icon { width: 26px; height: 26px; }
 
+/*
+ * The captions, on the one layout with the height to spend on them.
+ *
+ * A small diamond, the word, and a rule running out to the margin: the same
+ * device on both halves of the entry, so "Household" and "Members" read as
+ * two sections of one document rather than two tables that happen to follow
+ * each other.
+ */
+.page-single .leaf-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.page-single .leaf-caption .t {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.page-single .leaf-caption .t::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  flex: none;
+  transform: rotate(45deg);
+  border: 1px solid var(--gilt);
+  background: rgba(176, 138, 62, .14);
+}
+.page-single .leaf-caption .line { flex: 1; height: 1px; background: var(--rule); }
+.page-single .leaf-caption .n {
+  font-size: 11px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+/* The Members caption follows the household register, which closes on a rule
+   of its own; without this the two lines sit on top of one another. */
+.page-single .members + .leaf-caption,
+.page-single .details + .leaf-caption,
+.page-single .entry-body + .leaf-caption { margin-top: 16px; }
+
 .page-single .members { font-size: 13px; }
 .page-single .members th { padding: 6px 7px; letter-spacing: .02em; }
 .page-single .members td { padding: 5px 7px; }
+
+/*
+ * The foot of a leaf is centred, not split.
+ *
+ * On a sheet of two families the parish name and the folio are at opposite
+ * ends of one line, which is how a page of a book is numbered. A sheet that
+ * is one family is a certificate, and its imprint belongs under the ornament
+ * in the middle — with the folio dropped to the corner, where it stays out of
+ * the way of the imprint but can still be found when the sheets are collated.
+ */
+.page-single .foot-row {
+  position: relative;
+  display: block;
+  border-top: 0;
+  text-align: center;
+  padding-bottom: 6px;
+}
+.page-single .parish-name { display: block; }
+.page-single .folio {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+}
 
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
@@ -539,12 +832,21 @@ mark.dir-hit {
      so this only matters on a narrow tablet. */
   .page-single { --single-photo: 100%; }
   .page-single .head-name { font-size: 20px; }
-  .page-single .head-id { font-size: 11px; letter-spacing: .12em; padding: 4px 12px; }
+  /* The plate keeps its inset keyline, so the padding cannot come below the
+     7px the two struck lines need to sit inside it. */
+  .page-single .head-id { font-size: 10px; letter-spacing: .14em; padding: 8px 14px; }
   .page-single .details th { width: 34%; }
 }
 
 /* ---------- print ---------- */
-@page { size: A4 portrait; margin: 12mm; }
+
+/*
+ * @page lives in print.ejs and multi.ejs, not here: the margin has to follow
+ * the book. A book of one-family sheets asks for 6mm and gives the other 6mm
+ * back as .page-single's own padding, so the keyline has somewhere to go; a
+ * two-up book keeps the 12mm it has always had. @page cannot be selected on a
+ * class, so the templates emit it.
+ */
 @media print {
   body.directory-body { background: #fff; padding: 0; }
   .dir-toolbar { display: none; }
@@ -559,6 +861,32 @@ mark.dir-hit {
     min-height: 0;
     page-break-after: always;
   }
+
+  /*
+   * The one-family sheet takes back the 6mm the page margin gave up, so its
+   * text still begins 12mm in from the paper and its height budget is the
+   * same 273mm it has always been.
+   */
+  .page-single {
+    padding: 6mm;
+    /*
+     * A floor, so the keyline frames the sheet rather than just the entry on
+     * it. Without it a leaf with a small household drew its box halfway up
+     * the paper and took the folio with it.
+     *
+     * box-sizing is content-box here, so this excludes the padding: 272 + 12
+     * = 284mm against the 285mm the region offers. The millimetre of slack is
+     * deliberate — at exactly 285 a rounding error either way puts a blank
+     * sheet after every leaf in the book, and a frame stopping 1mm short of
+     * the paper cannot be seen.
+     */
+    min-height: 272mm;
+  }
+
+  /* In millimetres now, so the frame keeps its distance from the paper's edge
+     rather than from a pixel grid the printer does not share. */
+  .page-single::before { inset: 1.5mm; }
+  .page-single::after  { inset: 2.9mm; }
   .page:last-child { page-break-after: auto; }
   .entry { page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -587,13 +915,19 @@ mark.dir-hit {
 
 .section-title h2 {
   margin: 0;
-  font-size: 30px;
-  letter-spacing: 0.02em;
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: -.01em;
   background: var(--band);
   border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 14px 28px;
+  border-radius: 4px;
+  padding: 16px 34px;
 }
 
-.section-title p { margin: 0; font-size: 14px; color: #5c5344; }
-.section-title p.count { font-size: 13px; color: #8d8577; }
+.section-title p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+.section-title p.count {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-mute);
+}

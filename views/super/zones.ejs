@@ -1,12 +1,15 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1><%= labels.zone %>s</h1>
-  <p class="sub">
-    A <%= labels.zone.toLowerCase() %> groups churches inside one
-    <%= labels.diocese.toLowerCase() %>. A church can belong to none &mdash;
-    it still belongs to its <%= labels.diocese.toLowerCase() %>.
-  </p>
+  <div class="titleblock">
+    <p class="eyebrow">System</p>
+    <h1><%= labels.zone %>s</h1>
+    <p class="sub">
+      A <%= labels.zone.toLowerCase() %> groups churches inside one
+      <%= labels.diocese.toLowerCase() %>. A church can belong to none &mdash;
+      it still belongs to its <%= labels.diocese.toLowerCase() %>.
+    </p>
+  </div>
 </div>
 
 <%- include('../partials/messages') %>

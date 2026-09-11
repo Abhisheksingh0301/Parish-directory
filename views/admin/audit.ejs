@@ -1,11 +1,14 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1>Audit log</h1>
-  <p class="sub">
-    What happened in this parish, newest first. Every line records who did
-    what, and when. No one, including this app, can edit or delete a line here.
-  </p>
+  <div class="titleblock">
+    <p class="eyebrow">Manage</p>
+    <h1>Audit log</h1>
+    <p class="sub">
+      What happened in this parish, newest first. Every line records who did
+      what, and when. No one, including this app, can edit or delete a line here.
+    </p>
+  </div>
   <div class="spacer"></div>
   <div class="actions" style="margin:0">
     <a href="<%= base %>/review/export.csv" class="btn ghost">Export the change queue</a>

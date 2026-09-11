@@ -1,12 +1,15 @@
 <%- include('../partials/header') %>
 
 <div class="page-head">
-  <h1>Download your data</h1>
-  <p class="sub">
-    Everything this parish has entered, in a form you can keep, print, or move
-    to another system. The records are yours. This page is how you get a copy
-    of them without asking anyone.
-  </p>
+  <div class="titleblock">
+    <p class="eyebrow">Manage</p>
+    <h1>Download your data</h1>
+    <p class="sub">
+      Everything this parish has entered, in a form you can keep, print, or move
+      to another system. The records are yours. This page is how you get a copy
+      of them without asking anyone.
+    </p>
+  </div>
 </div>
 
 <div class="stats" style="margin-bottom:22px">
@@ -23,7 +26,9 @@
   <h2>What to include</h2>
 
   <div class="field">
-    <label>
+    <%# A sentence beside a tick, not the name of a field: .checkline is what
+        carries that, and it keeps the caption style off it. %>
+    <label class="checkline">
       <input type="checkbox" name="drafts" value="0" id="skip-drafts">
       Leave out drafts &mdash; only the
       <strong><%= stats.published %></strong> entries that go into the printed book

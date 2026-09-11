@@ -1,26 +1,62 @@
 /* ==========================================================================
    Parish Directory — application chrome.
+
    The printed directory has its own stylesheet (directory.css); this file
-   styles the screens people work in. Palette is deliberately the same warm
-   family so the app and the printed book feel like one thing.
+   styles the screens people work in.
+
+   The palette is the engraved one: ink navy for authority, parchment and
+   vellum for paper, gilt for the one accent a ledger is allowed. Fraunces
+   sets anything read as a title or a quantity, Inter everything read as an
+   instruction — a register, not a dashboard.
+
+   Every class the templates and public/javascripts/*.js already use is kept,
+   so this is a re-skin and not a rename.
    ========================================================================== */
 
 :root {
-  --ink:        #2c2721;
-  --ink-soft:   #4a4239;
-  --ink-faint:  #7a7062;
-  --band:       #cec4b3;
-  --band-dark:  #b6ab97;
-  --rule:       #a99e8a;
-  --line:       #ded7c9;
-  --paper:      #ffffff;
-  --paper-warm: #f7f4ee;
-  --canvas:     #8d8577;
-  --danger:     #96331f;
-  --danger-bg:  #f7e4df;
-  --ok:         #2f6b45;
-  --ok-bg:      #e2f0e7;
-  --radius:     10px;
+  /* ---- ink ---- */
+  --ink:        #141B2E;
+  --ink-soft:   #4A5268;
+  --ink-faint:  #7B8296;
+  --ink-lift:   #1D273F;   /* the hover of an inked button */
+
+  /* ---- paper ---- */
+  --parchment:  #F7F4ED;   /* the page */
+  --vellum:     #EFEADE;   /* a panel inset into the page */
+  --panel:      #FFFDF9;   /* a card standing on the page */
+
+  /* ---- gilt, and the two muted signals ---- */
+  --gilt:       #B08A3E;
+  --gilt-deep:  #8F6E2C;
+  --sage:       #43614C;
+  --sage-bg:    #E4EDE6;
+  --sage-line:  #B7CEBF;
+  --rose:       #8C3F2E;
+  --rose-bg:    #F6E8E3;
+  --rose-line:  #DCBDB2;
+
+  /* ---- rules ---- */
+  --rule:       #DED6C4;   /* a hairline on paper */
+  --rule-soft:  #EBE5D6;   /* the hairline between rows */
+  --rule-firm:  #C4B9A2;   /* the edge of a control you can type in */
+
+  --radius:     3px;       /* engraved, not rounded */
+  --radius-lg:  5px;
+
+  /* ---- aliases kept for markup written against the old names ---- */
+  --paper:      #FFFDF9;
+  --paper-warm: #EFEADE;
+  --line:       #DED6C4;
+  --band:       #EFEADE;
+  --band-dark:  #DED6C4;
+  --canvas:     #141B2E;
+  --danger:     #8C3F2E;
+  --danger-bg:  #F6E8E3;
+  --ok:         #43614C;
+  --ok-bg:      #E4EDE6;
+
+  --serif: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -28,89 +64,101 @@
 body.app {
   margin: 0;
   min-height: 100vh;
-  background: var(--paper-warm);
+  background: var(--parchment);
   color: var(--ink);
-  font-family: 'Quicksand', 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
-a { color: #6b4f2a; }
+a { color: var(--gilt-deep); text-decoration: none; }
 a:hover { color: var(--ink); }
 
-/* ---------- top bar ---------- */
+/* Anything read as a title or a quantity is set in the serif. */
+h1, h2, h3, h4 {
+  font-family: var(--serif);
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .92em;
+}
+
+/* ==========================================================================
+   The top bar
+   ========================================================================== */
 
 .topbar {
-  background: var(--band);
-  border-bottom: 2px solid var(--rule);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--ink);
+  color: var(--parchment);
+  border-bottom: 2px solid var(--gilt);
 }
+
 /*
- * Three columns, not a wrapping row.
- *
- * This was one flex row with `flex-wrap`, which meant a nav that outgrew the
- * space pushed the name and Sign out onto a line of their own underneath. Who
- * you are signed in as, and how to stop being signed in, are the two controls
- * that must never move: as a grid they hold their column and it is the
- * navigation in the middle that gives way.
+ * Three columns, not a wrapping row. Who you are signed in as, and how to
+ * stop being signed in, are the two controls that must never move: as a grid
+ * they hold their column and it is the navigation in the middle that gives
+ * way. The brand ellipsises, so a long parish name shortens itself before the
+ * nav folds, without anyone having to guess the widths in advance.
  */
 .topbar-inner {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 12px 20px;
+  padding: 0 26px;
+  min-height: 64px;
   display: grid;
-  /*
-   * The middle track was minmax(0, 1fr), which let the navigation be squeezed
-   * below the width it needs — and a squeezed nav wrapped. It now keeps its
-   * min-content width, and the brand, which ellipsises, is the track that
-   * gives way. So a long parish name shortens itself before the nav folds,
-   * without anyone having to guess the widths in advance.
-   */
   grid-template-columns: minmax(0, auto) minmax(min-content, 1fr) auto;
   align-items: center;
-  gap: 12px 18px;
+  gap: 10px 22px;
 }
+
 .brand {
-  font-weight: 700;
-  font-size: 19px;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--ink);
-  /* A long parish name is trimmed rather than allowed to squeeze the nav.
-     34ch was wider than the longest title we actually set and left the nav
-     short of the ~590px its six items need, so the cap is drawn in to the
-     width of the real title. */
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
-  max-width: 26ch;
+  max-width: 30ch;
+  padding: 11px 0;
+  color: var(--parchment);
+}
+.brand:hover { color: #fff; }
+.brand .mark { flex: none; width: 28px; height: 28px; display: block; }
+.brand .name {
+  min-width: 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: .015em;
+  line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .brand small {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
+  margin-top: 2px;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 400;
   letter-spacing: .06em;
-  text-transform: none;
-  color: var(--ink-soft);
+  color: rgba(247, 244, 237, .52);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
 /*
- * One row, and it must stay one row.
- *
- * This wrapped, and the case that wrapped it is the ordinary one: a super
- * administrator working inside a church gets six items — Dashboard, Families,
- * Review, Print directory, Manage, System — which came to more than the middle
- * column offers even at the full 1100px. `flex-wrap: wrap` folded Manage and
- * System onto a second line, so the bar grew a row and the two menus sat under
- * the rest of the navigation instead of beside it.
- *
- * `nowrap` states the rule; the tighter gap and padding below, the narrower
- * brand cap and the shorter identity link buy back the room to keep it. Below
- * the breakpoint there is genuinely not enough width for one row, and the nav
- * moves to a full-width row of its own — deliberately, and wrapping is allowed
- * again there.
+ * One row, and it must stay one row. A super administrator working inside a
+ * church gets six items, which is the case that used to wrap the bar; below
+ * the breakpoint the nav moves to a full-width row of its own and wrapping is
+ * allowed again there, deliberately.
  */
 .nav {
   display: flex;
@@ -122,16 +170,19 @@ a:hover { color: var(--ink); }
 }
 .nav a,
 .nav summary {
-  padding: 7px 10px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--ink-soft);
-  font-weight: 600;
-  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(247, 244, 237, .72);
   white-space: nowrap;
+  transition: color .15s, background .15s;
 }
-.nav a:hover { background: rgba(255, 255, 255, .5); color: var(--ink); }
-.nav a.active { background: var(--paper); color: var(--ink); }
+.nav a:hover { background: rgba(247, 244, 237, .08); color: var(--parchment); }
+.nav a.active { background: var(--parchment); color: var(--ink); font-weight: 600; }
 
 /* ---------- the folded-away tiers: Manage, and System while acting ---------- */
 
@@ -144,94 +195,252 @@ a:hover { color: var(--ink); }
 .nav-menu > summary::-webkit-details-marker { display: none; }
 .nav-menu > summary::after {
   content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 7px;
-  vertical-align: 2px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
-  transform-origin: 60% 60%;
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
 }
-.nav-menu > summary:hover { background: rgba(255, 255, 255, .5); color: var(--ink); }
+.nav-menu > summary:hover { background: rgba(247, 244, 237, .08); color: var(--parchment); }
 .nav-menu > summary.active,
-.nav-menu[open] > summary { background: var(--paper); color: var(--ink); }
-.nav-menu[open] > summary::after { transform: rotate(-135deg); }
-.nav-menu > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.nav-menu[open] > summary { background: var(--parchment); color: var(--ink); font-weight: 600; }
+.nav-menu[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+.nav-menu > summary:focus-visible { outline: 2px solid var(--gilt); outline-offset: 1px; }
 
 .nav-menu-items {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
-  z-index: 40;
-  min-width: 210px;
+  top: calc(100% + 9px);
+  z-index: 50;
+  min-width: 224px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   padding: 6px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, .16);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 44px -14px rgba(20, 27, 46, .38);
 }
 .nav-menu-items a {
   padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  color: var(--ink-soft);
 }
-.nav-menu-items a:hover { background: var(--band); color: var(--ink); }
-.nav-menu-items a.active { background: var(--band); color: var(--ink); }
+.nav-menu-items a:hover,
+.nav-menu-items a.active { background: var(--vellum); color: var(--ink); }
+
+/* ---------- who is signed in ---------- */
 
 .whoami {
-  font-size: 13px;
-  color: var(--ink-soft);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
   justify-self: end;
+  padding-left: 20px;
+  border-left: 1px solid rgba(247, 244, 237, .14);
+  font-size: 12.5px;
+  color: rgba(247, 244, 237, .7);
 }
-.whoami strong { color: var(--ink); }
 .whoami > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+}
+.whoami > a:hover strong { color: #fff; }
+.whoami .who { text-align: right; line-height: 1.25; min-width: 0; }
+.whoami strong {
+  display: block;
   /* Long enough to recognise yourself by, short enough to leave the nav its
-     row. It already ellipsises, so the cost of the narrower cap is a few more
-     characters of an address that was being trimmed anyway. */
-  max-width: 14ch;
+     row. It ellipsises, so the cost of the cap is a few characters of an
+     address that was being trimmed anyway. */
+  max-width: 15ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--parchment);
+}
+.whoami .role {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: .04em;
+  color: rgba(247, 244, 237, .48);
+}
+/* The initials plate. */
+.whoami .ava {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--gilt);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 13px;
 }
 .whoami form { flex: none; }
+.whoami .btn.ghost {
+  background: transparent;
+  border-color: rgba(247, 244, 237, .2);
+  color: rgba(247, 244, 237, .68);
+}
+.whoami .btn.ghost:hover {
+  background: rgba(247, 244, 237, .06);
+  border-color: rgba(247, 244, 237, .44);
+  color: var(--parchment);
+}
 
-/* ---------- layout ---------- */
+/* ==========================================================================
+   The banners that ride under the bar
+   ========================================================================== */
 
-.shell { max-width: 1100px; margin: 0 auto; padding: 26px 20px 60px; }
+.default-password-banner {
+  background: var(--vellum);
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.default-password-banner .inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 11px 26px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.default-password-banner .inner::before {
+  content: '';
+  flex: none;
+  width: 3px;
+  align-self: stretch;
+  background: var(--gilt);
+}
+.default-password-banner span { flex: 1; }
+.default-password-banner strong { color: var(--ink); }
+.default-password-banner a { border-bottom: 1px solid rgba(143, 110, 44, .4); }
+.default-password-banner a:hover { border-bottom-color: var(--gilt-deep); }
 
+/* ==========================================================================
+   The shell, and the head of a page
+   ========================================================================== */
+
+.shell { max-width: 1240px; margin: 0 auto; padding: 36px 26px 72px; }
+
+/*
+ * The eyebrow, the title, the actions. The eyebrow is the italic serif line
+ * that says where you are; the title is the page. Both stay left, the actions
+ * are pushed right by .spacer, and .sub takes the whole width underneath.
+ */
 .page-head {
   display: flex;
   align-items: flex-end;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
 }
-.page-head h1 { margin: 0; font-size: 27px; letter-spacing: .02em; }
+.page-head .titleblock { min-width: 0; }
+.page-head .eyebrow {
+  margin: 0 0 5px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gilt-deep);
+}
+.page-head h1 {
+  margin: 0;
+  font-size: 38px;
+  font-weight: 400;
+  letter-spacing: -.015em;
+  line-height: 1.05;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .page-head .spacer { margin-left: auto; }
-.page-head p.sub { margin: 4px 0 0; color: var(--ink-faint); font-size: 14px; width: 100%; }
+.page-head p.sub {
+  margin: 10px 0 0;
+  width: 100%;
+  max-width: 74ch;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+.page-head .actions { margin: 0; }
+
+.section-title { margin: 34px 0 14px; font-size: 20px; font-weight: 500; }
+
+/* ==========================================================================
+   Cards, and the board head
+   ========================================================================== */
 
 .card {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  margin-bottom: 20px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 22px;
 }
-.card > h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: .02em; }
-.card > h2 .hint { font-weight: 500; font-size: 13px; color: var(--ink-faint); }
+.card > h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 500;
+}
+.card > h2 .hint {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 12.5px;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+/*
+ * A heading with something set against it on the right — a count, a filter, a
+ * "next 30 days". The rule beneath is what separates a board's title from its
+ * contents; the negative margin pulls it out to the card's own edges so the
+ * rule runs the full width rather than floating inside the padding.
+ */
+.board-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: -22px -24px 18px;
+  padding: 20px 24px 17px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.board-head h2 { margin: 0; font-size: 20px; font-weight: 500; }
+.board-head .sub { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-faint); }
+.board-head .count { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); white-space: nowrap; }
+.board-head .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+/* The filters against a board heading are not the page-wide filter bar: they
+   size to their own content, or two of them stack and push the head open. */
+.board-head .filters select {
+  width: auto;
+  min-width: 150px;
+  font-size: 12.5px;
+  padding: 8px 30px 8px 12px;
+}
+
+/* A board that is nothing but a list wants its rows flush to the edges. */
+.card.flush { padding-left: 0; padding-right: 0; padding-bottom: 8px; }
+.card.flush > .board-head { margin-left: 0; margin-right: 0; }
 
 /* A card of destructive, irreversible actions — visually set apart from the
    ordinary settings cards above it so nobody scrolls past this by habit. */
-.danger-zone { border-color: #d9b4aa; }
-.danger-zone > h2 { color: var(--danger); }
+.danger-zone { border-color: var(--rose-line); }
+.danger-zone > h2 { color: var(--rose); }
 .danger-zone-intro { margin: 0 0 18px; }
 .danger-zone-item {
   display: flex;
@@ -240,13 +449,13 @@ a:hover { color: var(--ink); }
   align-items: center;
   justify-content: space-between;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule-soft);
 }
 .danger-zone-item + .danger-zone-item { margin-top: 16px; }
 .danger-zone-item .label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -254,22 +463,105 @@ a:hover { color: var(--ink); }
 .danger-zone-confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .danger-zone-confirm input[type="text"] { min-width: 220px; }
 
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
 .stack > * + * { margin-top: 14px; }
+.church-section + .church-section { margin-top: 30px; }
 
-/* ---------- forms ---------- */
+.empty {
+  text-align: center;
+  padding: 46px 20px;
+  color: var(--ink-faint);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+}
 
-.field { margin-bottom: 14px; }
+/* ==========================================================================
+   The stat ledger
+   ========================================================================== */
+
+/*
+ * Four figures in one ruled panel rather than four floating cards. A ledger
+ * is read across, and the hairlines between the columns are what say the four
+ * belong to one another; the accent column is the one the parish is working
+ * towards, the muted one is what is left over.
+ */
+/*
+ * Four columns is what the dashboard has, and it is not what every ledger
+ * has: the system overview sets six figures and a church page sets two. A
+ * fixed four-track grid left the six ragged across two rows and the two
+ * stranded in the left half of a panel ruled for four.
+ *
+ * So the same construction as the verification chain — flexible cells, and
+ * the hairlines between them are the 1px gap showing the panel's own
+ * background through. It is right at any count, and the cells on a wrapped
+ * final row stretch to fill it.
+ */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+.stat {
+  /* 150px, not 200: the widest ledger in the application is the system
+     overview’s six figures, and at 200px the sixth wrapped to a row of its
+     own across the full width. This fits all six on one line at 1240px and
+     still leaves a 44px numeral room to breathe. */
+  flex: 1 1 150px;
+  padding: 22px 24px;
+  background: var(--panel);
+}
+.stat .n {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 44px;
+  line-height: .95;
+  letter-spacing: -.02em;
+  color: var(--ink);
+}
+.stat .n .delta { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--sage); }
+.stat .k {
+  margin-top: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.stat .foot { margin-top: 3px; font-size: 12px; color: var(--ink-soft); }
+.stat.accent { background: linear-gradient(180deg, #FBF8F0, var(--panel)); }
+.stat.accent .n { color: var(--gilt-deep); }
+.stat.muted .n { color: var(--ink-faint); }
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
+.field { margin-bottom: 16px; }
 .field label, .field > .label {
   display: block;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin-bottom: 5px;
 }
-.field .help { font-size: 13px; color: var(--ink-faint); margin-top: 4px; }
+.field .help, p.help { font-size: 12.5px; color: var(--ink-faint); }
+.field .help { margin-top: 5px; }
 
 /*
  * A choice between two whole courses of action, rather than a value to type.
@@ -278,38 +570,38 @@ a:hover { color: var(--ink); }
  * page says which one loses data.
  */
 .field.choice {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px 14px 6px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px 6px;
   margin: 0 0 16px;
 }
 .field.choice legend {
   padding: 0 6px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
 .choice-row {
   display: flex;
-  gap: 10px;
+  gap: 11px;
   align-items: flex-start;
-  padding: 8px 0;
+  padding: 9px 0;
+  margin: 0;
   cursor: pointer;
   /* Overrides .field label, which is the uppercase caption style. */
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
-  margin: 0;
 }
-.choice-row + .choice-row { border-top: 1px solid var(--line); }
+.choice-row + .choice-row { border-top: 1px solid var(--rule-soft); }
 .choice-row input[type=radio] {
-  width: 17px;
-  height: 17px;
-  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
   flex: none;
   cursor: pointer;
   accent-color: var(--ink);
@@ -320,54 +612,74 @@ input[type=text], input[type=password], input[type=email], input[type=number],
 input[type=search], input[type=date], select, textarea {
   width: 100%;
   font: inherit;
+  font-size: 14.5px;
   color: var(--ink);
-  background: #fff;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 9px 11px;
+  background: var(--panel);
+  border: 1px solid var(--rule-firm);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  transition: border-color .16s, box-shadow .16s;
 }
 textarea { resize: vertical; min-height: 84px; }
 input:focus, select:focus, textarea:focus {
-  outline: 3px solid rgba(107, 79, 42, .35);
-  outline-offset: 1px;
-  border-color: var(--ink-soft);
+  outline: none;
+  border-color: var(--gilt);
+  box-shadow: 0 0 0 3px rgba(176, 138, 62, .16);
 }
 input[type=color] {
   width: 100%; height: 42px; padding: 3px;
-  border: 1px solid var(--rule); border-radius: 6px; background: #fff;
+  border: 1px solid var(--rule-firm); border-radius: var(--radius); background: var(--panel);
 }
-input[type=file] { font: inherit; font-size: 14px; }
+input[type=file] { font: inherit; font-size: 13.5px; }
+select {
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%237B8296' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 11px;
+}
 
 /*
- * The role picker in the users table.
- *
- * Selects are width:100% above, which is right in a form column and wrong in a
- * table cell: the row is a select and a Set button side by side, so the select
- * took whatever was left over and "Administrator" — the longest role a church
- * can hand out — was cut off mid-word. Sizing it to its own longest option
- * instead makes the column as wide as it needs to be, and the floor keeps it
- * there in a browser that measures the option list less generously.
+ * The role picker in the users table. Selects are width:100% above, which is
+ * right in a form column and wrong in a table cell: sizing it to its own
+ * longest option makes the column as wide as it needs to be, and the floor
+ * keeps it there in a browser that measures the option list less generously.
  */
 .role-set { display: flex; gap: 6px; align-items: center; }
-.role-set select {
-  width: auto;
-  min-width: 15ch;
-  flex: 0 0 auto;
-}
+.role-set select { width: auto; min-width: 16ch; flex: 0 0 auto; }
 
-.checkline { display: flex; align-items: center; gap: 9px; font-size: 15px; }
-.checkline input { width: auto; }
+/*
+ * A tick and its sentence.
+ *
+ * The caption style above — uppercase, tracked, semibold — is right for the
+ * name of a field and wrong for the sentence beside a checkbox, and a
+ * .checkline is a <label> inside a .field, so it inherited it. Templates were
+ * undoing that one at a time with an inline style, and the ones that had not
+ * been noticed shouted. It is reset here instead, once.
+ */
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 0;
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.checkline input { width: auto; accent-color: var(--ink); }
 
 /* The address and the hometown address are compared by eye, so they get the
-   same box: equal columns, and one height for both rather than whatever each
-   control defaults to. */
+   same box: equal columns, and one height for both. */
 .address-pair .field { display: flex; flex-direction: column; }
 .address-pair textarea { min-height: 104px; flex: 1 1 auto; }
 
 /* "Same as the address above", offered next to the hometown address and the
    spouse's home — a checkbox and a read-only copy while it is ticked. */
-.same-address { margin-top: 6px; font-size: 14px; color: var(--ink-faint); }
-.is-copied { background: var(--paper-warm); color: var(--ink-soft); }
+.same-address { margin-top: 6px; font-size: 13.5px; color: var(--ink-faint); }
+.is-copied { background: var(--vellum); color: var(--ink-soft); }
 
 /* Show/hide password. The wrapper is added by password-toggle.js, so without
    JavaScript the field is a plain password box and nothing looks broken. */
@@ -381,79 +693,146 @@ input[type=file] { font: inherit; font-size: 14px; }
   padding: 0;
   background: none;
   border: 0;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   color: var(--ink-faint);
   cursor: pointer;
 }
 .password-field .toggle-password:hover { color: var(--ink); }
 .password-field .toggle-password:focus-visible {
-  outline: 3px solid rgba(107, 79, 42, .35);
+  outline: 2px solid var(--gilt);
   outline-offset: -3px;
 }
-.password-field .toggle-password svg { width: 20px; height: 20px; display: block; }
+.password-field .toggle-password svg { width: 19px; height: 19px; display: block; }
 
 /* Both dates the directory records are day and month only, so each stays a
-   pair of fields — a date picker would insist on a year nobody supplied.
-
-   The day box is held to what a two-digit number needs and no more, so the
-   rest of the track goes to the month, which has to show a word. `min-width:0`
-   because a select's default minimum is its longest option, which would push
-   the pair wider than its column instead of letting it fit. */
-.daymonth { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; }
+   pair of fields — a date picker would insist on a year nobody supplied. The
+   day box is held to what a two-digit number needs and no more, so the rest
+   of the track goes to the month, which has to show a word. */
+.daymonth { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
 .daymonth select { min-width: 0; }
 
-.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
 .actions .spacer { margin-left: auto; }
 
-/* ---------- buttons ---------- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.filter-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.filter-bar select { min-width: 180px; }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
 
 .btn {
   font: inherit;
+  font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  display: inline-block;
-  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
-  background: var(--band-dark);
-  color: #1f1b16;
-  border: 1px solid transparent;
-  padding: 9px 18px;
-  border-radius: 6px;
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  transition: background .16s, border-color .16s, color .16s;
 }
-.btn:hover { background: var(--rule); color: #1f1b16; }
-.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.btn.ghost { background: transparent; border-color: var(--rule); color: var(--ink-soft); }
-.btn.ghost:hover { background: var(--paper-warm); color: var(--ink); }
-.btn.danger { background: var(--danger); color: #fff; }
-.btn.danger:hover { background: #7a2718; }
-.btn.small { padding: 5px 11px; font-size: 14px; }
+.btn:hover { background: var(--ink-lift); border-color: var(--ink-lift); color: var(--parchment); }
+.btn:focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
 
-/* ---------- messages ---------- */
+.btn.ghost { background: transparent; border-color: var(--rule-firm); color: var(--ink-soft); }
+.btn.ghost:hover { background: var(--vellum); border-color: var(--ink-soft); color: var(--ink); }
+
+.btn.danger { background: var(--rose); border-color: var(--rose); color: #fff; }
+.btn.danger:hover { background: #73301F; border-color: #73301F; color: #fff; }
+
+.btn.small { padding: 6px 12px; font-size: 12.5px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+.linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gilt-deep);
+  cursor: pointer;
+}
+.linkbtn.muted { color: var(--ink-faint); }
+.linkbtn:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   Messages
+   ========================================================================== */
 
 .alert {
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 18px;
-  font-size: 15px;
+  border-radius: var(--radius-lg);
   border: 1px solid;
+  border-left-width: 3px;
+  padding: 13px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
 }
-.alert.error  { background: var(--danger-bg); border-color: #d9b4aa; color: #6d2416; }
-.alert.notice { background: var(--ok-bg);     border-color: #b3d3bf; color: #1f4a30; }
+.alert.error  { background: var(--rose-bg); border-color: var(--rose-line); border-left-color: var(--rose); color: #5F2A1E; }
+.alert.notice { background: var(--sage-bg); border-color: var(--sage-line); border-left-color: var(--sage); color: #2C4434; }
 .alert ul { margin: 6px 0 0; padding-left: 20px; }
+.alert strong { font-weight: 600; }
 
-/* ---------- tables ---------- */
+/* ==========================================================================
+   Tables — a register, read across
+   ========================================================================== */
 
-.table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
-.table th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
-.table tbody tr:hover td { background: var(--paper-warm); }
+.table-wrap { overflow-x: auto; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th, .table td {
+  padding: 11px 13px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: middle;
+}
+.table th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: var(--vellum); }
 .table td.right, .table th.right { text-align: right; }
 .table .nowrap { white-space: nowrap; }
+/* Figures line up under one another when they are read as a column. */
+.table td.num, .table .tabular { font-variant-numeric: tabular-nums; }
 
 /* The tick column on the verification status list: a narrow gutter, and a box
    big enough to hit on a phone without the row growing taller for it. */
 .table th.tick, .table td.tick { width: 34px; padding-right: 0; text-align: center; }
-.table .tick input[type="checkbox"] { width: 17px; height: 17px; margin: 0; vertical-align: middle; cursor: pointer; accent-color: var(--ink); }
+.table .tick input[type="checkbox"] {
+  width: 16px; height: 16px; margin: 0;
+  vertical-align: middle; cursor: pointer; accent-color: var(--ink);
+}
 
 /* A small landscape thumbnail in a table row — the same 4:3 crop as the
    photo-box, just small enough that a row of them still reads as a list. */
@@ -461,54 +840,68 @@ input[type=file] { font: inherit; font-size: 14px; }
 .table .thumb, .table .thumb-empty {
   width: 44px;
   aspect-ratio: 4 / 3;
-  border-radius: 4px;
+  border-radius: 2px;
   display: block;
 }
-.table .thumb { object-fit: cover; border: 1px solid var(--rule); }
-.table .thumb-empty { border: 1px dashed var(--rule); background: var(--paper-warm); }
+.table .thumb { object-fit: cover; border: 1px solid var(--rule-firm); }
+.table .thumb-empty { border: 1px dashed var(--rule-firm); background: var(--vellum); }
+
+/*
+ * The review table. The existing value is set back and the proposed value
+ * forward, so which of the two columns is the proposal is legible without
+ * reading the header — a reviewer clearing a hundred lines reads the shape of
+ * the row, not its heading.
+ */
+.table.diff td { vertical-align: top; }
+.table.diff td.was { color: var(--ink-faint); }
+.table.diff td.now { font-weight: 600; }
+.table.diff tr.composition { background: rgba(176, 138, 62, .07); }
+.table.diff tr.composition td.now,
+.table.diff tr.composition td.was { font-style: normal; }
+
+/* ==========================================================================
+   Tags, chips and counters
+   ========================================================================== */
 
 .tag {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 20px;
-  background: var(--band);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--vellum);
+  border: 1px solid var(--rule);
   color: var(--ink-soft);
 }
-.tag.draft { background: #eadfc6; color: #6d5a2a; }
-.tag.ok    { background: var(--ok-bg); color: var(--ok); }
+.tag.draft { background: #F6EEDC; border-color: #E3D3AE; color: var(--gilt-deep); }
+.tag.ok    { background: var(--sage-bg); border-color: var(--sage-line); color: var(--sage); }
 
-/* ---------- default password: the reminder, and how it is shown ---------- */
-
-.default-password-banner {
-  background: #f3e7c8;
-  border-bottom: 1px solid #d9c79b;
-  color: #5c4a1e;
-  font-size: 15px;
+/* The badge on the Review tab: a queue nobody can see the size of grows. */
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--gilt);
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
-.default-password-banner .inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 11px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.default-password-banner span { flex: 1; }
-.default-password-banner a { color: #5c4a1e; }
+.nav a.active .badge { background: var(--ink); color: var(--gilt); }
 
 /* The one place a password is deliberately shown in full: it is the shared
    default, printed so the office can copy it into the invitation email. */
 .default-password {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 18px;
+  font-size: 17px;
   letter-spacing: .04em;
-  background: var(--paper-warm);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--vellum);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
   padding: 10px 14px;
   margin: 0;
   display: inline-block;
@@ -517,37 +910,365 @@ input[type=file] { font: inherit; font-size: 14px; }
 
 details.invite > summary {
   cursor: pointer;
-  font-weight: 600;
+  font-family: var(--serif);
+  font-weight: 500;
   font-size: 17px;
-  letter-spacing: .02em;
 }
-details.invite > summary .hint { font-weight: 500; font-size: 13px; color: var(--ink-faint); }
-details.invite textarea { min-height: 96px; font-size: 14px; }
+details.invite > summary .hint {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+details.invite textarea { min-height: 96px; font-size: 13.5px; }
 
-.empty {
-  text-align: center;
-  padding: 44px 20px;
+/* ==========================================================================
+   The verification chain, as a register
+   ========================================================================== */
+
+/*
+ * Eight steps read left to right as one ruled track rather than eight loose
+ * tiles: the count and the step name sit in one cell because the pair is the
+ * sentence — "110 Invitation Sent" — and the cell is a link, so the number
+ * opens the names behind it.
+ *
+ * Each cell carries a 2px strip along its top edge. It is transparent until
+ * the step means something — gilt for where the parish is working now, sage
+ * for the end of the chain, ink and sage again for the two ends of a move —
+ * which is what makes the state legible without reading the labels.
+ */
+/*
+ * The hairlines between the steps are the 1px `gap`, showing the track's own
+ * background through, rather than a border on each cell. A chain has as many
+ * steps as the installation defines and wraps when the column is narrow, and
+ * borders cannot know which cell ended a row: they left a rule hanging in the
+ * gap after the last step and doubled against the track's own edge. A gap
+ * cannot be drawn where there is no neighbour, so it is right at any count
+ * and at any width.
+ *
+ * `flex: 1 1 130px` rather than a grid for the same reason — the steps left
+ * over on the final row stretch to fill it instead of stopping halfway.
+ */
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.chain-step {
+  position: relative;
+  flex: 1 1 130px;
+  padding: 17px 14px 15px;
+  background: var(--panel);
+  color: var(--ink);
+  transition: background .15s;
+}
+.chain-step::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+}
+.chain-step:hover { background: var(--vellum); color: var(--ink); }
+.chain-step .n {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.chain-step .k {
+  display: block;
+  margin-top: 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  line-height: 1.35;
   color: var(--ink-faint);
 }
 
-/* ---------- dashboard ---------- */
+/* A step nobody is standing at is still a link; it is only quieter. */
+.chain-step.is-empty .n { color: #C7BFAE; }
+.chain-step.is-empty .k { color: #A9A292; }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
-.stat {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 16px 18px;
+/* Where the filter currently is. */
+.chain-step.is-current { background: #FBF7EE; }
+.chain-step.is-current::before { background: var(--gilt); }
+.chain-step.is-current .n { color: var(--gilt-deep); }
+
+/*
+ * The chain as a pair of ends rather than eight separate links. A step being
+ * moved *from* is inked in the page's own dark; the step being moved *to*
+ * takes the green this stylesheet already uses for anything settled. The
+ * steps the chain will not run to are dimmed in place: their counts are still
+ * worth reading, and a tile that disappeared under the pointer would move the
+ * other seven out from under it.
+ */
+/*
+ * Pinned to the corner rather than set in the flow.
+ *
+ * The badge appears only once a step has been picked as an end of a move,
+ * and in the flow it pushed that cell taller than its seven neighbours —
+ * which, in a stretched row, made the whole chain jump the moment anyone
+ * touched it. Out of the flow it costs no height and nothing moves.
+ */
+.chain-step .role {
+  display: none;
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
 }
-.stat .n { font-size: 32px; font-weight: 700; line-height: 1.1; }
-.stat .k { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); }
+.chain-step.is-source { background: var(--panel); }
+.chain-step.is-source::before { background: var(--ink); }
+.chain-step.is-source .role { display: inline-block; background: var(--ink); }
+.chain-step.is-target { background: var(--sage-bg); }
+.chain-step.is-target::before { background: var(--sage); }
+.chain-step.is-target .n { color: var(--sage); }
+.chain-step.is-target .role { display: inline-block; background: var(--sage); }
+/* Dimmed, not disabled: it is still the link to those families. */
+.chain-step.is-unreachable { opacity: .4; }
 
-/* ---------- comma-separated boxes (tag-input.js) ---------- */
+/*
+ * The note under the chain. It is the one paragraph on the dashboard that
+ * corrects a wrong belief — that the app sends the invitations — so it is set
+ * apart on vellum with a gilt edge rather than left as another line of help.
+ */
+.chain-lede { margin: 0 0 14px; }
+.chain-note {
+  margin: 18px 0 0;
+  padding: 13px 16px;
+  background: var(--vellum);
+  border-left: 2px solid var(--gilt);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.chain-note b, .chain-note strong { color: var(--ink); font-weight: 600; }
+.chain-hint { margin: 14px 2px 0; font-size: 12.5px; color: var(--ink-soft); }
+
+/*
+ * The bar above the families list, where a ticked batch is deleted. It is the
+ * page's one destructive control, so it sits in a card of its own with the
+ * warning beside the button rather than under the table where the ticks are.
+ */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  border-color: var(--rose-line);
+}
+.bulk-bar .btn.danger[disabled] { opacity: .5; cursor: not-allowed; }
+.bulk-bar .help { flex: 1 1 320px; }
+
+/* ==========================================================================
+   Moving a batch from one step to another
+   ========================================================================== */
+
+.move-panel {
+  margin-top: 18px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--panel);
+}
+.move-panel[hidden] { display: none; }
+
+.move-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 15px;
+  background: var(--vellum);
+  border-bottom: 1px solid var(--rule);
+}
+.move-bar .route { display: flex; align-items: center; gap: 10px; }
+.move-bar .chip {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.move-bar .chip.from { background: var(--ink); color: var(--parchment); }
+.move-bar .chip.to { background: var(--sage); color: #fff; }
+.move-bar .arrow { color: var(--ink-faint); }
+.move-count { margin-left: auto; font-size: 12.5px; color: var(--ink-faint); }
+.move-count b { color: var(--ink); }
+
+.move-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 12.5px;
+}
+.move-see { margin-left: auto; font-size: 12px; }
+.move-see[hidden] { display: none; }
+
+/* Tall enough to scan a step at a glance, short enough that the tiles above
+   and the batch buttons below stay on the screen with it. */
+.move-list { max-height: 300px; overflow-y: auto; }
+.move-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--rule-soft);
+  cursor: pointer;
+}
+.move-row:last-child { border-bottom: none; }
+.move-row:hover { background: var(--vellum); }
+.move-row input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--ink); }
+.move-who { font-weight: 500; }
+.move-meta { margin-left: auto; font-size: 12px; color: var(--ink-faint); }
+.move-empty {
+  margin: 0;
+  padding: 24px 15px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-family: var(--serif);
+  font-style: italic;
+}
+
+.move-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 15px;
+  background: var(--vellum);
+}
+.move-actions .move-note { margin: 0; flex: 1 1 240px; }
+
+/* ==========================================================================
+   Coming up — the almanac of birthdays and anniversaries
+   ========================================================================== */
+
+/*
+ * A dated list rather than a table. The day and month are set apart on the
+ * left in the serif, because that is what the reader scans down; the name and
+ * how far off it is follow, divided by a hairline so the date reads as a
+ * gutter and not as a first column of prose.
+ */
+.events { padding: 4px 0; }
+.event {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--rule-soft);
+  transition: background .13s;
+}
+.event:last-child { border-bottom: none; }
+.event:hover { background: var(--vellum); }
+.event .date { flex: none; width: 42px; text-align: center; }
+.event .date .d {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--ink);
+}
+.event .date .m {
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gilt-deep);
+}
+.event .divider { flex: none; width: 1px; height: 30px; background: var(--rule); }
+.event .body { flex: 1; min-width: 0; }
+.event .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.event .nm a { color: var(--ink); }
+.event .nm a:hover { color: var(--gilt-deep); }
+/* Italic serif, so an anniversary is marked without another loud chip. */
+.event .anniv {
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: var(--vellum);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gilt-deep);
+}
+.event .when { margin-top: 2px; font-size: 12px; color: var(--ink-faint); }
+.event .go { flex: none; color: #C4BBA7; display: flex; transition: color .15s; }
+.event:hover .go { color: var(--gilt); }
+
+/* ==========================================================================
+   Getting started — a numbered guide
+   ========================================================================== */
+
+.steps { padding: 6px 24px 18px; margin: 0; list-style: none; counter-reset: step; }
+.step {
+  display: flex;
+  gap: 15px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.step:last-child { border-bottom: none; }
+.step .idx {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1px solid var(--gilt);
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--gilt-deep);
+}
+/* The numeral is drawn by the counter, so the markup carries no loose digits
+   that could drift out of step with the order of the list. */
+.steps .step .idx::before { counter-increment: step; content: counter(step); }
+.step .txt { font-size: 13.5px; line-height: 1.55; color: var(--ink-soft); }
+.step .txt a { font-weight: 600; border-bottom: 1px solid rgba(143, 110, 44, .35); }
+.step .txt a:hover { border-bottom-color: var(--gilt-deep); }
+.step .txt strong { color: var(--ink); font-weight: 600; }
+
+/* ==========================================================================
+   Comma-separated boxes (tag-input.js)
+   ========================================================================== */
 
 /* A member's mobile numbers and email addresses are one column holding a short
-   list. Committed values become chips so the boundary between them is visible;
-   see public/javascripts/tag-input.js. Without that script none of this is
-   rendered and the field stays a plain text input. */
+   list. Committed values become chips so the boundary between them is visible.
+   Without that script none of this is rendered and the field stays a plain
+   text input. */
 .tag-field {
   display: flex;
   flex-wrap: wrap;
@@ -556,33 +1277,39 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
   width: 100%;
   min-height: 42px;
   padding: 5px 7px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  background: var(--panel);
+  border: 1px solid var(--rule-firm);
+  border-radius: var(--radius);
   cursor: text;
 }
-.tag-field:focus-within { border-color: var(--band-dark); }
+.tag-field:focus-within {
+  border-color: var(--gilt);
+  box-shadow: 0 0 0 3px rgba(176, 138, 62, .16);
+}
 
-.tag {
+.tag-field .tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   max-width: 100%;
-  padding: 2px 4px 2px 8px;
-  font-size: 14px;
+  padding: 2px 4px 2px 9px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.5;
   color: var(--ink);
-  background: var(--band);
+  background: var(--vellum);
   border: 1px solid var(--rule);
-  border-radius: 999px;
+  border-radius: 20px;
 }
 .tag-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* A warning, not a refusal — lib/phone.js and lib/email.js decide on save. */
-.tag.is-bad {
-  color: var(--danger);
-  background: #fff;
-  border-color: var(--danger);
+.tag-field .tag.is-bad {
+  color: var(--rose);
+  background: var(--panel);
+  border-color: var(--rose);
   border-style: dashed;
 }
 
@@ -593,14 +1320,14 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
   padding: 0;
   font-size: 15px;
   line-height: 1;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   background: transparent;
   border: 0;
   border-radius: 50%;
   cursor: pointer;
 }
-.tag-remove:hover { color: var(--ink); background: rgba(0, 0, 0, .07); }
-.tag.is-bad .tag-remove { color: var(--danger); }
+.tag-remove:hover { color: var(--ink); background: rgba(20, 27, 46, .07); }
+.tag-field .tag.is-bad .tag-remove { color: var(--rose); }
 
 /* The box people type in. It is inside the bordered field, so it carries none
    of its own, and it grows to fill whatever the chips left on the line. */
@@ -613,108 +1340,381 @@ details.invite textarea { min-height: 96px; font-size: 14px; }
   border: 0;
   border-radius: 0;
 }
-.tag-entry:focus { outline: none; box-shadow: none; }
+.tag-entry:focus { outline: none; box-shadow: none; border: 0; }
 
-/* ---------- member editor ---------- */
+/* ==========================================================================
+   The member editor
+   ========================================================================== */
 
 .members-editor { display: grid; gap: 12px; }
 
-/* Nine fields to a member now, which is more than fits across any screen the
+/* Nine fields to a member, which is more than fits across any screen the
    parish office actually has — so the row wraps rather than pretending. Equal
-   tracks with a floor wide enough for a month name and a ten-digit number:
-   a fixed six-column grid put whichever field landed in the 140px column into
-   a box too narrow to read, and the month select was the one that showed it. */
+   tracks with a floor wide enough for a month name and a ten-digit number. */
 .member-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px 12px;
+  gap: 12px;
   align-items: end;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper-warm);
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--vellum);
 }
 .member-row .field { margin: 0; min-width: 0; }
 .member-row .drop { grid-column: 1 / -1; justify-self: end; align-self: end; }
 
-/* ---------- family detail ---------- */
+/* ==========================================================================
+   One family, read on screen
+   ========================================================================== */
 
-.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 22px; align-items: start; }
-.detail-grid dl { margin: 0; display: grid; grid-template-columns: 170px 1fr; gap: 1px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
+
+/*
+ * The household's facts as a hairline register: the caption on vellum, the
+ * value on panel, one rule between rows. It is the same shape the printed
+ * entry uses, so the screen and the book agree about what an entry looks like.
+ */
+.detail-grid dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
 .detail-grid dt {
-  background: var(--paper-warm); padding: 9px 12px;
-  font-size: 13px; font-weight: 700; letter-spacing: .03em; color: var(--ink-soft);
+  padding: 11px 13px;
+  background: var(--vellum);
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
 }
-.detail-grid dd { margin: 0; padding: 9px 12px; background: #fff; }
-.photo-box { border: 1px solid var(--rule); background: #fff; padding: 7px; border-radius: 6px; }
-.photo-box img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: var(--paper-warm); }
+.detail-grid dd {
+  margin: 0;
+  padding: 11px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 14px;
+}
+.detail-grid dl > dt:nth-last-of-type(1),
+.detail-grid dl > dd:nth-last-of-type(1) { border-bottom: none; }
+
+.photo-box {
+  border: 1px solid var(--rule-firm);
+  background: var(--panel);
+  padding: 8px;
+  border-radius: var(--radius);
+}
+.photo-box img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--vellum);
+}
 .photo-box .none {
-  aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;
-  background: var(--paper-warm); color: var(--ink-faint);
-  font-size: 13px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vellum);
+  color: var(--ink-faint);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.photo-box.small { max-width: 128px; padding: 5px; }
+
+/* ==========================================================================
+   Review
+   ========================================================================== */
+
+.line-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.line-actions input[type=text] { width: 150px; padding: 6px 9px; font-size: 12.5px; }
+
+.review-block + .review-block { margin-top: 20px; }
+.batch-routine {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.batch-routine .help { margin: 0; }
+
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 18px;
+}
+.tier-grid .checkline { font-size: 13.5px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* Visible to a screen reader, not on the page. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
 }
 
-/* ---------- sign-in screens ---------- */
+/* ==========================================================================
+   The sign-in screens
+   ========================================================================== */
 
+/*
+ * Two halves. The left is the ceremonial plate — the crest, the name of the
+ * thing, and one sentence about what it is for; the right is the work: a
+ * form, and nothing else competing with it.
+ *
+ * `body.auth` on its own is the single centred column, which is what the
+ * error page wants. `.split` is what the sign-in pages add.
+ */
 body.auth {
   margin: 0;
   min-height: 100vh;
-  /* A column, so the "Powered & Secured By" plate stacks under the card
-     rather than being laid out beside it. */
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 30px 16px;
-  background: var(--canvas);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 18px;
+  background: var(--parchment);
   color: var(--ink);
-  font-family: 'Quicksand', 'Century Gothic', 'Futura', 'Trebuchet MS', sans-serif;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
-.auth-card {
-  width: 100%; max-width: 440px;
-  background: var(--paper);
-  border-radius: var(--radius);
-  padding: 30px 30px 26px;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, .3);
+body.auth.split {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  align-items: stretch;
+  padding: 0;
 }
-.auth-card h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: .02em; }
-.auth-card .parish { margin: 0 0 22px; color: var(--ink-faint); font-size: 14px; }
-.auth-card .btn { width: 100%; padding: 11px; }
 
-/* ---------- "Powered & Secured By", under the sign-in card ---------- */
+/* ---------- left: the plate ---------- */
+
+.auth-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 60px 68px;
+  overflow: hidden;
+  color: var(--parchment);
+  background: radial-gradient(120% 90% at 20% 10%, #1B2338 0%, var(--ink) 55%, #0F1524 100%);
+}
+/* The engraved double keyline, as on the frontispiece of the printed book. */
+.auth-plate::before,
+.auth-plate::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+.auth-plate::before { inset: 26px; border: 1px solid rgba(176, 138, 62, .32); }
+.auth-plate::after  { inset: 31px; border: 1px solid rgba(176, 138, 62, .14); }
+
+.auth-plate .crest { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; }
+.auth-plate .crest .mark { flex: none; width: 76px; height: 76px; display: block; }
+.auth-plate .wordmark {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 23px;
+  letter-spacing: .09em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: #E4C777;
+}
+.auth-plate .crest .sub {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  letter-spacing: .03em;
+  color: rgba(247, 244, 237, .55);
+}
+.auth-plate .crest .sub a {
+  color: rgba(247, 244, 237, .72);
+  border-bottom: 1px solid rgba(228, 199, 119, .35);
+}
+.auth-plate .crest .sub a:hover { color: #E4C777; border-bottom-color: #E4C777; }
+
+.auth-plate .hero { position: relative; z-index: 2; margin: auto 0; max-width: 30ch; }
+.auth-plate .hero .kicker {
+  margin: 0 0 22px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  color: rgba(247, 244, 237, .7);
+}
+.auth-plate .hero h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 4.4vw, 58px);
+  line-height: 1.03;
+  letter-spacing: -.012em;
+  color: var(--parchment);
+}
+.auth-plate .hero h1 em { font-style: italic; color: var(--gilt); }
+.auth-plate .hero p {
+  margin: 26px 0 0;
+  max-width: 34ch;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: rgba(247, 244, 237, .66);
+}
+
+.auth-plate .plate-foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: .02em;
+  color: rgba(247, 244, 237, .4);
+}
+.auth-plate .plate-foot .dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--gilt); opacity: .7;
+}
+
+/* ---------- right: the stage the form stands on ---------- */
+
+.auth-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: var(--parchment);
+  /* Feint ruling, the way a ledger page is ruled. */
+  background-image: linear-gradient(rgba(20, 27, 46, .05) 1px, transparent 1px);
+  background-size: 100% 34px;
+}
+/* A gilt edge down the seam, fading out — the gutter of the open book. */
+.auth-stage::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(var(--gilt), transparent 60%);
+  opacity: .5;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+}
+/* Standing on its own, with no plate beside it, the card needs its own edges. */
+body.auth:not(.split) .auth-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 34px 34px 30px;
+  box-shadow: 0 24px 60px -24px rgba(20, 27, 46, .3);
+}
+.auth-card .eyebrow {
+  margin: 0 0 10px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--gilt-deep);
+}
+.auth-card h1 {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: -.01em;
+}
+.auth-card .parish,
+.auth-card .lede {
+  margin: 0 0 32px;
+  max-width: 38ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.auth-card .field { margin-bottom: 20px; }
+.auth-card .btn { width: 100%; padding: 14px; font-size: 14.5px; }
+
+/* The way out of this screen and into the other one. */
+.auth-card .alt {
+  margin: 26px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.auth-card .alt a { font-weight: 600; border-bottom: 1px solid rgba(143, 110, 44, .4); }
+.auth-card .alt a:hover { border-bottom-color: var(--gilt-deep); }
+
+.auth-card pre {
+  background: var(--vellum);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 320px;
+}
+
+/* ==========================================================================
+   "Powered & Secured By", under the sign-in card
+   ========================================================================== */
 
 /*
  * In the directory's own palette, not the navy and gold of the site this came
- * from. Every colour below is one of the variables at the top of this file —
- * `--paper-warm` over `--line` is the same panel the dashboard and the
- * verification chain are built from — so the plate belongs to the page rather
- * than sitting on top of it.
- *
- * The one invented value is `--indus-accent`, and it is not invented far: it
- * is the warm brown this stylesheet already gives every link, standing in for
- * the brand's gold, which at 1.5:1 on this background could not be read.
- *
- * The stack is centred on the card above it and is the same width, so the
- * sign-in screen reads as one column rather than a card with something
- * floating beneath it.
+ * from. `--vellum` over `--rule` is the same panel the rest of the
+ * application is built from, so the plate belongs to the page rather than
+ * sitting on top of it. The one accent, standing in for the brand's gold, is
+ * this stylesheet's own gilt-deep — the brand gold at 1.5:1 on this
+ * background could not be read.
  */
 .indus-badge {
-  --indus-accent: #6b4f2a;
+  --indus-accent: var(--gilt-deep);
 
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 440px;
-  margin: 18px auto 0;
+  max-width: 420px;
+  margin: 20px auto 0;
   padding: 18px 20px 20px;
-  border-radius: var(--radius);
-  background: var(--paper-warm);
-  border: 1px solid var(--line);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, .3);
+  border-radius: var(--radius-lg);
+  background: var(--vellum);
+  border: 1px solid var(--rule);
 
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
 }
+body.auth:not(.split) .indus-badge { box-shadow: 0 24px 60px -24px rgba(20, 27, 46, .3); }
+
 .indus-badge .plabel {
-  font-size: 10.5px;
-  letter-spacing: 2.5px;
+  font-size: 10px;
+  letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--ink-faint);
   font-weight: 600;
@@ -726,17 +1726,12 @@ body.auth {
   gap: 20px;
   flex-wrap: wrap;
 }
-.indus-badge .owlwrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-}
+.indus-badge .owlwrap { display: flex; flex-direction: column; align-items: center; gap: 7px; }
 .indus-badge .owlname {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   font-size: 15px;
-  font-weight: 700;
-  letter-spacing: .6px;
+  font-weight: 600;
+  letter-spacing: .04em;
   line-height: 1;
   color: var(--ink);
 }
@@ -744,7 +1739,7 @@ body.auth {
 .indus-badge .owl {
   height: 72px;
   width: auto;
-  filter: drop-shadow(0 3px 10px rgba(44, 39, 33, .22));
+  filter: drop-shadow(0 3px 10px rgba(20, 27, 46, .22));
 }
 /* Typed rather than part of the artwork — see the partial for why. */
 .indus-badge .owltag {
@@ -754,14 +1749,14 @@ body.auth {
   text-transform: uppercase;
   line-height: 1;
   /* --ink-soft rather than --ink-faint: at 8px this is the smallest type on
-     the screen, and --ink-faint lands at 4.43:1, a whisker under AA. */
+     the screen, and the fainter ink lands a whisker under AA. */
   color: var(--ink-soft);
 }
 .indus-badge .owltag .last { color: var(--indus-accent); }
 .indus-badge .divider {
   width: 1px;
   height: 66px;
-  background: linear-gradient(180deg, transparent, var(--rule), transparent);
+  background: linear-gradient(180deg, transparent, var(--rule-firm), transparent);
 }
 /* The network mark is dark on transparent, so it keeps a card of its own. */
 .indus-badge .induschip {
@@ -769,24 +1764,17 @@ body.auth {
   align-items: center;
   justify-content: center;
   padding: 11px 16px;
-  border-radius: 8px;
-  background: var(--paper);
-  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--rule);
 }
-.indus-badge .indus {
-  display: block;
-  height: 30px;
-  width: auto;
-  max-width: 100%;
-}
+.indus-badge .indus { display: block; height: 30px; width: auto; max-width: 100%; }
 
 /*
- * Narrow screens. The plate is 440px wide and its contents need about 390 of
+ * Narrow screens. The plate is 420px wide and its contents need about 390 of
  * that, so it is a phone rather than a tablet that runs out of room: the rule
  * drops out, the marks come down a size, and the network chip is sized by its
- * width with `height: auto` so it can never be squashed out of proportion to
- * fit. Below this the row simply wraps, which is why nothing here is load
- * bearing.
+ * width with `height: auto` so it can never be squashed out of proportion.
  */
 @media (max-width: 460px) {
   .indus-badge { padding: 16px 14px 18px; }
@@ -797,266 +1785,44 @@ body.auth {
   .indus-badge .indus { width: 100%; max-width: 190px; height: auto; }
 }
 
-/* ---------- verification: the chain, the queue, the filters ---------- */
+/* ==========================================================================
+   The dashboard's two columns
+   ========================================================================== */
 
 /*
- * The verification chain, as eight tiles that are also links. The count and the
- * step name sit in one box because the pair is the sentence — "17 Not Started"
- * — and the box is clickable so the number opens the names behind it.
+ * The work on the left, the almanac and the guide stacked on the right. Not
+ * equal halves: the verification chain needs room to stay one row of eight,
+ * and the two boards beside it are lists that read perfectly well narrow.
  */
-.chain {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
-  gap: 8px;
-}
-.chain-step {
-  display: block;
-  padding: 12px 12px 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper-warm);
-  text-decoration: none;
-  color: var(--ink);
-}
-.chain-step:hover { border-color: var(--rule); background: #fff; }
-.chain-step.is-empty { opacity: .55; }
-.chain-step.is-current { border-color: var(--ink); background: #fff; }
-.chain-step .n { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
-.chain-step .k {
-  display: block;
-  font-size: 11px;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin-top: 3px;
+.cols { display: grid; grid-template-columns: 1.55fr .95fr; gap: 22px; align-items: start; }
+.side { display: flex; flex-direction: column; gap: 22px; }
+.side > .card { margin-bottom: 0; }
+
+@media (max-width: 1080px) {
+  .cols { grid-template-columns: 1fr; }
 }
 
-/*
- * The bar above the families list, where a ticked batch is deleted. It is the
- * page's one destructive control, so it sits in a card of its own with the
- * warning beside the button rather than under the table where the ticks are.
- */
-.bulk-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  border-color: #d9b4aa;
-}
-.bulk-bar .btn.danger[disabled] { opacity: .5; cursor: not-allowed; }
-.bulk-bar .help { flex: 1 1 320px; }
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
 
-/*
- * The chain as a pair of ends rather than eight separate links.
- *
- * A step being moved *from* is inked in the page's own dark; the step being
- * moved *to* takes the green this stylesheet already uses for anything
- * settled, so which end is which is legible without reading the labels. The
- * steps the chain will not run to are dimmed in place: their counts are still
- * worth reading, and a tile that disappeared under the pointer would move the
- * other seven out from under it.
- */
-.chain-step { position: relative; }
-.chain-step .role {
-  position: absolute;
-  top: -9px;
-  left: 10px;
-  padding: 1px 7px;
-  border-radius: 20px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #fff;
-  display: none;
+/* The plate is scenery; below a laptop the form takes the whole screen and
+   the plate becomes a band across the top carrying the crest alone. */
+@media (max-width: 900px) {
+  body.auth.split { grid-template-columns: 1fr; }
+  .auth-plate {
+    gap: 0;
+    padding: 26px 24px;
+    text-align: center;
+    align-items: center;
+  }
+  .auth-plate::before, .auth-plate::after { display: none; }
+  .auth-plate .crest { justify-content: center; }
+  .auth-plate .crest .mark { width: 54px; height: 54px; }
+  .auth-plate .hero, .auth-plate .plate-foot { display: none; }
+  .auth-stage { padding: 36px 22px 48px; }
+  .auth-stage::after { display: none; }
 }
-.chain-step.is-source {
-  border-color: var(--ink);
-  background: var(--paper);
-  box-shadow: 0 0 0 3px rgba(44, 39, 33, .06);
-}
-.chain-step.is-source .role { display: inline-block; background: var(--ink); }
-.chain-step.is-target {
-  border-color: var(--ok);
-  background: var(--ok-bg);
-}
-.chain-step.is-target .n { color: var(--ok); }
-.chain-step.is-target .role { display: inline-block; background: var(--ok); }
-/* Dimmed, not disabled: it is still the link to those families. */
-.chain-step.is-unreachable { opacity: .4; }
-
-.chain-lede { margin: 0 0 12px; }
-.chain-hint {
-  margin: 14px 2px 0;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-
-/* ---------- moving a batch from one step to another ---------- */
-
-.move-panel {
-  margin-top: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--paper);
-}
-.move-panel[hidden] { display: none; }
-
-.move-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 12px 14px;
-  background: var(--paper-warm);
-  border-bottom: 1px solid var(--line);
-}
-.move-bar .route { display: flex; align-items: center; gap: 10px; }
-.move-bar .chip {
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-.move-bar .chip.from { background: var(--band); color: var(--ink); }
-.move-bar .chip.to { background: var(--ok-bg); color: var(--ok); }
-.move-bar .arrow { color: var(--ink-faint); }
-.move-count { margin-left: auto; font-size: 13px; color: var(--ink-faint); }
-.move-count b { color: var(--ink); }
-
-.move-tools {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-}
-.linkbtn {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 600;
-  color: #6b4f2a;
-  cursor: pointer;
-}
-.linkbtn.muted { color: var(--ink-faint); }
-.linkbtn:hover { text-decoration: underline; }
-.move-see { margin-left: auto; font-size: 12.5px; }
-.move-see[hidden] { display: none; }
-
-/* Tall enough to scan a step at a glance, short enough that the tiles above
-   and the batch buttons below stay on the screen with it. */
-.move-list { max-height: 300px; overflow-y: auto; }
-.move-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-}
-.move-row:last-child { border-bottom: none; }
-.move-row:hover { background: var(--paper-warm); }
-.move-row input { width: 16px; height: 16px; cursor: pointer; }
-.move-who { font-weight: 500; }
-.move-meta { margin-left: auto; font-size: 12.5px; color: var(--ink-faint); }
-.move-empty { margin: 0; padding: 22px 14px; text-align: center; color: var(--ink-faint); }
-
-.move-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 13px 14px;
-  background: var(--paper-warm);
-}
-.move-actions .move-note { margin: 0; flex: 1 1 240px; }
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: flex-end;
-  margin-bottom: 18px;
-}
-.filter-bar label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.filter-bar select { min-width: 170px; }
-
-/* The badge on the Review tab: a queue nobody can see the size of grows. */
-.badge {
-  display: inline-block;
-  min-width: 18px;
-  padding: 1px 6px;
-  border-radius: 9px;
-  background: var(--danger);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-}
-
-/*
- * The review table. The existing value is set back and the proposed value
- * forward, so which of the two columns is the proposal is legible without
- * reading the header — a reviewer clearing a hundred lines reads the shape of
- * the row, not its heading.
- */
-.table.diff td.was { color: var(--ink-faint); }
-.table.diff td.now { font-weight: 600; }
-.table.diff tr.composition td.now,
-.table.diff tr.composition td.was { font-style: normal; }
-.table.diff tr.composition { background: rgba(206, 196, 179, .18); }
-.table.diff td { vertical-align: top; }
-
-.line-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-.line-actions input[type=text] { width: 150px; padding: 5px 8px; font-size: 13px; }
-
-.review-block + .review-block { margin-top: 18px; }
-.batch-routine {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.batch-routine .help { margin: 0; font-size: 13px; color: var(--ink-faint); }
-
-.photo-box.small { max-width: 128px; padding: 4px; }
-
-.tier-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px 18px;
-}
-.tier-grid .checkline { font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
-
-/* Visible to a screen reader, not on the page. */
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0);
-  white-space: nowrap; border: 0;
-}
-
-/* ---------- responsive ---------- */
 
 @media (max-width: 1000px) {
   /*
@@ -1064,13 +1830,8 @@ body.auth {
    * navigation a sliver between two things that will not shrink, so the bar
    * becomes the brand and the identity on top — still never displaced — with
    * the navigation given the full width underneath.
-   *
-   * This was 860px, which was where the four-item nav ran out of room. Six
-   * items run out sooner, and between the two widths the nav was still in its
-   * middle column with nowhere to go. The breakpoint now names the width where
-   * the widest navigation stops fitting, not the narrowest.
    */
-  .topbar-inner { grid-template-columns: minmax(0, 1fr) auto; }
+  .topbar-inner { grid-template-columns: minmax(0, 1fr) auto; padding-bottom: 8px; }
   .nav {
     grid-row: 2;
     grid-column: 1 / -1;
@@ -1084,14 +1845,27 @@ body.auth {
   .nav-menu-items { right: auto; left: 0; }
 
   .detail-grid { grid-template-columns: 1fr; }
+  .detail-grid dl { grid-template-columns: 1fr; }
+  .detail-grid dt { border-bottom: none; }
   .filter-bar select { min-width: 0; width: 100%; }
   .line-actions { justify-content: flex-start; }
   .member-row { grid-template-columns: 1fr; }
-  .table-wrap { overflow-x: auto; }
-  .detail-grid dl { grid-template-columns: 1fr; }
-  .detail-grid dt { border-radius: 4px 4px 0 0; }
+}
+
+@media (max-width: 720px) {
+  .shell { padding: 26px 18px 56px; }
+  .page-head h1 { font-size: 30px; }
+  /* One figure to a row: below this a 200px cell would be cramped rather
+     than merely narrow. */
+  .stat { flex-basis: 100%; }
+  .card { padding: 18px; }
+  .board-head { margin: -18px -18px 16px; padding: 17px 18px 15px; }
+  .card.flush { padding-left: 0; padding-right: 0; }
+  .event, .steps { padding-left: 18px; padding-right: 18px; }
 }
 
 @media print {
-  .topbar, .page-head .actions, .no-print { display: none !important; }
+  .topbar, .page-head .actions, .default-password-banner, .no-print { display: none !important; }
+  body.app { background: #fff; }
+  .card { border-color: #ccc; break-inside: avoid; }
 }

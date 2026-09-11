@@ -1,27 +1,64 @@
 <%- include('partials/header') %>
 
-<div class="page-head">
-  <h1>Dashboard</h1>
-  <div class="spacer"></div>
-  <div class="actions" style="margin:0">
-    <% if (canEdit) { %><a href="<%= base %>/families/new" class="btn">Add a family</a><% } %>
-    <a href="<%= base %>/directory" class="btn ghost">Print directory</a>
-  </div>
-</div>
+<%
+  const greeting = (function () {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  })();
+  const whoShort = String(currentUser.full_name || currentUser.username || '').split(/\s+/)[0];
+%>
 
-<div class="stats" style="margin-bottom:22px">
-  <div class="stat"><div class="n"><%= stats.families %></div><div class="k">Families</div></div>
-  <div class="stat"><div class="n"><%= stats.members %></div><div class="k">People</div></div>
-  <div class="stat"><div class="n"><%= stats.published %></div><div class="k">In the printed book</div></div>
-  <div class="stat">
-    <div class="n"><%= stats.families - stats.published %></div>
-    <div class="k">Drafts, not printed</div>
+<div class="page-head">
+  <div class="titleblock">
+    <p class="eyebrow"><%= greeting %><%= whoShort ? ', ' + whoShort : '' %></p>
+    <h1>Dashboard</h1>
+  </div>
+  <div class="spacer"></div>
+  <div class="actions">
+    <a href="<%= base %>/directory" class="btn ghost">Print directory</a>
+    <% if (canEdit) { %><a href="<%= base %>/families/new" class="btn">Add a family</a><% } %>
   </div>
 </div>
 
 <%
   /*
-   * The verification chain, counted. Each tile clicks through to the list of
+   * The four figures, as one ledger rather than four cards.
+   *
+   * "In the printed book" is the accented column because it is the number the
+   * parish is working towards; "Drafts, not printed" is muted because it is
+   * what is left over, and the foot line under each says what the figure
+   * counts so the caption never has to carry two jobs.
+   */
+  const drafts = stats.families - stats.published;
+%>
+<section class="stats">
+  <div class="stat">
+    <div class="n"><%= stats.families %></div>
+    <div class="k">Families</div>
+    <div class="foot">on the register</div>
+  </div>
+  <div class="stat">
+    <div class="n"><%= stats.members %></div>
+    <div class="k">People</div>
+    <div class="foot">across all households</div>
+  </div>
+  <div class="stat accent">
+    <div class="n"><%= stats.published %></div>
+    <div class="k">In the printed book</div>
+    <div class="foot">ready for the annual edition</div>
+  </div>
+  <div class="stat <%= drafts ? '' : 'muted' %>">
+    <div class="n"><%= drafts %></div>
+    <div class="k">Drafts, not printed</div>
+    <div class="foot"><%= drafts ? 'still being collected' : 'nothing pending' %></div>
+  </div>
+</section>
+
+<%
+  /*
+   * The verification chain, counted. Each step clicks through to the list of
    * exactly those families, which is the point — a number nobody can open is
    * a number nobody trusts.
    */
@@ -31,128 +68,183 @@
   ].filter(Boolean).join('&');
 %>
 
-<div class="card">
-  <h2>
-    Verification status
-    <span class="hint">
-      — <%= statusTotal %> famil<%= statusTotal === 1 ? 'y' : 'ies' %><%
-      %><% if (filter.area) { %> in <%= filter.area %><% } %><%
-      %><% if (filter.prayerGroup) { %> in <%= filter.prayerGroup %><% } %>
-    </span>
-  </h2>
+<div class="cols">
+  <section class="card">
+    <div class="board-head">
+      <div>
+        <h2>Verification status</h2>
+        <p class="sub">
+          Where all <%= statusTotal %> famil<%= statusTotal === 1 ? 'y' : 'ies' %>
+          stand in the review process<%
+          %><% if (filter.area) { %>, in <%= filter.area %><% } %><%
+          %><% if (filter.prayerGroup) { %>, in <%= filter.prayerGroup %><% } %>
+        </p>
+      </div>
 
-  <% if (groupings.areas.length || groupings.prayerGroups.length) { %>
-    <form method="get" action="<%= base %>/" class="filter-bar">
-      <% if (groupings.areas.length) { %>
-        <label>
-          Area
-          <select name="area" onchange="this.form.submit()">
-            <option value="">All areas</option>
-            <% groupings.areas.forEach(function (a) { %>
-              <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
-            <% }); %>
-          </select>
-        </label>
+      <% if (groupings.areas.length || groupings.prayerGroups.length) { %>
+        <form method="get" action="<%= base %>/" class="filters">
+          <% if (groupings.areas.length) { %>
+            <label class="sr-only" for="dash-area">Area</label>
+            <select id="dash-area" name="area" onchange="this.form.submit()">
+              <option value="">All areas</option>
+              <% groupings.areas.forEach(function (a) { %>
+                <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
+              <% }); %>
+            </select>
+          <% } %>
+          <% if (groupings.prayerGroups.length) { %>
+            <label class="sr-only" for="dash-group">Prayer Group</label>
+            <select id="dash-group" name="group" onchange="this.form.submit()">
+              <option value="">All prayer groups</option>
+              <% groupings.prayerGroups.forEach(function (g) { %>
+                <option value="<%= g %>" <%= filter.prayerGroup === g ? 'selected' : '' %>><%= g %></option>
+              <% }); %>
+            </select>
+          <% } %>
+          <noscript><button type="submit" class="btn ghost small">Apply</button></noscript>
+        </form>
       <% } %>
-      <% if (groupings.prayerGroups.length) { %>
-        <label>
-          Prayer Group
-          <select name="group" onchange="this.form.submit()">
-            <option value="">All prayer groups</option>
-            <% groupings.prayerGroups.forEach(function (g) { %>
-              <option value="<%= g %>" <%= filter.prayerGroup === g ? 'selected' : '' %>><%= g %></option>
-            <% }); %>
-          </select>
-        </label>
+    </div>
+
+    <div class="chain">
+      <% statuses.forEach(function (step) { %>
+        <a class="chain-step <%= statusCounts[step.key] ? '' : 'is-empty' %>"
+           href="<%= base %>/families/status?status=<%= step.key %><%= filterQuery ? '&' + filterQuery : '' %>">
+          <span class="n"><%= statusCounts[step.key] %></span>
+          <span class="k"><%= step.label %></span>
+        </a>
+      <% }); %>
+    </div>
+
+    <p class="chain-note">
+      <b>Invitation Sent</b> means the parish office has sent the invitations.
+      The app does not send any email itself &mdash; this only records that the
+      office did. It does not confirm the email reached anyone.
+    </p>
+
+    <div class="actions">
+      <a href="<%= base %>/families/status<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
+        Every family and its status
+      </a>
+      <a href="<%= base %>/families/status/print<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
+        Printable follow-up sheet
+      </a>
+      <% if (waiting) { %>
+        <a href="<%= base %>/review" class="btn">
+          Review changes waiting <span class="badge"><%= waiting %></span>
+        </a>
       <% } %>
-      <noscript><button type="submit" class="btn ghost small">Apply</button></noscript>
-    </form>
-  <% } %>
+    </div>
+  </section>
 
-  <div class="chain">
-    <% statuses.forEach(function (step, i) { %>
-      <a class="chain-step <%= statusCounts[step.key] ? '' : 'is-empty' %>"
-         href="<%= base %>/families/status?status=<%= step.key %><%= filterQuery ? '&' + filterQuery : '' %>">
-        <span class="n"><%= statusCounts[step.key] %></span>
-        <span class="k"><%= step.label %></span>
-      </a>
-    <% }); %>
-  </div>
+  <div class="side">
+    <%
+      /*
+       * The almanac. Each row is a date and an occasion, and the date is set
+       * apart in its own gutter because that is the column the eye runs down
+       * — the parish office is looking for "what falls this week", not for a
+       * particular name.
+       *
+       * The month is drawn from the item's own day and month numbers rather
+       * than from its label, so the gutter is always two short lines and never
+       * inherits whatever width the long-form label happens to have.
+       */
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    %>
+    <section class="card flush almanac">
+      <div class="board-head">
+        <div>
+          <h2>Coming up</h2>
+          <p class="sub">Anniversaries &amp; milestones</p>
+        </div>
+        <span class="count">Next 30 days</span>
+      </div>
 
-  <div class="actions">
-    <a href="<%= base %>/families/status<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
-      Every family and its status
-    </a>
-    <a href="<%= base %>/families/status/print<%= filterQuery ? '?' + filterQuery : '' %>" class="btn ghost">
-      Printable follow-up sheet
-    </a>
-    <% if (waiting) { %>
-      <a href="<%= base %>/review" class="btn">
-        Review <%= waiting %> <%= waiting === 1 ? 'change' : 'changes' %> waiting
-      </a>
-    <% } %>
-  </div>
-
-  <p class="help">
-    <strong>Invitation Sent</strong> means the parish office has sent the
-    invitations. The app does not send any email itself, so this only shows
-    that the office did it. It does not confirm that the email reached anyone.
-  </p>
-</div>
-
-<div class="grid-2">
-  <div class="card">
-    <h2>Coming up <span class="hint">— next 30 days</span></h2>
-
-    <% if (!upcoming.length) { %>
-      <p class="empty" style="padding:20px 0">
-        No birthdays or anniversaries recorded in the next 30 days.
-      </p>
-    <% } else { %>
-      <table class="table">
-        <tbody>
+      <% if (!upcoming.length) { %>
+        <p class="empty">No birthdays or anniversaries in the next 30 days.</p>
+      <% } else { %>
+        <div class="events">
           <% upcoming.forEach(function (item) { %>
-            <tr>
-              <td>
-                <a href="<%= base %>/families/<%= item.fid %>"><%= item.name %></a>
-                <% if (item.kind === 'anniversary') { %>
-                  <span class="tag">Anniversary</span>
-                <% } %>
-              </td>
-              <td class="nowrap"><%= item.label %></td>
-              <td class="nowrap right" style="color:var(--ink-faint)">
-                <%= item.inDays === 0 ? 'Today' : (item.inDays === 1 ? 'Tomorrow' : 'In ' + item.inDays + ' days') %>
-              </td>
-            </tr>
+            <div class="event">
+              <div class="date">
+                <div class="d"><%= item.day %></div>
+                <div class="m"><%= MONTHS[item.month - 1] %></div>
+              </div>
+              <div class="divider"></div>
+              <div class="body">
+                <div class="nm">
+                  <a href="<%= base %>/families/<%= item.fid %>"><%= item.name %></a>
+                  <% if (item.kind === 'anniversary') { %>
+                    <span class="anniv">anniversary</span>
+                  <% } %>
+                </div>
+                <div class="when">
+                  <%= item.inDays === 0 ? 'Today'
+                      : item.inDays === 1 ? 'Tomorrow'
+                      : 'In ' + item.inDays + ' days' %>
+                </div>
+              </div>
+              <a class="go" href="<%= base %>/families/<%= item.fid %>"
+                 aria-label="Open the <%= item.head_name %> family">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+              </a>
+            </div>
           <% }); %>
-        </tbody>
-      </table>
-      <p class="help" style="margin-top:10px">
-        Sorted by day and month, so birthdays and anniversaries appear together.
-      </p>
-    <% } %>
-  </div>
-
-  <div class="card">
-    <h2>Getting started</h2>
-    <ol class="stack" style="margin:0;padding-left:20px;font-size:15px">
-      <li>
-        <a href="<%= base %>/admin/settings">Set the parish name</a> and choose how many
-        families print on each page.
-      </li>
-      <li><a href="<%= base %>/families/new">Add families</a>, each with its members, photo and dates.</li>
-      <li>
-        Keep an entry as a <strong>draft</strong> while you are still collecting
-        details — drafts stay out of the printed book.
-      </li>
-      <li>
-        <a href="<%= base %>/directory">Open the print directory</a> and use your browser&rsquo;s
-        print dialog to save it as a PDF or send it to a printer.
-      </li>
-      <% if (isAdmin) { %>
-        <li><a href="<%= base %>/admin/users">Invite the parish office</a> to help, as editors or viewers.</li>
+        </div>
       <% } %>
-    </ol>
+    </section>
+
+    <%#
+      Getting started. The numerals are drawn by a CSS counter rather than
+      typed, so a step added or removed here cannot leave the list counting
+      1, 2, 2, 4 — which is what an <ol> would have given us for free, but an
+      <ol> cannot put the numeral in a circle of its own beside the text.
+    %>
+    <section class="card flush guide">
+      <div class="board-head"><div><h2>Getting started</h2></div></div>
+      <div class="steps">
+        <div class="step">
+          <div class="idx"></div>
+          <div class="txt">
+            <a href="<%= base %>/admin/settings">Set the parish name</a> and choose
+            how many families print on each page.
+          </div>
+        </div>
+        <div class="step">
+          <div class="idx"></div>
+          <div class="txt">
+            <a href="<%= base %>/families/new">Add families</a>, each with its
+            members, photograph and dates.
+          </div>
+        </div>
+        <div class="step">
+          <div class="idx"></div>
+          <div class="txt">
+            Keep an entry as a <strong>draft</strong> while you are still
+            collecting details &mdash; drafts stay out of the printed book.
+          </div>
+        </div>
+        <div class="step">
+          <div class="idx"></div>
+          <div class="txt">
+            <a href="<%= base %>/directory">Open the print directory</a> and use
+            your browser&rsquo;s print dialog to save a PDF or send it to a printer.
+          </div>
+        </div>
+        <% if (isAdmin) { %>
+          <div class="step">
+            <div class="idx"></div>
+            <div class="txt">
+              <a href="<%= base %>/admin/users">Invite the parish office</a> to
+              help, as editors or viewers.
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </section>
   </div>
 </div>
 
