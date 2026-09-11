@@ -15,20 +15,9 @@
 %>
 <section class="auth-plate">
   <div class="crest">
-    <%# The cross of the parish, resting on the two arcs of the ornament that
-        closes every page of the printed directory. One drawing, used at both
-        ends of the book. %>
-    <svg class="mark" viewBox="0 0 48 60" fill="none"
-         role="img" aria-label="<%= settings.parish_name %>">
-      <g stroke="#B08A3E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M24 9V45"/><path d="M11 22H37"/>
-        <path d="M16 52Q24 45 32 52"/><path d="M12 55Q24 46 36 55"/>
-      </g>
-      <g fill="#B08A3E">
-        <circle cx="24" cy="9" r="2.3"/><circle cx="11" cy="22" r="2.3"/>
-        <circle cx="37" cy="22" r="2.3"/><circle cx="24" cy="45" r="2.3"/>
-      </g>
-    </svg>
+    <%# The crest of the Mar Thoma church, the same mark that closes every
+        page of the printed directory. %>
+    <img class="mark" src="<%= base %>/images/marthoma-logo.png" alt="<%= settings.parish_name %>">
     <div>
       <span class="wordmark"><%= settings.directory_title %></span>
       <span class="sub"><%= settings.parish_name %></span>

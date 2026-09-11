@@ -129,7 +129,7 @@ code {
   color: var(--parchment);
 }
 .brand:hover { color: #fff; }
-.brand .mark { flex: none; width: 28px; height: 28px; display: block; }
+.brand .mark { flex: none; width: 28px; height: 28px; display: block; object-fit: contain; }
 .brand .name {
   min-width: 0;
   font-family: var(--serif);
@@ -1529,7 +1529,7 @@ body.auth.split {
 .auth-plate::after  { inset: 31px; border: 1px solid rgba(176, 138, 62, .14); }
 
 .auth-plate .crest { position: relative; z-index: 2; display: flex; align-items: center; gap: 18px; }
-.auth-plate .crest .mark { flex: none; width: 76px; height: 76px; display: block; }
+.auth-plate .crest .mark { flex: none; width: 76px; height: 76px; display: block; object-fit: contain; }
 .auth-plate .wordmark {
   display: block;
   font-family: var(--serif);

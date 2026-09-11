@@ -24,11 +24,8 @@
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="<%= base + (isSuperAdmin && !churchId ? '/super' : '/') %>">
-      <%# The mark: a cross standing inside the circle of the parish. %>
-      <svg class="mark" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-        <path d="M15 3V27M8 9H22" stroke="#B08A3E" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="15" cy="15" r="13" stroke="#B08A3E" stroke-width=".9" opacity=".45"/>
-      </svg>
+      <%# The mark: the Mar Thoma crest. %>
+      <img class="mark" src="<%= base %>/images/marthoma-logo.png" alt="" aria-hidden="true">
       <span class="name">
         <%= settings.directory_title %>
         <small><%= church ? church.name : settings.parish_name %></small>
