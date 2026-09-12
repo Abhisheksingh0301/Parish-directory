@@ -116,9 +116,9 @@ function readForm(req) {
         dob_month: dob.month,
         dom_day: dom.day,
         dom_month: dom.month,
-        // Stored as the ten digits alone, and comma-separated where there is
-        // more than one, so the number a family typed with spaces in it and
-        // the same number typed without match each other — in a search, and in
+        // Visual separators stripped and comma-separated where there is more
+        // than one, so the number a family typed with spaces in it and the
+        // same number typed without match each other — in a search, and in
         // the diff a pending correction is read from.
         mobile: phones.normaliseList(m.mobile),
         blood_group: text(m.blood_group),
@@ -164,9 +164,6 @@ async function formLocals(req, extra) {
     emailPattern: emails.HTML_PATTERN,
     emailListPattern: emails.HTML_PATTERN_LIST,
     maxEmails: emails.MAX_ADDRESSES,
-    mobilePattern: phones.HTML_PATTERN,
-    mobilePatternOne: phones.HTML_PATTERN_ONE,
-    mobileDigits: phones.DIGITS,
     mobileMaxInput: phones.MAX_INPUT,
     maxMobiles: phones.MAX_NUMBERS,
     textLimits: freeText.LIMITS,

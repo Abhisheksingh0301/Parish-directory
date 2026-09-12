@@ -258,10 +258,12 @@ async function main() {
   console.log('\n--- the comma-separated boxes are wired for the chip editor ---');
   res = await request('GET', '/families/1/edit');
   check('the mobile box asks to be one', res.body.includes('data-tags'));
-  check('and carries a single-value pattern to judge each chip by',
-    res.body.includes('data-tag-pattern="0?[6-9][0-9]{9}"'), 'no single-number pattern');
   check('and a limit that matches the one the server enforces',
     res.body.includes('data-tag-max="3"'), 'no limit on the field');
+  // A number from outside India does not look like an Indian one, so the
+  // mobile box no longer judges a chip by its shape the way it used to.
+  check('the mobile box no longer judges a chip by an Indian-only shape',
+    !res.body.includes('data-tag-pattern="0?[6-9][0-9]{9}"'));
   check('the page loads the script that reads all that',
     res.body.includes('javascripts/tag-input.js'), 'tag-input.js not included');
   check('and the boxes keep their names, so the form posts what it always did',
@@ -285,7 +287,8 @@ async function main() {
     'members[0][relation]': 'Head',
     'members[0][dob]': '1975-08-02',
     // Typed with a space in it, the way a person writes a phone number down;
-    // it is stored as the ten digits alone. See lib/phone.js.
+    // the space is stored out, the digits are not otherwise touched. See
+    // lib/phone.js.
     'members[0][mobile]': '98765 43210',
     'members[0][qualification]': 'B.Sc. Nursing',
     'members[0][occupation]': 'Staff Nurse',
@@ -309,18 +312,16 @@ async function main() {
   console.log('\n--- a member row the browser would have refused ---');
   // The browser objects to all of these first. The point of the check is that
   // a form which never went through a browser is refused just the same, and
-  // that the complaint names the member rather than the field alone.
+  // that the complaint names the member rather than the field alone. A mobile
+  // number is no longer among them — see lib/phone.js — except for how many
+  // of them there are, which is a question of what the printed cell holds
+  // rather than which country the numbers are from.
   const badRows = [
-    ['a mobile number with letters in it', { mobile: '98abc43210' }],
-    ['a mobile number too short', { mobile: '98765' }],
-    ['a mobile number with a country code', { mobile: '+919876543210' }],
-    ['a mobile number starting with 1', { mobile: '1234567890' }],
     ['a qualification of only symbols', { qualification: '###$$$' }],
     ['an occupation longer than the cell', { occupation: 'x'.repeat(61) }],
     ['an email address with no domain ending', { emails: 'steve@gmail' }],
     ['more email addresses than the cell holds',
       { emails: 'a@x.com, b@x.com, c@x.com, d@x.com' }],
-    ['the same mobile number listed twice', { mobile: '9876543210, 9876543210' }],
     ['more mobile numbers than the cell holds',
       { mobile: '9876543210, 9876543211, 9876543212, 9876543213' }]
   ];
@@ -357,9 +358,9 @@ async function main() {
   res = await request('GET', '/families/1');
   check('and none of that was written', res.body.includes('9876543210'));
 
-  // The trunk prefix is how a good deal of what has been imported already is
-  // spelled; it is the same number, so it is taken in and straightened out
-  // rather than refused. Last, because it changes what is on record.
+  // A parish with families abroad reaches them on a number with a country
+  // code, a length that is not ten, and no reason to start 6-9 — none of
+  // that is refused any more. Only the visual separators are taken out.
   res = await request('GET', '/families/1/edit');
   res = await request('POST', '/families/1', {
     _csrf: csrfFrom(res.body),
@@ -371,12 +372,58 @@ async function main() {
     'members[0][name]': 'Mr. Steve Smith',
     'members[0][relation]': 'Head',
     'members[0][dob]': '1975-08-02',
-    'members[0][mobile]': '09000003251'
+    'members[0][mobile]': '+1 (416) 555-0199'
   });
-  check('a mobile number written with the trunk 0 is accepted',
+  check('a number with a country code is accepted',
     res.status === 302, `status ${res.status}`);
-  check('and stored as the ten digits alone',
-    (await db.Member.findOne({ where: { name: 'Mr. Steve Smith' } })).mobile === '9000003251');
+  check('and stored with its "+" and digits, only the visual separators gone',
+    (await db.Member.findOne({ where: { name: 'Mr. Steve Smith' } })).mobile === '+14165550199');
+
+  // A trunk 0, a short number, and a number the same field lists twice all
+  // used to be refused as well; none of them is now.
+  res = await request('GET', '/families/1/edit');
+  res = await request('POST', '/families/1', {
+    _csrf: csrfFrom(res.body),
+    family_id: '0001',
+    head_name: 'Steve Smith',
+    address: '12 New Lane',
+    email: 'steve@example.com',
+    is_published: '1',
+    'members[0][name]': 'Mr. Steve Smith',
+    'members[0][relation]': 'Head',
+    'members[0][dob]': '1975-08-02',
+    'members[0][mobile]': '09000003251, 09000003251'
+  });
+  check('a trunk 0 and a repeated number are both accepted',
+    res.status === 302, `status ${res.status}`);
+  check('and stored exactly as given, unstraightened',
+    (await db.Member.findOne({ where: { name: 'Mr. Steve Smith' } })).mobile
+      === '09000003251,09000003251');
+
+  // A spreadsheet column left as a number turns a long digit string into
+  // scientific notation on export — not a phone number in any country, and
+  // the only shape still refused. The browser has no opinion on this any
+  // more than the server does on a real number, so this is a server-only
+  // check, unlike the rows above.
+  res = await request('GET', '/families/1/edit');
+  res = await request('POST', '/families/1', {
+    _csrf: csrfFrom(res.body),
+    family_id: '0001',
+    head_name: 'Steve Smith',
+    address: '12 New Lane',
+    email: 'steve@example.com',
+    is_published: '1',
+    'members[0][name]': 'Mr. Steve Smith',
+    'members[0][relation]': 'Head',
+    'members[0][dob]': '1975-08-02',
+    'members[0][mobile]': '9.18594E+11'
+  });
+  check('a spreadsheet\'s scientific notation is refused',
+    res.status === 400, `status ${res.status}`);
+  check('and named as what it is, not as a bad phone number',
+    res.body.includes('scientific notation'));
+  check('and the member it belongs to',
+    res.body.includes('Steve Smith'));
 
   console.log('\n--- a family reference is unique per church, not across them ---');
   const second = await db.Church.create({

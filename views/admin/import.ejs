@@ -361,10 +361,23 @@
   </p>
 
   <p class="help">
-    <strong>Mobile numbers.</strong> Ten digits, beginning with 6, 7, 8 or 9. A
-    leading <code>0</code> is removed rather than refused, spaces and dashes
-    are ignored, and a member may list up to three numbers separated by
-    commas.
+    <strong>Mobile numbers.</strong> Not checked for shape &mdash; a number
+    with a country code (<code>+1</code>, <code>+91</code>,
+    <code>+971</code>&hellip;) is as welcome as a plain ten-digit one, so a
+    parish with families abroad does not have to leave them off. Spaces,
+    dashes and brackets are tidied away in storage; nothing else about the
+    number is touched. A member may list up to three, separated by commas
+    &mdash; that limit is what the printed entry has room for.
+  </p>
+
+  <p class="help">
+    One thing about this column is still refused: a cell Excel has turned
+    into scientific notation, like <code>9.18594E+11</code>. That happens to
+    a long number sitting in a column not formatted as text, silently, and it
+    is not a mistyped phone number &mdash; it is the spreadsheet's own doing,
+    and the original digits cannot be read back out of it. Format the column
+    as text in the spreadsheet, re-enter or re-paste the numbers, and export
+    again.
   </p>
 
   <p class="help">

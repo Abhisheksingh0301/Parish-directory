@@ -59,9 +59,8 @@
     var label = source.closest('.field') && source.closest('.field').querySelector('label, .label');
     if (label) entry.setAttribute('aria-label', label.textContent.trim());
     // The box people actually type in inherits how the original behaved, so
-    // the numeric keypad still comes up and mobile-digits.js still cleans it.
+    // a phone number's keypad still comes up on a touch device.
     if (source.hasAttribute('inputmode')) entry.setAttribute('inputmode', source.inputMode);
-    if (source.hasAttribute('data-mobile')) entry.setAttribute('data-mobile', '');
     if (source.hasAttribute('autocomplete')) entry.setAttribute('autocomplete', source.autocomplete);
     if (source.hasAttribute('title')) field.title = source.title;
 

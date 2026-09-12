@@ -61,15 +61,16 @@
       <label>Mobile</label>
       <%# data-tags turns this into the chip editor in tag-input.js. Without
           that script it stays exactly what it is here: one box holding a
-          comma-separated list, with its own pattern and title. %>
+          comma-separated list, with its own title. No pattern any more — a
+          number from outside India does not look like an Indian one, and
+          the field takes whatever a household gives rather than judge it. %>
       <input type="text" name="members[<%= index %>][mobile]" value="<%= m.mobile %>"
-             inputmode="numeric" autocomplete="tel-national" data-mobile
+             inputmode="tel" autocomplete="tel"
              data-tags data-tag-max="<%= maxMobiles %>"
-             data-tag-pattern="<%= mobilePatternOne %>"
              data-tag-strip="[\s()\-.]"
-             maxlength="<%= mobileMaxInput %>" pattern="<%= mobilePattern %>"
-             title="Up to <%= maxMobiles %> numbers, one at a time — type a number and press comma. Each is <%= mobileDigits %> digits beginning with 6, 7, 8 or 9, like 9876543210. A leading 0 is fine; letters and a country code are not."
-             placeholder="9876543210, then comma">
+             maxlength="<%= mobileMaxInput %>"
+             title="Up to <%= maxMobiles %> numbers, one at a time — type a number and press comma. A country code (+1, +91, +971…) is fine."
+             placeholder="+91 98765 43210, then comma">
     </div>
 
     <div class="field">
@@ -384,7 +385,6 @@
 <script src="<%= base %>/javascripts/head-name-sync.js"></script>
 <script src="<%= base %>/javascripts/family-form.js"></script>
 <script src="<%= base %>/javascripts/day-of-month.js"></script>
-<script src="<%= base %>/javascripts/mobile-digits.js"></script>
 <script src="<%= base %>/javascripts/tag-input.js"></script>
 <script src="<%= base %>/javascripts/add-relation.js"></script>
 
