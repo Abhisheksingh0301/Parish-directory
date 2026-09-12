@@ -1041,6 +1041,10 @@ router.post('/:id(\\d+)', allowOwnFamily('editor'), wrap(async (req, res, next) 
 
   const removingPhoto = req.body.remove_photo === '1';
   data.photo = req.file ? req.file.filename : (removingPhoto ? null : existing.photo);
+  // Not a form field — a family's place in the parish's own printed order is
+  // set by the sheet it was imported from, not edited here. Read off the
+  // record and handed back so saving any other field does not clear it.
+  data.sort_order = existing.sort_order;
 
   /*
    * The one change of substance the Parish asked for.

@@ -781,6 +781,28 @@ async function entryFieldsPerParishReview({ qi, sequelize, transaction }) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 12 — a family's own place in the book
+// ---------------------------------------------------------------------------
+
+/**
+ * Some parishes keep a printed order that answers to nothing else on the
+ * form — seniority, the street the family lives on, the order the last book
+ * used — and Family ID was never it: this parish's own reference is "P026",
+ * "P008", "P009", which sorts alphabetically into an order nobody chose.
+ * Renumbering every family to match would mean reissuing an id members
+ * already use on their login and their printed slip.
+ *
+ * Nullable, and unset by default. A family with no sort_order takes the
+ * order the book has always used — see bySortOrder in models/family.js — so
+ * a parish that never sets one sees no change at all.
+ */
+async function familySortOrder({ qi, transaction }) {
+  await qi.addColumn('families', 'sort_order', {
+    type: DataTypes.INTEGER, allowNull: true
+  }, { transaction });
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -796,7 +818,8 @@ const MIGRATIONS = [
   memberLoginChurchId,
   familyPrayerGroup,
   familyVerificationWorkflow,
-  entryFieldsPerParishReview
+  entryFieldsPerParishReview,
+  familySortOrder
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };

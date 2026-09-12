@@ -85,6 +85,26 @@ function byFamilyId(a, b) {
   return aId.localeCompare(bId, undefined, { sensitivity: 'base' });
 }
 
+/**
+ * A parish's own place in the book, when it has kept one.
+ *
+ * Family ID is a reference, not necessarily the order the book has always
+ * printed in — a parish importing from a sheet with its own "Sort Order"
+ * column (seniority, street, whatever the last book used) gets that order
+ * back rather than an alphabetical one its Family IDs were never chosen to
+ * produce. A family with no sort_order sorts after every family that has
+ * one, and among themselves both groups fall back to byFamilyId — which is
+ * the whole of the order a parish that has never set one sees, unchanged.
+ */
+function bySortOrder(a, b) {
+  const aHas = a.sort_order !== null && a.sort_order !== undefined;
+  const bHas = b.sort_order !== null && b.sort_order !== undefined;
+
+  if (aHas !== bHas) return aHas ? -1 : 1;
+  if (aHas && bHas && a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+  return byFamilyId(a, b);
+}
+
 function decorate(family, members) {
   return {
     ...family,
@@ -181,7 +201,7 @@ async function list(churchId, { search = '', publishedOnly = false } = {}) {
         login_last_seen: login ? login.last_login_at : null
       };
     })
-    .sort(byFamilyId);
+    .sort(bySortOrder);
 }
 
 /**
@@ -190,21 +210,21 @@ async function list(churchId, { search = '', publishedOnly = false } = {}) {
  */
 async function emails(churchId) {
   const rows = await Family.findAll({
-    attributes: ['family_id', 'email'],
+    attributes: ['family_id', 'email', 'sort_order'],
     where: { ...scope(churchId), email: { [Op.ne]: '' } },
     raw: true
   });
 
   return rows
     .filter((r) => String(r.email).trim())
-    .sort(byFamilyId)
+    .sort(bySortOrder)
     .map((r) => r.email.trim());
 }
 
 /** Families with an email address and no login yet — the ones an invite reaches. */
 async function withoutLogins(churchId) {
   const rows = await Family.findAll({
-    attributes: ['id', 'family_id', 'head_name', 'email'],
+    attributes: ['id', 'family_id', 'head_name', 'email', 'sort_order'],
     where: { ...scope(churchId), email: { [Op.ne]: '' } },
     include: [{ model: User, as: 'login', required: false, attributes: ['id'] }]
   });
@@ -213,7 +233,7 @@ async function withoutLogins(churchId) {
     .map((row) => row.get({ plain: true }))
     .filter((f) => !f.login && String(f.email).trim())
     .map(({ login, ...family }) => family) // eslint-disable-line no-unused-vars
-    .sort(byFamilyId);
+    .sort(bySortOrder);
 }
 
 /**
@@ -233,7 +253,7 @@ async function listWithMembers(churchId, { publishedOnly = true } = {}) {
 
   return rows
     .map((row) => row.get({ plain: true }))
-    .sort(byFamilyId)
+    .sort(bySortOrder)
     .map((family) => {
       const { members, ...rest } = family;
       return decorate(rest, members || []);
@@ -377,6 +397,12 @@ function writableFields(data) {
   for (const field of FIELDS) values[field] = data[field];
   values.photo = data.photo || null;
   values.is_published = !!data.is_published;
+  // Like photo and is_published above: no form field sends this, so a caller
+  // that wants to keep a family's existing sort_order has to read it off the
+  // record and hand it back — see the manual edit route, which does — or it
+  // is cleared. That is the correct default for a brand new family, which
+  // has never had a place in anyone's order.
+  values.sort_order = Number.isInteger(data.sort_order) ? data.sort_order : null;
   return values;
 }
 
@@ -534,12 +560,12 @@ async function photoFiles(churchId, { publishedOnly = false } = {}) {
   if (publishedOnly) where.is_published = true;
 
   const rows = await Family.findAll({
-    attributes: ['id', 'family_id', 'head_name', 'photo'],
+    attributes: ['id', 'family_id', 'head_name', 'photo', 'sort_order'],
     where,
     raw: true
   });
 
-  return rows.sort(byFamilyId);
+  return rows.sort(bySortOrder);
 }
 
 /**
@@ -786,7 +812,7 @@ async function listByStatus(churchId, { status = '', area = '', prayerGroup = ''
     where,
     attributes: [
       'id', 'family_id', 'head_name', 'area', 'prayer_group', 'email',
-      'verify_status', 'verify_status_at', 'is_published', 'photo', 'church_id'
+      'verify_status', 'verify_status_at', 'is_published', 'photo', 'church_id', 'sort_order'
     ],
     include: [{
       model: Member,
@@ -810,7 +836,7 @@ async function listByStatus(churchId, { status = '', area = '', prayerGroup = ''
           : null
       };
     })
-    .sort(byFamilyId);
+    .sort(bySortOrder);
 }
 
 /** The Areas and Prayer Groups this church actually uses, for the filter menus. */

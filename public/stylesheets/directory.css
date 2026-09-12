@@ -309,6 +309,20 @@ mark.dir-hit {
   white-space: nowrap;
   align-self: end;
 }
+/* "Family ID" and the number were one text node; they are now two, so the
+   two-up book (which never shows the label on its own line) still reads
+   them as a single "FAMILY ID : F-001". */
+.head-id-value::before { content: ' : '; }
+
+/*
+ * Whose book this leaf is from, and who the name belongs to.
+ *
+ * Both are printed only on the one-family sheet — see .page-single below —
+ * the same way .leaf-caption is: hidden here so the two-up book, tuned to
+ * the millimetre for two families a page, never pays for a line it doesn't
+ * show.
+ */
+.head-eyebrow, .head-sub { display: none; }
 
 /*
  * The photograph beside the details, not above them. Stacking gave a far
@@ -514,6 +528,24 @@ mark.dir-hit {
   text-transform: uppercase;
   color: var(--ink);
 }
+/*
+ * The edition line under the parish's name — "Family Directory 2026" — on
+ * the one-family sheet only. The two-up footer is a single tight row between
+ * the name and the folio (see the 34px/70px budget above .entry); a second
+ * line there is a line the pagination math never priced in, so it stays off
+ * until .page-single turns it back on.
+ */
+.foot-edition { display: none; }
+.page-single .foot-edition {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
 .folio {
   font-family: 'Fraunces', Georgia, serif;
   font-style: italic;
@@ -594,8 +626,9 @@ mark.dir-hit {
  */
 .page-single .entry-head {
   grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: 16px;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  column-gap: 16px;
   margin-bottom: 16px;
   /*
    * One rule under both, rather than an accent under the name alone: with the
@@ -610,8 +643,18 @@ mark.dir-hit {
    */
   padding-bottom: 10px;
 }
+.page-single .head-eyebrow {
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
 .page-single .head-name {
-  order: 1;
+  grid-column: 1;
+  grid-row: 2;
   justify-self: start;
   justify-content: flex-start;
   text-align: left;
@@ -621,30 +664,59 @@ mark.dir-hit {
   /* No band and no box: the name is the title of the page it is on, not
      another cell in another table. */
   background: transparent;
-  padding: 0;
+  padding: 2px 0;
   border-radius: 0;
+}
+.page-single .head-sub {
+  display: block;
+  grid-column: 1;
+  grid-row: 3;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
 }
 /*
  * The reference, as an engraved plate rather than a pill: a keyline, and a
  * second one struck inside it. The sheet it sits on is drawn that way, and a
  * rounded pill on a ruled page reads as something pasted onto it.
+ *
+ * Stacked rather than run together — "Family ID" over "F-001" — the same
+ * distinction the plate on a real register makes between the label engraved
+ * on it and the number filled in.
  */
 .page-single .head-id {
-  order: 2;
-  justify-self: end;
-  align-self: end;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   background: linear-gradient(180deg, #FFFDF8, #FBF6EC);
   border: 1px solid var(--gilt);
   border-radius: 3px;
   box-shadow: inset 0 0 0 3px #FCFAF3, inset 0 0 0 3.7px rgba(143, 110, 44, .45);
-  color: var(--ink-soft);
-  font-size: 11px;
+  padding: 9px 20px;
+}
+.page-single .head-id-label {
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: .2em;
-  padding: 9px 20px;
-  /* Sat on the same baseline as the name, not on the rule itself. */
-  margin-bottom: 3px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
+.page-single .head-id-value {
+  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  color: var(--ink);
+}
+/* The two-up book's " : " separator is a two-up-only stitch — the plate
+   stacks the label over the number instead. */
+.page-single .head-id-value::before { content: ''; }
 
 /* The photograph above the details, mounted rather than merely bordered. */
 .page-single .entry-body {
@@ -809,8 +881,17 @@ mark.dir-hit {
   display: block;
   border-top: 0;
   text-align: center;
+  padding-top: 0;
   padding-bottom: 6px;
 }
+/*
+ * The ornament sits hard against its imprint here, not floating in the
+ * 30px/9px the two-up footer gives it to clear a full-width rule it no
+ * longer draws — .foot-row's border is off in this layout, so that room was
+ * just air between the crest and the name.
+ */
+.page-single .page-foot { padding-top: 6px; }
+.page-single .lattice { margin-bottom: 2px; }
 .page-single .parish-name { display: block; }
 .page-single .folio {
   position: absolute;

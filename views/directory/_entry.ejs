@@ -22,8 +22,24 @@
 %>
 <section class="entry" data-search="<%= searchText %>">
   <div class="entry-head">
-    <div class="head-id">FAMILY ID : <%= f.family_id %></div>
+    <div class="head-id">
+      <span class="head-id-label">FAMILY ID</span>
+      <span class="head-id-value"><%= f.family_id %></span>
+    </div>
+    <%
+      /*
+       * The eyebrow and the subtitle place this leaf: whose book it is, and
+       * who the name below belongs to. Both are shown only on the one-family
+       * sheet — see .head-eyebrow/.head-sub in directory.css, hidden by
+       * default the same way .leaf-caption is, so the two-up book (already
+       * budgeted to the millimetre) never pays for lines it doesn't print.
+       */
+    %>
+    <div class="head-eyebrow">
+      <%= settings.parish_name %><% if (church && church.city) { %>, <%= church.city %><% } %>
+    </div>
     <div class="head-name"><%= f.head_name %></div>
+    <div class="head-sub">Head of Family<% if (f.prayer_group) { %> &middot; <%= f.prayer_group %><% } %></div>
   </div>
 
   <div class="entry-body">

@@ -85,6 +85,10 @@ const Family = sequelize.define('Family', {
   // The division an Area Representative follows up, which is a different
   // question from which prayer group a family attends.
   area: text(),
+  // A parish's own printed order, when it keeps one that Family ID does not
+  // reproduce. Null for a family that never set one — see bySortOrder in
+  // models/family.js.
+  sort_order: { type: DataTypes.INTEGER, allowNull: true },
   // The household's own address, which is also its login username. A family
   // has one; its members each have their own list. See Member.emails.
   email: text(),

@@ -75,7 +75,7 @@
   <div class="page<%= page.single ? ' page-single' : '' %>">
     <div class="entries">
       <% page.families.forEach(function (f) { %>
-        <%- include('_entry', { f: f }) %>
+        <%- include('_entry', { f: f, settings: settings, church: church }) %>
       <% }); %>
     </div>
 
@@ -85,6 +85,9 @@
         <span class="parish-name">
           <%= settings.parish_name %><% if (church && church.city) { %>, <%= church.city %><% } %>
         </span>
+        <% if (settings.directory_title) { %>
+          <span class="foot-edition"><%= settings.directory_title %></span>
+        <% } %>
         <span class="folio"><%= page.folio %></span>
       </div>
     </div>

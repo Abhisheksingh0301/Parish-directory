@@ -476,6 +476,10 @@ function asFormData(family) {
     email: family.email,
     photo: family.photo,
     is_published: family.is_published,
+    // Not a field a household's correction can touch — see NEVER_EDITABLE —
+    // but `Family.update` clears whatever it is not given, so it has to ride
+    // along here the same way photo and is_published do.
+    sort_order: family.sort_order,
     members: (family.members || []).map((m) => ({
       id: m.id,
       name: m.name,
