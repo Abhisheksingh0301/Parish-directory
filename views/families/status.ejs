@@ -6,8 +6,8 @@
     <h1>Verification status</h1>
     <p class="sub">
       Where every family stands, from the invitation to the printed book.
-      Narrow it to one Area or Prayer Group, and the same filter produces the
-      follow-up sheet the Area Representative carries.
+      Narrow it to one Prayer Group, or search for a household by name, and the
+      same filter produces the follow-up sheet the representative carries.
     </p>
   </div>
   <div class="spacer"></div>
@@ -32,18 +32,6 @@
     </select>
   </label>
 
-  <% if (groupings.areas.length) { %>
-    <label>
-      Area
-      <select name="area">
-        <option value="">All areas</option>
-        <% groupings.areas.forEach(function (a) { %>
-          <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
-        <% }); %>
-      </select>
-    </label>
-  <% } %>
-
   <% if (groupings.prayerGroups.length) { %>
     <label>
       Prayer Group
@@ -55,6 +43,21 @@
       </select>
     </label>
   <% } %>
+
+  <%#
+    Searching by name, on the server rather than in the browser.
+
+    The batch buttons below act on the families this filter selected, so a
+    search that only hid table rows would leave "Approve 194" approving the
+    hundred and ninety-three the office could no longer see. Narrowing here
+    narrows the batch, the chain, the follow-up sheet and the table together.
+  %>
+  <label>
+    Search
+    <input type="search" name="q" value="<%= filter.search %>"
+           placeholder="Family head, Family ID or member"
+           autocomplete="off" spellcheck="false">
+  </label>
 
   <button type="submit" class="btn ghost small">Apply</button>
   <% if (query) { %><a href="<%= base %>/families/status" class="btn ghost small">Clear</a><% } %>
@@ -90,8 +93,8 @@
       <%
         const stepQuery = [
           'status=' + encodeURIComponent(step.key),
-          filter.area ? 'area=' + encodeURIComponent(filter.area) : '',
-          filter.prayerGroup ? 'group=' + encodeURIComponent(filter.prayerGroup) : ''
+          filter.prayerGroup ? 'group=' + encodeURIComponent(filter.prayerGroup) : '',
+          filter.search ? 'q=' + encodeURIComponent(filter.search) : ''
         ].filter(Boolean).join('&');
       %>
       <a class="chain-step <%= counts[step.key] ? '' : 'is-empty' %> <%= filter.status === step.key ? 'is-current' : '' %>"
@@ -132,9 +135,28 @@
         <span class="move-count"><b data-move-count>0</b> ticked</span>
       </div>
 
+      <%#
+        Finding one household among the families standing at this step.
+
+        This box searches the step that is open, in the browser, and nothing
+        else: it hides rows from view, it never unticks them. A search that
+        quietly dropped families out of the batch would be the worst kind of
+        bug here — the office would type a name, press Move, and move a
+        hundred and ninety-three families it could not see. "Tick all" and
+        "Clear" therefore act on what the search is showing, which is the
+        one thing that reads as the office meant it.
+      %>
+      <div class="move-search">
+        <label class="sr-only" for="move-find">Search these families</label>
+        <input type="search" id="move-find" data-move-search
+               placeholder="Search this step by name, Family ID or number"
+               autocomplete="off" spellcheck="false">
+        <span class="move-found" data-move-found hidden></span>
+      </div>
+
       <div class="move-tools">
-        <button type="button" class="linkbtn" data-move-all>Tick all</button>
-        <button type="button" class="linkbtn muted" data-move-none>Clear</button>
+        <button type="button" class="linkbtn" data-move-all>Tick all shown</button>
+        <button type="button" class="linkbtn muted" data-move-none>Clear shown</button>
         <a class="move-see" data-move-see href="<%= base %>/families/status">See them in the list below</a>
       </div>
 
@@ -242,17 +264,18 @@
       <strong>In book</strong> is a separate decision from the chain, and it
       belongs to the office alone. An imported family arrives as a
       <span class="tag draft">Draft</span>, because a spreadsheet is not a
-      decision about what to print. Only families already in the book can be
-      marked Ready for Printing, so after an import, put them in with
-      <strong>Include in the printed book</strong> first.
+      decision about what to print. Putting a family that has already been
+      approved into the book carries it on to Ready for Printing in the same
+      press &mdash; there is no second button to remember after an import.
     </p>
 
     <p class="help">
-      <strong>Ready for Printing</strong> normally follows approval on its
-      own, so this button is only needed where inclusion was decided after
-      the entry was approved &mdash; which is exactly what happens after an
-      import. It moves approved families only: an entry nobody has verified
-      does not go into the run.
+      <strong>Ready for Printing</strong> follows approval on its own, in
+      whichever order the two decisions were made: approve a family already in
+      the book, or include one already approved, and it lands in the same
+      place. This button is here for the odd batch that needs sweeping up. It
+      moves approved families only &mdash; an entry nobody has verified does
+      not go into the run.
     </p>
   </div>
 <% } %>
@@ -283,7 +306,6 @@
             <th class="photo"><span class="sr-only">Photo</span></th>
             <th style="width:90px">ID</th>
             <th>Family head</th>
-            <th>Area</th>
             <th>Prayer Group</th>
             <th class="nowrap">Contact</th>
             <th class="nowrap">Status</th>
@@ -309,7 +331,6 @@
               </td>
               <td class="nowrap"><strong><%= f.family_id %></strong></td>
               <td><a href="<%= base %>/families/<%= f.id %>"><%= f.head_name %></a></td>
-              <td><%= f.area || '—' %></td>
               <td><%= f.prayer_group || '—' %></td>
               <td class="nowrap"><%= f.contact || '—' %></td>
               <td class="nowrap"><span class="tag"><%= f.status_label %></span></td>

@@ -392,6 +392,88 @@ async function main() {
     res.status === 200 && res.body.includes('No file was chosen'),
     `status ${res.status}`);
 
+  // -------------------------------------------------------------------------
+  console.log('');
+  console.log('--- the head who is named in Head of family and not in Member ---');
+
+  /*
+   * The Parish's own sheet, and the shape that cost it almost every telephone
+   * number. Its first row for a family names the head once, in Head of
+   * family, and leaves the Member column empty — which is how anybody fills
+   * in a row that is obviously about the head:
+   *
+   *     Family ID  Head of family   Member  Relation  Mobile
+   *     P008       Mr. Easow T V            Head      +919545999967
+   *
+   * The row was kept only if it named a member, so it was dropped, and every
+   * value on it that belongs to a person went with it. The family imported
+   * with a head, no members and no telephone number.
+   */
+  //          id    Head of family  addr pg em dom  Member  Relation  DOB           Mobile          Emails
+  const HEADONLY = HEAD
+    + 'P008,Mr. Easow T V,,,,,,Head,02-Aug-1965,+919545999967,\r\n';
+
+  res = await post('headonly.csv', HEADONLY);
+  check('a head named only in Head of family imports',
+    !res.body.includes('Nothing was imported'), 'the sheet was refused');
+
+  const easow = await db.Family.findOne({
+    where: { church_id: church.id, family_id: 'P008' }, raw: true
+  });
+  check('the family is there under its own head',
+    easow && easow.head_name === 'Mr. Easow T V',
+    easow ? easow.head_name : 'the family was not created');
+
+  const easowMembers = easow
+    ? await db.Member.findAll({ where: { family_id: easow.id }, raw: true })
+    : [];
+  check('and it has a member rather than an empty household',
+    easowMembers.length === 1, `${easowMembers.length} members`);
+  check('carrying the mobile number that was on that row',
+    easowMembers.length === 1 && easowMembers[0].mobile === '+919545999967',
+    easowMembers.length ? JSON.stringify(easowMembers[0].mobile) : 'no member at all');
+  check('and the rest of what the row said about the person',
+    easowMembers.length === 1
+    && easowMembers[0].name === 'Mr. Easow T V'
+    && easowMembers[0].relation === 'Head'
+    && easowMembers[0].dob_day === 2 && easowMembers[0].dob_month === 8,
+    easowMembers.length ? JSON.stringify(easowMembers[0]) : 'no member at all');
+  check('and the page says it took the name from Head of family',
+    /Member column was empty/.test(res.body), 'the adoption was done in silence');
+
+  /*
+   * What it must not do: invent a person out of a sheet that only corrects the
+   * family's own columns. The Import page offers that as its own workflow, so
+   * a row with a head name and nothing about anybody adds nobody.
+   */
+  const FAMILYFIX = HEAD + 'P008,Mr. Easow T V,New Road,Camp,,,,,,,\r\n';
+  res = await post('familyfix.csv', FAMILYFIX, { on_existing: 'update' });
+  check('a family-level correction row invents no member',
+    !res.body.includes('Nothing was imported')
+    && (await db.Member.count({ where: { family_id: easow.id } })) === 1,
+    'a member was invented, or the sheet was refused');
+  check('while still correcting the family column it carried',
+    (await db.Family.findOne({
+      where: { church_id: church.id, family_id: 'P008' }, raw: true
+    })).address === 'New Road', 'the family column was not written');
+
+  /*
+   * And a household that does name its members is left exactly as the sheet
+   * describes it — a head listed among them is not duplicated by this.
+   */
+  const BOTH = HEAD
+    + 'P010,Mr. Named Head,Road,Camp,,,Mr. Named Head,Head,,9000000001,\r\n'
+    + 'P010,,,,,,Mrs. Named Spouse,Spouse,,9000000002,\r\n';
+  res = await post('both.csv', BOTH);
+  const both = await db.Family.findOne({
+    where: { church_id: church.id, family_id: 'P010' }, raw: true
+  });
+  check('a sheet that names its members keeps exactly those',
+    both && (await db.Member.count({ where: { family_id: both.id } })) === 2,
+    both ? 'wrong member count' : 'the family was not created');
+  check('and reports no adoption, because none happened',
+    !/Member column was empty/.test(res.body), 'an adoption was reported anyway');
+
   console.log('');
   console.log('--- who may do it ---');
 

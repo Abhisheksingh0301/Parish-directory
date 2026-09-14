@@ -361,8 +361,11 @@ mark.dir-hit {
   background: var(--row-b);
 }
 .details td { background: var(--row-a); }
-.details tr:first-child th,
-.details tr:first-child td { padding-top: 12px; padding-bottom: 12px; }
+/* The residence, which carries the house rather than a word and wants the
+   room for it. Named, not counted, for the reason given over the
+   `.page-single .details` rules below. */
+.details .d-residence th,
+.details .d-residence td { padding-top: 12px; padding-bottom: 12px; }
 .home-icon { display: block; margin: 0 auto; width: 34px; height: 34px; fill: var(--ink-soft); }
 .email { word-break: break-all; }
 
@@ -457,7 +460,22 @@ mark.dir-hit {
 
 /* A value the household did not give. Quiet enough not to speckle the page,
    dark enough to be seen as a mark rather than a blemish. */
-.members .dash { color: #C7BEA9; }
+.members .dash,
+.details .dash { color: #C7BEA9; }
+
+/* Said to a screen reader, not shown: the residence's label, which the page
+   itself draws as a house. */
+.details .vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 .members tbody tr:nth-child(odd)  td { background: var(--member-a); }
 .members tbody tr:nth-child(even) td { background: var(--member-b); }
 .members td[rowspan] { text-align: center; vertical-align: middle; }
@@ -594,9 +612,16 @@ mark.dir-hit {
    sixth row and the multi-value mobile and email cells put a full five-member
    family onto two sheets, and nothing here said so until it was printed.
 
-   The details table pairs its rows two to a line in this layout, which is what
-   affords a photograph this size at all — stacked, the same guarantee held
-   only to 60%. See the `.page-single .details` rules below.
+   The household register stands its three short answers side by side, which
+   is what affords a photograph this size at all — stacked five deep, the same
+   guarantee held only to 60%. See the `.page-single .details` rules below.
+
+   Dropping Area / Unit and setting the label over the answer left the register
+   the same height to within a line: it lost a band, and the two it kept grew
+   by about as much as the band was worth. So this figure is unchanged, and
+   deliberately so. If a household does run onto a second sheet, that is the
+   household being large — it is not a reason to shrink the photograph, which
+   is the one thing on the page a family actually keeps.
    ========================================================================== */
 
 .page-single {
@@ -747,75 +772,149 @@ mark.dir-hit {
 .page-single .photo-empty { font-size: 15px; }
 
 /*
- * The details, two pairs to a line.
+ * The household register: three bands, and the label over the answer.
  *
- * Six label-and-value rows stacked down the page is 45mm of sheet spent on
- * six short answers — a prayer group and a ward number do not need half the
- * width of an A4 between them. Paired up they take three lines instead of six,
- * and the height that frees goes to the photograph, which is what the page is
- * for. See --single-photo.
+ * Five label-and-value rows stacked down the page is 40mm of sheet spent on
+ * five short answers — a prayer group does not need half the width of an A4
+ * between the label and the word. So the three short ones stand side by side
+ * and the register is three bands tall, and the height that frees goes to the
+ * photograph, which is what the page is for. See --single-photo.
  *
  * Done by re-flowing the same table rather than by writing a second one:
  * `_entry.ejs` is shared with the two-up book and the combined one, and a
  * separate markup for this layout is exactly the drift that sharing prevents.
- * The table becomes a grid of rows, each row a grid of label and value.
  *
- * `border-collapse` does not survive that, so the borders are drawn by hand —
- * top and left on the table, right and bottom on every cell — which meets in
- * the same single rule and cannot double up.
+ * Three things this is deliberately not, all of them what it used to be.
+ *
+ * It is not placed by counting. Every row is placed by the name it carries
+ * — .d-residence, .d-group and so on — rather than by being the first or the
+ * last or an even one. The old rule paired up everything between the first
+ * row and the last, which held only while that number stayed even: dropping
+ * Area / Unit left three to pair, and the third sat on its own beside an
+ * empty bordered half-cell. Named placement cannot develop a hole, because
+ * every cell in the grid is somewhere a rule put something.
+ *
+ * It is not a label column. "Home Town Name / Address (HOF)" does not fit
+ * beside its answer in a third of a page, so it wrapped to two lines and
+ * pushed its value out of line with the value beside it. The label sits over
+ * the answer instead, where its length costs nothing — and because the three
+ * share one grid row for their labels and another for their answers, the
+ * three answers sit on one line however long the labels above them run.
+ *
+ * It is not a spreadsheet. Every cell used to be boxed on four sides with the
+ * labels filled one colour and the answers another, which is the look of a
+ * form to be filled in rather than a register to be read. One sheet of white,
+ * a hairline between the bands and between the three columns, and nothing
+ * else.
  */
 .page-single .details {
   display: block;
   font-size: 15px;
-  border: 0;
-  border-top: 1px solid var(--rule);
-  border-left: 1px solid var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--row-a);
 }
+
+/*
+ * Four tracks down: the residence, then the labels of the three, then their
+ * answers, then the email address. The two full-width bands are rows of their
+ * own; the three in the middle hand their label and their answer straight to
+ * this grid (`display: contents`) so that all three labels share one track
+ * and all three answers share the next.
+ */
 .page-single .details tbody {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto auto auto;
 }
-.page-single .details tr {
-  display: grid;
-  grid-template-columns: 38% 1fr;
-  min-width: 0;
-}
-/*
- * The residence and the email address keep the full width. The residence is
- * the one answer that runs to three lines and half a page is not enough for
- * it; the email is last, and with an odd number of rows to pair up something
- * has to be, or the table ends on a bordered empty cell that reads as a
- * question nobody answered. Their label column is halved to 19% so it lines
- * up with the labels in the left-hand pair above.
- */
-.page-single .details tr:first-child,
-.page-single .details tr:last-child {
-  grid-column: 1 / -1;
-  grid-template-columns: 19% 1fr;
-}
+
 .page-single .details th,
 .page-single .details td {
-  display: flex;
-  align-items: center;
+  display: block;
   min-width: 0;
-  padding: 7px 14px;
   border: 0;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  background: none;
 }
+
+/* The label: small, spaced, and quiet enough that the answer is what is read. */
 .page-single .details th {
   width: auto;
-  letter-spacing: .02em;
+  padding: 9px 14px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: .07em;
   text-transform: uppercase;
-  font-size: 13px;
-  color: var(--ink-soft);
+  color: var(--ink-mute);
 }
-/* A value that outruns its half — a long parish name — wraps rather than
-   pushing the column wider and knocking the pairs out of line. */
-.page-single .details td { overflow-wrap: anywhere; }
-.page-single .details tr:first-child th,
-.page-single .details tr:first-child td { padding-top: 7px; padding-bottom: 7px; }
-.page-single .home-icon { width: 26px; height: 26px; }
+
+/* The answer. `anywhere` because a long parish name must wrap inside its
+   third rather than widen it and knock the other two out of line. */
+.page-single .details td {
+  padding: 1px 14px 10px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The residence and the email address run the width of the register. The
+ * residence is the one answer that can run to three lines, and the email is
+ * one long unbroken string; neither belongs in a third of a page. Both keep
+ * their label beside the answer rather than over it — across the full width
+ * there is room, and it saves the band a line.
+ */
+.page-single .details .d-residence,
+.page-single .details .d-email {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 13px;
+  min-width: 0;
+  padding: 10px 14px;
+}
+.page-single .details .d-residence { grid-row: 1; align-items: flex-start; }
+.page-single .details .d-email { grid-row: 4; align-items: baseline; }
+
+.page-single .details .d-residence th,
+.page-single .details .d-email th { flex: none; padding: 0; }
+.page-single .details .d-residence td,
+.page-single .details .d-email td { padding: 0; min-width: 0; }
+
+/* The email label is the only one set beside an answer at this size, so it
+   takes the answer's line-height to sit on the same baseline as it. */
+.page-single .details .d-email th { line-height: 1.4; padding-top: 1px; }
+
+/* The three short answers, left to right in the order the entry reads them. */
+.page-single .details .d-group,
+.page-single .details .d-parish,
+.page-single .details .d-hometown { display: contents; }
+
+.page-single .details .d-group th    { grid-area: 2 / 1; }
+.page-single .details .d-group td    { grid-area: 3 / 1; }
+.page-single .details .d-parish th   { grid-area: 2 / 2; }
+.page-single .details .d-parish td   { grid-area: 3 / 2; }
+.page-single .details .d-hometown th { grid-area: 2 / 3; }
+.page-single .details .d-hometown td { grid-area: 3 / 3; }
+
+/*
+ * The rules, drawn once each. `border-collapse` does not survive the grid, so
+ * a band is separated from the one above it by a single top border, and the
+ * three columns by a single left border on the two that have a neighbour.
+ */
+.page-single .details .d-group th,
+.page-single .details .d-parish th,
+.page-single .details .d-hometown th,
+.page-single .details .d-email { border-top: 1px solid var(--rule); }
+
+.page-single .details .d-parish th,
+.page-single .details .d-parish td,
+.page-single .details .d-hometown th,
+.page-single .details .d-hometown td { border-left: 1px solid var(--rule); }
+
+/* The icon is the residence's label, so it is sized to the label row rather
+   than centred in a cell of its own the way the two-up book sets it. */
+.page-single .home-icon { width: 22px; height: 22px; margin: 0; }
 
 /*
  * The captions, on the one layout with the height to spend on them.
@@ -920,7 +1019,31 @@ mark.dir-hit {
   /* The plate keeps its inset keyline, so the padding cannot come below the
      7px the two struck lines need to sit inside it. */
   .page-single .head-id { font-size: 10px; letter-spacing: .14em; padding: 8px 14px; }
-  .page-single .details th { width: 34%; }
+
+  /*
+   * A phone is not a sheet, so the register stops standing its three answers
+   * side by side — a third of a phone is about eleven characters, and "Home
+   * Town Name / Address (HOF)" over eleven characters is not a saving. The
+   * grid is dropped altogether rather than narrowed to one column: with the
+   * tracks gone, the named placements have nothing to place against, and
+   * plain stacked bands are what the layout would want anyway.
+   */
+  .page-single .details tbody,
+  .page-single .details tr { display: block; }
+  .page-single .details .d-residence,
+  .page-single .details .d-email { display: flex; }
+
+  /* One hairline between each band, and none down the middle of anything. */
+  .page-single .details .d-group,
+  .page-single .details .d-parish,
+  .page-single .details .d-hometown { border-top: 1px solid var(--rule); }
+  .page-single .details .d-group th,
+  .page-single .details .d-parish th,
+  .page-single .details .d-hometown th { border-top: 0; }
+  .page-single .details .d-parish th,
+  .page-single .details .d-parish td,
+  .page-single .details .d-hometown th,
+  .page-single .details .d-hometown td { border-left: 0; }
 }
 
 /* ---------- print ---------- */

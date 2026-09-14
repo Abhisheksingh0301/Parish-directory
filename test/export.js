@@ -308,13 +308,19 @@ async function main() {
    * The point of the whole feature: every name the sheet gives is a file that
    * is actually in the archive, and a family with no photograph is an empty
    * cell rather than a name that goes nowhere.
+   *
+   * Once per family, on its first row \— not once per member. The sheet now
+   * writes the family's own columns on the row that opens the household, which
+   * is the shape the importer reads back, and the photograph is one of them.
    */
   const named = sheetRows.slice(1)
     .map((row) => (row.match(/"([^"]*)"\s*$/) || [])[1])
     .filter(Boolean);
   check('every photograph the sheet names is really in the archive',
-    named.length === 4 && named.every((n) => names.includes(n)),
+    named.length === 2 && named.every((n) => names.includes(n)),
     `${named.length} named: ${[...new Set(named)].join(', ')}`);
+  check('and is named once, on the family\’s first row',
+    new Set(named).size === named.length, named.join(', '));
 
   check('a family without a photograph leaves the cell empty',
     sheetRows.some((row) => row.includes('Vadakkan') && row.endsWith('""')),

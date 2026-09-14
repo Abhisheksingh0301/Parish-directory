@@ -341,8 +341,8 @@ whichever suits:
    `/family-login` with its Family ID and the six digits on the slip. No email
    address is involved at any step. The PIN is shown once and stored only as a
    hash — if a slip is lost, issue a new one.
-2. **Assisted entry.** An Area Representative or the office signs in and submits
-   on the family's behalf. It enters the same queue, and the audit trail records
+2. **Assisted entry.** A Prayer Group representative or the office signs in and
+   submits on the family's behalf. It enters the same queue, and the audit trail records
    who submitted it, so an assisted entry is never mistaken for one the family
    made itself.
 3. **Paper.** The family corrects a printed slip by hand and the office keys it
@@ -356,10 +356,18 @@ the families behind it:
     Not Started → Invitation Sent → Family Reviewing → Changes Submitted
       → Under Parish Review → Approved → Ready for Printing → Printed
 
-Every status view narrows to one **Area** or **Prayer Group**, and the same
-filter produces a **printable follow-up sheet** — Family ID, family head,
-contact number and current status — which is the sheet the Area Representative
-actually carries.
+Every status view narrows to one **Prayer Group**, or to a **search** by family
+head, Family ID or member name, and the same filter produces a **printable
+follow-up sheet** — Family ID, family head, contact number and current status —
+which is the sheet the group's representative actually carries.
+
+The search is part of the filter, not something the browser does to the table
+afterwards: the batch buttons act on the families the filter selected, so
+narrowing the screen to one household by name and pressing **Approve** approves
+that household and nothing else. Each step of the chain also has a search of its
+own inside the move panel, for finding one family among the two hundred standing
+at a step. That one only hides rows — it never unticks them, and the panel says
+so when the ticks include families the search is hiding.
 
 *One honest note on Invitation Sent:* this application sends no email itself, so
 that status is recorded when the parish office marks a batch as sent. It is an

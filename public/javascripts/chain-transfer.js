@@ -24,6 +24,14 @@
  * It does not take the tiles away from anyone without scripting. They stay
  * ordinary links, and a modified click — a new tab, a middle button — still
  * follows the link rather than starting a move.
+ *
+ * The search box inside the panel is a fourth: it hides rows, it never unticks
+ * them. A family ticked before the office typed a name is still ticked, still
+ * in the form, and still moved. Hiding a checkbox and clearing it are opposite
+ * promises, and the destructive one must not happen by accident — so "Tick all
+ * shown" and "Clear shown" are the only things that change what is ticked, and
+ * the panel says out loud when the ticks include families the search is
+ * hiding.
  */
 (function () {
   'use strict';
@@ -54,10 +62,13 @@
   var note = panel.querySelector('[data-move-note]');
   var go = panel.querySelector('[data-move-go]');
   var see = panel.querySelector('[data-move-see]');
+  var find = panel.querySelector('[data-move-search]');
+  var found = panel.querySelector('[data-move-found]');
 
   var source = null;
   var target = null;
   var picked = {};
+  var query = '';
 
   var labels = {};
   tiles.forEach(function (tile) {
@@ -78,6 +89,28 @@
 
   function tickedIds() {
     return Object.keys(picked).filter(function (id) { return picked[id]; });
+  }
+
+  /*
+   * What the search box matches: the same four things the office would read
+   * off the row. Everything is lower-cased on both sides rather than compared
+   * with a locale-aware collator — this runs on every keystroke over a list
+   * that can be two hundred families long.
+   */
+  function matches(family) {
+    if (!query) return true;
+    var hay = [
+      family.head_name,
+      family.family_id,
+      family.prayer_group,
+      family.contact
+    ].join(' ').toLowerCase();
+    return hay.indexOf(query) !== -1;
+  }
+
+  /** The families at the open step that the search is currently showing. */
+  function shown() {
+    return familiesAt(source).filter(matches);
   }
 
   // ---- the tiles -----------------------------------------------------------
@@ -125,11 +158,24 @@
 
   // ---- the list ------------------------------------------------------------
 
-  function renderList() {
-    var families = familiesAt(source);
-    list.innerHTML = '';
+  /*
+   * Every family standing at this step gets a row, and the search hides the
+   * ones it does not match rather than leaving them out.
+   *
+   * The distinction matters because the row *is* the checkbox: a family whose
+   * row was never built has no checkbox in the form, so it would not be posted
+   * and would not be moved — a search would silently shrink the batch. Hidden
+   * rows still submit, so what the office ticked before it typed is still what
+   * gets moved, and `refresh` says so when any of it is out of sight.
+   */
+  var noMatch = null;
 
-    if (!families.length) {
+  function renderList() {
+    var standing = familiesAt(source);
+    list.innerHTML = '';
+    noMatch = null;
+
+    if (!standing.length) {
       var empty = document.createElement('p');
       empty.className = 'move-empty';
       empty.textContent = 'No family is standing at this step.';
@@ -137,7 +183,7 @@
       return;
     }
 
-    families.forEach(function (family) {
+    standing.forEach(function (family) {
       var row = document.createElement('label');
       row.className = 'move-row';
 
@@ -158,21 +204,53 @@
       var meta = document.createElement('span');
       meta.className = 'move-meta';
       var bits = [family.family_id];
-      if (family.area) bits.push(family.area);
       if (family.prayer_group) bits.push(family.prayer_group);
+      if (family.contact) bits.push(family.contact);
       if (!family.is_published) bits.push('Draft');
       meta.textContent = bits.join(' · ');
 
       row.appendChild(box);
       row.appendChild(who);
       row.appendChild(meta);
+      row.hidden = !matches(family);
       list.appendChild(row);
     });
+
+    noMatch = document.createElement('p');
+    noMatch.className = 'move-empty';
+    noMatch.hidden = true;
+    list.appendChild(noMatch);
+    paintSearch();
   }
 
+  /** Show or hide each built row against the search as it stands now. */
+  function paintSearch() {
+    var standing = familiesAt(source);
+    var rows = list.querySelectorAll('.move-row');
+    var visible = 0;
+
+    standing.forEach(function (family, index) {
+      var row = rows[index];
+      if (!row) return;
+      var ok = matches(family);
+      row.hidden = !ok;
+      if (ok) visible += 1;
+    });
+
+    if (noMatch) {
+      noMatch.hidden = !(query && !visible);
+      noMatch.textContent = 'No family at this step matches “' + query + '”.';
+    }
+  }
+
+  /*
+   * Tick or untick the families the search is showing, and leave the hidden
+   * ones exactly as they were. "Clear shown" after a search therefore clears
+   * that search's families and nothing else, which is what somebody who has
+   * just typed a name into the box means by it.
+   */
   function tickAll(state) {
-    picked = {};
-    familiesAt(source).forEach(function (family) { picked[family.id] = state; });
+    shown().forEach(function (family) { picked[family.id] = state; });
     renderList();
     refresh();
   }
@@ -180,7 +258,29 @@
   // ---- what the button says it will do -------------------------------------
 
   function refresh() {
-    var n = tickedIds().length;
+    var ticked = tickedIds();
+    var n = ticked.length;
+    var visible = shown();
+
+    /*
+     * How many of the ticked families the search is hiding. The office is
+     * about to press a button that says how many it will move, so a count it
+     * cannot see on screen has to be said in words rather than left to be
+     * discovered in the notice afterwards.
+     */
+    var hidden = 0;
+    if (query) {
+      var onScreen = {};
+      visible.forEach(function (family) { onScreen[family.id] = true; });
+      hidden = ticked.filter(function (id) { return !onScreen[id]; }).length;
+    }
+
+    if (found) {
+      found.hidden = !query;
+      found.textContent = query
+        ? visible.length + ' of ' + familiesAt(source).length + ' shown'
+        : '';
+    }
 
     countLabel.textContent = String(n);
     fromField.value = source || '';
@@ -198,7 +298,10 @@
       if (tile) see.href = tile.getAttribute('href');
     }
 
-    if (!target) {
+    if (hidden) {
+      note.textContent = phrase(hidden) + ' ticked but hidden by the search — ' +
+        'all ' + n + ' ticked will be moved. Clear the search to see them.';
+    } else if (!target) {
       note.textContent = 'Choose the step to move them to.';
     } else if (!n) {
       note.textContent = 'Tick at least one family.';
@@ -218,6 +321,9 @@
   function open(stage) {
     source = stage;
     target = null;
+    query = '';
+    picked = {};
+    if (find) find.value = '';
     panel.hidden = false;
     tickAll(true); // The ordinary case is "all of them", as the table below is.
   }
@@ -226,6 +332,8 @@
     source = null;
     target = null;
     picked = {};
+    query = '';
+    if (find) find.value = '';
     panel.hidden = true;
     list.innerHTML = '';
     paintTiles();
@@ -265,6 +373,19 @@
       refresh();
     });
   });
+
+  if (find) {
+    find.addEventListener('input', function () {
+      query = find.value.trim().toLowerCase();
+      paintSearch();
+      refresh();
+    });
+
+    // Enter inside the panel's own search box must not submit the move.
+    find.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') event.preventDefault();
+    });
+  }
 
   panel.querySelector('[data-move-all]').addEventListener('click', function () { tickAll(true); });
   panel.querySelector('[data-move-none]').addEventListener('click', function () { tickAll(false); });

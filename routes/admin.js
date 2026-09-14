@@ -20,6 +20,9 @@ const photoImporter = require('../lib/import-photos');
 const unzip = require('../lib/unzip');
 const { removePhoto } = require('../lib/upload');
 const { slugify } = require('../lib/slug');
+// Shared with the browser rather than restated here, so the delete button's
+// enabled state and this route's check cannot disagree. See the file's note.
+const nameMatch = require('../public/javascripts/name-match');
 const wrap = require('../lib/async');
 
 const router = express.Router();
@@ -199,12 +202,19 @@ router.post('/settings/reset-colors', wrap(async (req, res) => {
  * already is one — it is a second look at what is about to happen, matched
  * server-side so a stale or replayed form cannot slip through on the
  * confirmation dialog alone.
+ *
+ * Matched through public/javascripts/name-match.js, which the page loads too,
+ * so the button's enabled state and this check cannot come to different
+ * conclusions. It used to be `typed !== req.church.name`, an exact comparison,
+ * and for a parish on record as "St. Peter’s Mar Thoma Church" — with the
+ * typographic apostrophe — that could not be satisfied from a keyboard at
+ * all. See the note in that file.
  */
 router.post('/settings/delete-database', wrap(async (req, res) => {
-  const typed = String(req.body.confirm_name || '').trim();
-  if (typed !== req.church.name) {
+  if (!nameMatch.same(req.body.confirm_name, req.church.name)) {
     return res.redirect('/admin/settings?error=' +
-      encodeURIComponent('Type the parish name exactly to confirm. Nothing was deleted.'));
+      encodeURIComponent('That is not this parish\'s name, so nothing was deleted. ' +
+        `Type "${req.church.name}" to confirm.`));
   }
 
   const result = await Family.removeAll(req.churchId);

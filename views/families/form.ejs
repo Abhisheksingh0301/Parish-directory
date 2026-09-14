@@ -137,12 +137,9 @@
 </datalist>
 
 <%
-  // Offered rather than enforced: an Area or a Prayer Group that does not exist
-  // yet has to be typeable, or the first family in a new one cannot be entered.
+  // Offered rather than enforced: a Prayer Group that does not exist yet has to
+  // be typeable, or the first family in a new one cannot be entered.
 %>
-<datalist id="area-names">
-  <% groupings.areas.forEach(function (name) { %><option value="<%= name %>"><% }); %>
-</datalist>
 <datalist id="prayer-group-names">
   <% groupings.prayerGroups.forEach(function (name) { %><option value="<%= name %>"><% }); %>
 </datalist>
@@ -216,15 +213,10 @@
         <label for="prayer_group">Prayer Group</label>
         <input type="text" id="prayer_group" name="prayer_group" value="<%= family.prayer_group %>"
                list="prayer-group-names">
-      </div>
-
-      <div class="field">
-        <label for="area">Area / Unit</label>
-        <input type="text" id="area" name="area" value="<%= family.area || '' %>"
-               list="area-names">
         <p class="help">
-          The division an Area Representative follows up. Verification status
-          can be read, and the follow-up sheet printed, one Area at a time.
+          The neighbourhood group this family belongs to. Verification status
+          can be read, and the follow-up sheet printed, one Prayer Group at a
+          time.
         </p>
       </div>
 
@@ -269,8 +261,23 @@
     <div class="grid-2">
       <div class="field">
         <label for="photo">Upload a photo</label>
-        <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp,image/gif">
-        <p class="help">JPG, PNG, WebP or GIF, landscape (wider than tall), up to <%= maxPhotoMb %> MB.</p>
+        <%#
+          The instruction says JPG, because that is what the parish has and one
+          plain answer beats a list of five. It is not the rule, though: the
+          server takes PNG, WebP, GIF, BMP and AVIF exactly as they arrive, so
+          nobody is sent away to convert a file that would have worked. See the
+          note above ALLOWED in lib/upload.js.
+
+          The accept attribute is left open for the same reason. Narrowing it
+          to JPG would grey out a perfectly good PNG in the file picker — the
+          browser enforcing a rule the server does not have.
+        %>
+        <input type="file" id="photo" name="photo" accept="image/*">
+        <p class="help">
+          Only JPG or JPEG images are accepted. Landscape (wider than tall),
+          up to <%= maxPhotoMb %> MB. A photo taken sideways on a phone is fine
+          — it is read the way it is displayed.
+        </p>
       </div>
 
       <% if (family.photo) { %>

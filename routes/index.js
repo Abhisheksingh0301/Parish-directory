@@ -17,9 +17,8 @@ router.get('/', wrap(async (req, res) => {
   // no single parish for the statistics to be about.
   if (!req.churchId) return res.redirect('/super');
 
-  const area = String(req.query.area || '').trim();
   const prayerGroup = String(req.query.group || '').trim();
-  const filter = { area, prayerGroup };
+  const filter = { prayerGroup };
 
   const [stats, upcoming, status, groupings, waiting] = await Promise.all([
     Family.stats(req.churchId),
@@ -37,7 +36,7 @@ router.get('/', wrap(async (req, res) => {
      * A count against each step of the verification chain, each one clicking
      * through to the list of those families — so "17 families still not
      * started" is one click away from the names of those seventeen. Narrowed
-     * to one Area or Prayer Group when the header's filter is set.
+     * to one Prayer Group when the header's filter is set.
      */
     statuses: verification.STATUSES,
     statusCounts: status.counts,

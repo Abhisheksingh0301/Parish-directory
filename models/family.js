@@ -42,7 +42,6 @@ const FIELDS = [
   'hometown',
   'home_parish',
   'prayer_group',
-  'area',
   'email'
 ];
 
@@ -161,8 +160,7 @@ async function list(churchId, { search = '', publishedOnly = false } = {}) {
       likeLower('Family.email', term),
       likeLower('Family.hometown', term),
       likeLower('Family.home_parish', term),
-      likeLower('Family.prayer_group', term),
-      likeLower('Family.area', term)
+      likeLower('Family.prayer_group', term)
     ];
 
     // Members are matched with their own query rather than a correlated
@@ -758,15 +756,11 @@ async function setPublished(churchId, ids, included) {
   return changed;
 }
 
-/** Narrow a status view to one Area or one Prayer Group. */
-function areaWhere({ area = '', prayerGroup = '' } = {}) {
+/** Narrow a status view to one Prayer Group. */
+function groupWhere({ prayerGroup = '' } = {}) {
   const where = {};
-  if (String(area).trim()) {
-    where[Op.and] = [whereFn(fn('lower', col('area')), String(area).trim().toLowerCase())];
-  }
   if (String(prayerGroup).trim()) {
-    const clause = whereFn(fn('lower', col('prayer_group')), String(prayerGroup).trim().toLowerCase());
-    where[Op.and] = where[Op.and] ? [...where[Op.and], clause] : [clause];
+    where[Op.and] = [whereFn(fn('lower', col('prayer_group')), String(prayerGroup).trim().toLowerCase())];
   }
   return where;
 }
@@ -781,7 +775,7 @@ function areaWhere({ area = '', prayerGroup = '' } = {}) {
 async function statusCounts(churchId, filter = {}) {
   const rows = await Family.findAll({
     attributes: ['verify_status', [fn('COUNT', col('id')), 'n']],
-    where: { ...scope(churchId), ...areaWhere(filter) },
+    where: { ...scope(churchId), ...groupWhere(filter) },
     group: ['verify_status'],
     raw: true
   });
@@ -799,19 +793,43 @@ async function statusCounts(churchId, filter = {}) {
 /**
  * The families behind one of those numbers, in printed-directory order.
  *
- * This is also the printable follow-up sheet an Area Representative carries:
- * Family ID, family head, a contact number and the current status. The number
- * is the first one any member of the household has recorded, because a sheet
- * with an empty phone column is no use to the person walking the Area.
+ * This is also the printable follow-up sheet a Prayer Group's representative
+ * carries: Family ID, family head, a contact number and the current status.
+ * The number is the first one any member of the household has recorded,
+ * because a sheet with an empty phone column is no use to the person walking
+ * the group.
+ *
+ * `search` narrows it by name the way the family list's own box does — the
+ * Family ID, the head of the family, and the name of any member of the
+ * household. A parish of two hundred families cannot find "Thomas" by reading
+ * the whole chain, and the office looking for one household is the ordinary
+ * reason this screen is open at all.
  */
-async function listByStatus(churchId, { status = '', area = '', prayerGroup = '' } = {}) {
-  const where = { ...scope(churchId), ...areaWhere({ area, prayerGroup }) };
+async function listByStatus(churchId, { status = '', prayerGroup = '', search = '' } = {}) {
+  const where = { ...scope(churchId), ...groupWhere({ prayerGroup }) };
   if (verification.isStatus(status)) where.verify_status = status;
+
+  if (String(search).trim()) {
+    const term = `%${String(search).trim()}%`;
+    const matches = [
+      likeLower('Family.family_id', term),
+      likeLower('Family.head_name', term),
+      likeLower('Family.prayer_group', term)
+    ];
+
+    // Members are matched with their own query rather than a correlated
+    // subquery, exactly as `list` does it: one extra round trip, and no raw
+    // SQL to carry between engines.
+    const memberFamilyIds = await familyIdsMatchingMembers(churchId, term);
+    if (memberFamilyIds.length) matches.push({ id: { [Op.in]: memberFamilyIds } });
+
+    where[Op.or] = matches;
+  }
 
   const rows = await Family.findAll({
     where,
     attributes: [
-      'id', 'family_id', 'head_name', 'area', 'prayer_group', 'email',
+      'id', 'family_id', 'head_name', 'prayer_group', 'email',
       'verify_status', 'verify_status_at', 'is_published', 'photo', 'church_id', 'sort_order'
     ],
     include: [{
@@ -839,10 +857,10 @@ async function listByStatus(churchId, { status = '', area = '', prayerGroup = ''
     .sort(bySortOrder);
 }
 
-/** The Areas and Prayer Groups this church actually uses, for the filter menus. */
+/** The Prayer Groups this church actually uses, for the filter menus. */
 async function groupings(churchId) {
   const rows = await Family.findAll({
-    attributes: ['area', 'prayer_group'],
+    attributes: ['prayer_group'],
     where: scope(churchId),
     raw: true
   });
@@ -850,12 +868,12 @@ async function groupings(churchId) {
   const tidy = (key) => [...new Set(rows.map((r) => String(r[key] || '').trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-  return { areas: tidy('area'), prayerGroups: tidy('prayer_group') };
+  return { prayerGroups: tidy('prayer_group') };
 }
 
 /** Every family id in this church, for a batch the office is about to mark. */
 async function idsIn(churchId, filter = {}) {
-  const where = { ...scope(churchId), ...areaWhere(filter) };
+  const where = { ...scope(churchId), ...groupWhere(filter) };
   if (verification.isStatus(filter.status)) where.verify_status = filter.status;
   if (filter.publishedOnly) where.is_published = true;
 

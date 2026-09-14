@@ -47,7 +47,6 @@ function reviewableTiers(user) {
 function readFilter(req) {
   return {
     tier: verification.TIERS[req.query.tier] ? String(req.query.tier) : '',
-    area: String(req.query.area || '').trim(),
     prayerGroup: String(req.query.group || '').trim()
   };
 }
@@ -55,7 +54,6 @@ function readFilter(req) {
 function filterQuery(filter, extra = {}) {
   const parts = [];
   if (filter.tier) parts.push(`tier=${encodeURIComponent(filter.tier)}`);
-  if (filter.area) parts.push(`area=${encodeURIComponent(filter.area)}`);
   if (filter.prayerGroup) parts.push(`group=${encodeURIComponent(filter.prayerGroup)}`);
   for (const [key, value] of Object.entries(extra)) {
     if (value) parts.push(`${key}=${encodeURIComponent(value)}`);
@@ -74,7 +72,6 @@ router.get('/', wrap(async (req, res) => {
     Pending.queueByFamily(req.churchId, {
       status: Pending.OPEN,
       tier: filter.tier,
-      area: filter.area,
       prayerGroup: filter.prayerGroup
     }),
     Family.groupings(req.churchId),

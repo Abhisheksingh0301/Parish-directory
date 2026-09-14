@@ -136,7 +136,6 @@ function readForm(req) {
     hometown: text(req.body.hometown),
     home_parish: text(req.body.home_parish),
     prayer_group: text(req.body.prayer_group),
-    area: text(req.body.area),
     email: text(req.body.email),
     is_published: req.body.is_published === '1',
     members
@@ -169,8 +168,8 @@ async function formLocals(req, extra) {
     textLimits: freeText.LIMITS,
     textPattern: freeText.htmlPattern,
     relationOptions: settings.relationOptions(parishSettings),
-    // Offered as suggestions on the Area and Prayer Group fields, so a parish
-    // settles on a spelling without the fields becoming a fixed list.
+    // Offered as suggestions on the Prayer Group field, so a parish settles
+    // on a spelling without the field becoming a fixed list.
     groupings: await Family.groupings(req.churchId),
     // The same idea for Home parish, from the churches this installation knows
     // about. A suggestion, not a fixed list: a family's home parish may be one
@@ -349,7 +348,7 @@ async function issueSlips(req, families) {
     slips.push({
       family_id: family.family_id,
       head_name: family.head_name,
-      area: family.area || '',
+      prayer_group: family.prayer_group || '',
       pin
     });
   }
@@ -393,20 +392,29 @@ router.post('/:id(\\d+)/pin', isAdmin, wrap(async (req, res, next) => {
 // Verification status — where every family has got to
 // ---------------------------------------------------------------------------
 
-/** The filter three screens share: one status, one Area, one Prayer Group. */
+/**
+ * The filter three screens share: one status, one Prayer Group, and a name to
+ * search for.
+ *
+ * `search` is here rather than only on the list screen because the batch
+ * buttons act on the families this filter selected. Narrowing the screen to
+ * one household by name and pressing Approve has to approve that household and
+ * nothing else, so the search has to be part of the filter the POST re-reads —
+ * not a thing the browser does to the table after the server has finished.
+ */
 function readFilter(req) {
   return {
     status: verification.isStatus(req.query.status) ? String(req.query.status) : '',
-    area: String(req.query.area || '').trim(),
-    prayerGroup: String(req.query.group || '').trim()
+    prayerGroup: String(req.query.group || '').trim(),
+    search: String(req.query.q || '').trim()
   };
 }
 
 function filterQuery(filter) {
   const parts = [];
   if (filter.status) parts.push(`status=${encodeURIComponent(filter.status)}`);
-  if (filter.area) parts.push(`area=${encodeURIComponent(filter.area)}`);
   if (filter.prayerGroup) parts.push(`group=${encodeURIComponent(filter.prayerGroup)}`);
+  if (filter.search) parts.push(`q=${encodeURIComponent(filter.search)}`);
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
@@ -428,8 +436,8 @@ function byStage(families) {
       id: f.id,
       family_id: f.family_id,
       head_name: f.head_name,
-      area: f.area || '',
       prayer_group: f.prayer_group || '',
+      contact: f.contact || '',
       is_published: !!f.is_published
     });
   }
@@ -453,10 +461,10 @@ router.get('/status', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
   const filter = readFilter(req);
 
   /*
-   * One list, read once. The chain needs every step under this Area and Prayer
-   * Group whatever the status filter says, and the table below wants that same
-   * list narrowed to one step — so the narrowing happens here rather than in a
-   * second query that would have to agree with the first.
+   * One list, read once. The chain needs every step under this Prayer Group
+   * and this search whatever the status filter says, and the table below wants
+   * that same list narrowed to one step — so the narrowing happens here rather
+   * than in a second query that would have to agree with the first.
    */
   const [{ counts, total }, everyStatus, groupings] = await Promise.all([
     Family.statusCounts(req.churchId, filter),
@@ -486,10 +494,10 @@ router.get('/status', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
 }));
 
 /**
- * The sheet the Area Representative actually carries: Family ID, family head,
- * contact number and current status, for one Area or Prayer Group. This is the
- * practical value of the whole dashboard, so it is a plain printable page
- * rather than another screen to read on a phone.
+ * The sheet the Prayer Group's representative actually carries: Family ID,
+ * family head, contact number and current status, for one Prayer Group. This
+ * is the practical value of the whole dashboard, so it is a plain printable
+ * page rather than another screen to read on a phone.
  */
 router.get('/status/print', familyLoginsGoHome, canBrowse, wrap(async (req, res) => {
   const filter = readFilter(req);
@@ -671,6 +679,22 @@ router.post('/approved', isAdmin, wrap(async (req, res) => {
  * A family may never propose this about itself: inclusion in the Directory is
  * the parish office's call, which is why `is_published` is in NEVER_EDITABLE
  * (lib/verification.js). This is that call, made in one go.
+ *
+ * Including a family that is already approved carries it straight on to Ready
+ * for Printing, which is the same rule /approved applies in the other
+ * direction and the reason both are stated here rather than in one of them.
+ *
+ * The two decisions — is this entry correct, and is it going in the book — are
+ * made in whichever order the office happens to make them, and the family has
+ * to end up in the same place either way. It did not. Approving a family that
+ * was already in the book moved it to Ready for Printing; putting an already
+ * approved family into the book left it sitting at Approved, and the only way
+ * on was a third button. That order is not the unusual one — it is what
+ * happens after every import, because an imported family arrives as a draft,
+ * so the office approves first and includes second. What it looked like from
+ * the outside was a chain that refused to move: press Approved, press Ready
+ * for Printing, and get back "0 families moved to Ready for Printing. 1 family
+ * not in the printed directory."
  */
 router.post('/published', isAdmin, wrap(async (req, res) => {
   const filter = readFilter(req);
@@ -681,10 +705,26 @@ router.post('/published', isAdmin, wrap(async (req, res) => {
   const targets = picked.filter((f) => Boolean(f.is_published) !== include);
   await Family.setPublished(req.churchId, targets.map((f) => f.id), include);
 
+  /*
+   * Every family the office has just put into the book that was already
+   * approved — including the ones it ticked that were in the book already,
+   * because "this entry is approved and it is in the book" is the condition,
+   * not "something changed on this row just now".
+   */
+  let ready = 0;
+  if (include) {
+    ready = await Family.setStatusMany(
+      req.churchId,
+      picked.filter((f) => f.verify_status === 'approved').map((f) => f.id),
+      'ready_for_printing'
+    );
+  }
+
   await audit.record(req, 'family.published', {
     churchId: req.churchId,
     detail: `${targets.length} family/families ` +
-      `${include ? 'added to' : 'taken out of'} the printed directory`
+      `${include ? 'added to' : 'taken out of'} the printed directory` +
+      (ready ? `; ${ready} of them approved and now ready for printing` : '')
   });
 
   const already = picked.length - targets.length;
@@ -694,8 +734,11 @@ router.post('/published', isAdmin, wrap(async (req, res) => {
   if (already) {
     parts.push(`${howMany(already)} already ${include ? 'in' : 'out'}, and unchanged.`);
   }
-  if (include && targets.length) {
-    parts.push('Approved families among them can now be marked Ready for Printing.');
+  if (ready) {
+    parts.push(`${ready} of them had already been approved and ${ready === 1 ? 'is' : 'are'} ` +
+      'now Ready for Printing.');
+  } else if (include && targets.length) {
+    parts.push('Once they are approved they go to Ready for Printing on their own.');
   }
 
   return backToStatus(res, filter, parts.join(' '));
@@ -737,7 +780,8 @@ router.post('/ready', isAdmin, wrap(async (req, res) => {
   if (unpublished) {
     parts.push(
       `${howMany(unpublished)} not in the printed directory — a draft entry is ` +
-      'not part of the run. Tick them and use "Include in the printed book" first.'
+      'not part of the run. Tick them and press "Include in the printed book": ' +
+      'the approved ones go to Ready for Printing with it.'
     );
   }
 
@@ -786,9 +830,9 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
 
   /*
    * The families the panel actually offered: the step being moved from, under
-   * this screen's Area and Prayer Group filter — and never the status the page
-   * happens to be filtered to, which narrows the table below and has nothing
-   * to do with which step the office is emptying.
+   * this screen's Prayer Group and search filter — and never the status the
+   * page happens to be filtered to, which narrows the table below and has
+   * nothing to do with which step the office is emptying.
    */
   const inSource = await Family.listByStatus(req.churchId, {
     ...filter,
@@ -813,9 +857,22 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
     }
   }
 
+  /*
+   * Where the office is sent back to.
+   *
+   * Ordinarily its own filter, untouched. The exception is the dead end below:
+   * when the whole batch was held back for being drafts, the notice tells the
+   * office to include them in the book — and that button acts on the list at
+   * the bottom of the screen, which is filtered by status. Sending it back to
+   * the filter it came from would leave the advice pointing at a list those
+   * families are not in, so the screen is narrowed to the step they are
+   * standing at instead, where the button can reach them.
+   */
+  let back = filter;
+
   if (to === 'ready_for_printing') {
     const unapproved = targets.filter((f) => f.is_published && f.verify_status !== 'approved').length;
-    const unpublished = targets.filter((f) => !f.is_published).length;
+    const unpublished = targets.filter((f) => !f.is_published);
     targets = targets.filter((f) => f.is_published && f.verify_status === 'approved');
 
     if (unapproved) {
@@ -824,11 +881,14 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
         'book only once it has been approved.'
       );
     }
-    if (unpublished) {
+    if (unpublished.length) {
       notes.push(
-        `${howMany(unpublished)} not in the printed directory — a draft entry ` +
-        'is not part of the run. Use "Include in the printed book" first.'
+        `${howMany(unpublished.length)} not in the printed directory — a draft ` +
+        'entry is not part of the run. They are ticked in the list below: press ' +
+        '"Include in the printed book", and the approved ones go to Ready for ' +
+        'Printing with it.'
       );
+      if (!targets.length && verification.isStatus(from)) back = { ...filter, status: from };
     }
   }
 
@@ -870,7 +930,7 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
     parts.push(`${ready} of them are in the printed book and are now Ready for Printing.`);
   }
 
-  return backToStatus(res, filter, parts.concat(notes).join(' '),
+  return backToStatus(res, back, parts.concat(notes).join(' '),
     moved ? 'notice' : 'error');
 }));
 
@@ -887,7 +947,6 @@ router.get('/new', canEdit, wrap(async (req, res) => {
     hometown: '',
     home_parish: '',
     prayer_group: '',
-    area: '',
     email: '',
     photo: null,
     is_published: true,

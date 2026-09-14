@@ -62,10 +62,9 @@
    * exactly those families, which is the point — a number nobody can open is
    * a number nobody trusts.
    */
-  const filterQuery = [
-    filter.area ? 'area=' + encodeURIComponent(filter.area) : '',
-    filter.prayerGroup ? 'group=' + encodeURIComponent(filter.prayerGroup) : ''
-  ].filter(Boolean).join('&');
+  const filterQuery = filter.prayerGroup
+    ? 'group=' + encodeURIComponent(filter.prayerGroup)
+    : '';
 %>
 
 <div class="cols">
@@ -76,22 +75,12 @@
         <p class="sub">
           Where all <%= statusTotal %> famil<%= statusTotal === 1 ? 'y' : 'ies' %>
           stand in the review process<%
-          %><% if (filter.area) { %>, in <%= filter.area %><% } %><%
           %><% if (filter.prayerGroup) { %>, in <%= filter.prayerGroup %><% } %>
         </p>
       </div>
 
-      <% if (groupings.areas.length || groupings.prayerGroups.length) { %>
+      <% if (groupings.prayerGroups.length) { %>
         <form method="get" action="<%= base %>/" class="filters">
-          <% if (groupings.areas.length) { %>
-            <label class="sr-only" for="dash-area">Area</label>
-            <select id="dash-area" name="area" onchange="this.form.submit()">
-              <option value="">All areas</option>
-              <% groupings.areas.forEach(function (a) { %>
-                <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
-              <% }); %>
-            </select>
-          <% } %>
           <% if (groupings.prayerGroups.length) { %>
             <label class="sr-only" for="dash-group">Prayer Group</label>
             <select id="dash-group" name="group" onchange="this.form.submit()">

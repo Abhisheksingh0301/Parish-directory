@@ -14,9 +14,9 @@
    * carries its own date and there is no merge to get wrong — which is what a
    * household with a married son in it always needed.
    */
-  // Flattened for the on-page search box: name, area, and every "place" field.
+  // Flattened for the on-page search box: name, group, and every "place" field.
   const searchText = [
-    f.head_name, f.family_id, f.area, f.address, f.hometown, f.home_parish
+    f.head_name, f.family_id, f.prayer_group, f.address, f.hometown, f.home_parish
   ].concat(f.members.map(function (m) { return m.name; }))
    .filter(Boolean).join(' ').toLowerCase();
 %>
@@ -57,21 +57,59 @@
       <span class="line"></span>
     </div>
 
+    <%
+      /*
+       * The household register.
+       *
+       * Every row is named. The one-family sheet lays these out as a grid —
+       * the residence across the top, the three short answers side by side
+       * under it, the email address along the bottom — and it used to decide
+       * which was which by counting: first row full width, last row full
+       * width, everything between paired up two to a line.
+       *
+       * That worked only for as long as the number of rows stayed even.
+       * Dropping Area / Unit left three answers to pair up instead of four,
+       * and the odd one out sat alone against an empty half-cell. A layout
+       * that quietly comes apart when a field is added or removed is a layout
+       * that will come apart again, so the rows carry their own names now and
+       * the stylesheet places each one by name. Removing a field from here is
+       * a rule that stops matching, which is visible, rather than a hole in
+       * the grid, which is not.
+       *
+       * A missing value is a dash, the same as in the members table below and
+       * for the same reason: a blank cell in a printed register reads as a
+       * question nobody asked, and every one of these was asked.
+       */
+    %>
     <table class="details">
       <tbody>
-        <tr>
+        <tr class="d-residence">
           <th>
             <svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/>
             </svg>
+            <%# The icon is the label here, so the word itself is left for
+                anyone reading the page rather than looking at it. %>
+            <span class="vh">Residence</span>
           </th>
-          <td><%- nl2br(f.address) %></td>
+          <td><% if (f.address) { %><%- nl2br(f.address) %><% } else { %><span class="dash">&mdash;</span><% } %></td>
         </tr>
-        <tr><th>Prayer Group</th><td><%= f.prayer_group %></td></tr>
-        <tr><th>Area / Unit</th><td><%= f.area %></td></tr>
-        <tr><th>Home Parish (HOF)</th><td><%= f.home_parish %></td></tr>
-        <tr><th>Home Town Name / Address (HOF)</th><td><%- nl2br(f.hometown) %></td></tr>
-        <tr><th>Email ID</th><td class="email"><%= f.email %></td></tr>
+        <tr class="d-group">
+          <th>Prayer Group</th>
+          <td><% if (f.prayer_group) { %><%= f.prayer_group %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+        </tr>
+        <tr class="d-parish">
+          <th>Home Parish (HOF)</th>
+          <td><% if (f.home_parish) { %><%= f.home_parish %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+        </tr>
+        <tr class="d-hometown">
+          <th>Home Town Name / Address (HOF)</th>
+          <td><% if (f.hometown) { %><%- nl2br(f.hometown) %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+        </tr>
+        <tr class="d-email">
+          <th>Email ID</th>
+          <td class="email"><% if (f.email) { %><%= f.email %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+        </tr>
       </tbody>
     </table>
   </div>

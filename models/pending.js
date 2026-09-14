@@ -258,7 +258,7 @@ function diff(existing, proposed, settings) {
  * meant, and never approves the older one by accident.
  *
  * `via` is 'family' when the household submitted it themselves and 'assisted'
- * when an Area Representative or the Parish office submitted on their behalf.
+ * when a group representative or the Parish office submitted on their behalf.
  * It enters the same approval queue either way; the difference is recorded so
  * an assisted entry is never mistaken for one the family made itself.
  */
@@ -348,22 +348,20 @@ function hydrate(row) {
 /**
  * The queue, newest submission first.
  *
- * Narrowed by tier when the church runs two of them, and by Area or Prayer
- * Group so one representative's families can be cleared together.
+ * Narrowed by tier when the church runs two of them, and by Prayer Group so
+ * one group's families can be cleared together.
  */
-async function listQueue(churchId, { status = OPEN, tier = '', familyId = null, area = '', prayerGroup = '' } = {}) {
+async function listQueue(churchId, { status = OPEN, tier = '', familyId = null, prayerGroup = '' } = {}) {
   const where = { ...scope(churchId) };
   if (status) where.status = status;
   if (tier) where.tier = tier;
   if (familyId) where.family_id = Number(familyId);
 
   const familyWhere = {};
-  if (text(area)) {
-    familyWhere[Op.and] = [whereFn(fn('lower', col('family.area')), text(area).toLowerCase())];
-  }
   if (text(prayerGroup)) {
-    const clause = whereFn(fn('lower', col('family.prayer_group')), text(prayerGroup).toLowerCase());
-    familyWhere[Op.and] = familyWhere[Op.and] ? [...familyWhere[Op.and], clause] : [clause];
+    familyWhere[Op.and] = [
+      whereFn(fn('lower', col('family.prayer_group')), text(prayerGroup).toLowerCase())
+    ];
   }
 
   const rows = await PendingChange.findAll({
@@ -373,7 +371,7 @@ async function listQueue(churchId, { status = OPEN, tier = '', familyId = null, 
         model: FamilyRow,
         as: 'family',
         required: true,
-        attributes: ['id', 'family_id', 'head_name', 'area', 'prayer_group', 'photo', 'verify_status'],
+        attributes: ['id', 'family_id', 'head_name', 'prayer_group', 'photo', 'verify_status'],
         ...(Object.keys(familyWhere).length ? { where: familyWhere } : {})
       },
       {
@@ -472,7 +470,6 @@ function asFormData(family) {
     hometown: family.hometown,
     home_parish: family.home_parish,
     prayer_group: family.prayer_group,
-    area: family.area,
     email: family.email,
     photo: family.photo,
     is_published: family.is_published,

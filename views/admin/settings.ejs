@@ -214,24 +214,71 @@
           id="delete-database-form" class="danger-zone-confirm">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="text" name="confirm_name" autocomplete="off" required
+             id="delete-database-name"
              aria-label="Type the parish name to confirm"
-             placeholder="Type &ldquo;<%= church.name %>&rdquo; to confirm">
+             aria-describedby="delete-database-hint"
+             placeholder="Type the parish name to confirm">
       <button type="submit" class="btn danger" id="delete-database-button">
         Delete family directory database
       </button>
+      <%#
+        The name to copy, and a live word on whether what is typed matches it.
+
+        Both are here because the button being disabled is not a message. An
+        administrator who has typed the name and is looking at a dead button
+        has nothing to go on — which is exactly what happened to this Parish,
+        whose name carries a typographic apostrophe that a keyboard does not
+        produce. The name is now shown to be read from rather than guessed at,
+        and the hint says which of the two states the field is in.
+      %>
+      <p class="help danger-zone-hint" id="delete-database-hint">
+        Type <strong class="danger-zone-name"><%= church.name %></strong>.
+        Capitals, straight or curly apostrophes and extra spaces do not matter.
+        <span class="danger-zone-state" id="delete-database-state" hidden></span>
+      </p>
     </form>
   </div>
 </div>
 
+<script src="<%= base %>/javascripts/name-match.js"></script>
 <script>
 (function () {
   var form = document.getElementById('delete-database-form');
   if (!form) return;
   var input = form.querySelector('input[name="confirm_name"]');
   var button = document.getElementById('delete-database-button');
+  var state = document.getElementById('delete-database-state');
   var expected = <%- JSON.stringify(church.name).replace(/</g, '\\u003c') %>;
 
-  function refresh() { button.disabled = input.value !== expected; }
+  /*
+   * The same comparison the server makes, because it is literally the same
+   * function — see public/javascripts/name-match.js. If that file failed to
+   * load, fall back to enabling the button and letting the server decide: a
+   * button that cannot be pressed is a worse failure than one that is pressed
+   * and politely refused.
+   */
+  var matches = window.NameMatch
+    ? function (value) { return window.NameMatch.same(value, expected); }
+    : function () { return true; };
+
+  function refresh() {
+    var typed = input.value;
+    var ok = matches(typed);
+    button.disabled = !ok;
+
+    if (!state) return;
+    if (!typed.trim()) {
+      state.hidden = true;
+      state.textContent = '';
+    } else {
+      state.hidden = false;
+      state.textContent = ok
+        ? 'That matches — the button below is now live.'
+        : 'That is not the parish name yet.';
+      state.className = 'danger-zone-state' + (ok ? ' is-match' : '');
+    }
+  }
+
   input.addEventListener('input', refresh);
   refresh();
 

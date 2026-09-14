@@ -82,9 +82,6 @@ const Family = sequelize.define('Family', {
   // A neighbourhood-based group within this church, for local prayer
   // meetings — not part of the diocese/zone hierarchy above the church.
   prayer_group: text(),
-  // The division an Area Representative follows up, which is a different
-  // question from which prayer group a family attends.
-  area: text(),
   // A parish's own printed order, when it keeps one that Family ID does not
   // reproduce. Null for a family that never set one — see bySortOrder in
   // models/family.js.

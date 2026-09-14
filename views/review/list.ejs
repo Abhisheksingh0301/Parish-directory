@@ -18,7 +18,7 @@
 
 <%- include('../partials/messages') %>
 
-<% if (twoTier || groupings.areas.length || groupings.prayerGroups.length) { %>
+<% if (twoTier || groupings.prayerGroups.length) { %>
   <form method="get" action="<%= base %>/review" class="card filter-bar">
     <% if (twoTier) { %>
       <label>
@@ -27,18 +27,6 @@
           <option value="">Everything waiting</option>
           <% Object.entries(tiers).forEach(function ([key, tier]) { %>
             <option value="<%= key %>" <%= filter.tier === key ? 'selected' : '' %>><%= tier.label %></option>
-          <% }); %>
-        </select>
-      </label>
-    <% } %>
-
-    <% if (groupings.areas.length) { %>
-      <label>
-        Area
-        <select name="area">
-          <option value="">All areas</option>
-          <% groupings.areas.forEach(function (a) { %>
-            <option value="<%= a %>" <%= filter.area === a ? 'selected' : '' %>><%= a %></option>
           <% }); %>
         </select>
       </label>
@@ -85,7 +73,6 @@
       <a href="<%= base %>/families/<%= block.family.id %>"><%= block.family.head_name %></a>
       <span class="hint">
         — Family ID <%= block.family.family_id %><%
-        %><% if (block.family.area) { %>, <%= block.family.area %><% } %><%
         %><% if (block.family.prayer_group) { %>, <%= block.family.prayer_group %><% } %>
       </span>
     </h2>

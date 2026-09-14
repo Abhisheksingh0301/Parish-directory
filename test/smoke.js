@@ -496,6 +496,96 @@ async function main() {
   check('and no such account was created',
     (await db.User.count({ where: { role: 'superadmin' } })) === 0);
 
+  // -------------------------------------------------------------------------
+  console.log('\n--- typing the parish name to confirm a deletion ---');
+
+  /*
+   * The confirmation that could not be satisfied.
+   *
+   * This parish is on record as "St. Peter’s Mar Thoma Church", with the
+   * typographic apostrophe U+2019. The check on both ends was an exact string
+   * comparison, so the straight apostrophe a keyboard produces never matched
+   * — and nothing on screen said so. The button simply stayed dead.
+   *
+   * Nothing covered this route at all, which is how it shipped. So: the name
+   * is renamed to carry the same character, and both ends are asked.
+   */
+  const nameMatch = require('../public/javascripts/name-match');
+  const settingsLib2 = require('../lib/settings');
+  const church = await db.Church.findOne({ where: { slug: 'test-church' } });
+
+  await db.Church.update(
+    { name: 'St. Peter\u2019s Mar Thoma Church' },
+    { where: { id: church.id } }
+  );
+  settingsLib2.invalidate();
+  const onRecord = 'St. Peter\u2019s Mar Thoma Church';
+
+  check('the exact name matches, apostrophe and all',
+    nameMatch.same(onRecord, onRecord));
+  check('and so does the apostrophe a keyboard actually types',
+    nameMatch.same("St. Peter's Mar Thoma Church", onRecord),
+    'the straight apostrophe was refused, which is the bug');
+  check('case does not matter',
+    nameMatch.same("st. peter's mar thoma church", onRecord));
+  check('nor do doubled or stray spaces',
+    nameMatch.same("  St. Peter's   Mar Thoma Church ", onRecord));
+  check('nor a non-breaking space pasted out of a web page',
+    nameMatch.same('St. Peter\u2019s\u00A0Mar Thoma Church', onRecord));
+  check('nor an acute accent from a dead key',
+    nameMatch.same('St. Peter\u00B4s Mar Thoma Church', onRecord));
+
+  /* What it still refuses, which is the point of asking at all. */
+  check('an empty box never matches', !nameMatch.same('', onRecord));
+  check('neither does a different parish',
+    !nameMatch.same('Pune St Peters Mar Thoma Church', onRecord));
+  check('nor the name with its punctuation dropped',
+    !nameMatch.same('St Peters Mar Thoma Church', onRecord));
+  check('nor the name one letter short',
+    !nameMatch.same('St. Peter\u2019s Mar Thoma Churc', onRecord));
+
+  /*
+   * And the same answers through the route, because a browser that enables the
+   * button on a value the server refuses is worse than no button state at all.
+   * Checked here against a parish with families in it, so a wrong answer would
+   * show up as an empty directory.
+   */
+  const familyCount = async () => db.Family.count({ where: { church_id: church.id } });
+  const standing = await familyCount();
+  check('the parish has families to lose', standing > 0, `${standing} families`);
+
+  res = await request('GET', '/admin/settings');
+  check('the settings page shows the name to type',
+    res.body.includes('St. Peter\u2019s Mar Thoma Church'),
+    'the page did not offer the name to copy');
+  check('and loads the rule the button shares with the server',
+    res.body.includes('/javascripts/name-match.js'), 'the shared rule was not loaded');
+
+  let token = csrfFrom(res.body);
+  res = await request('POST', '/admin/settings/delete-database', {
+    _csrf: token, confirm_name: 'Some Other Church'
+  });
+  check('the wrong name deletes nothing',
+    (await familyCount()) === standing && /error=/.test(res.location || ''),
+    res.location);
+
+  res = await request('POST', '/admin/settings/delete-database', {
+    _csrf: token, confirm_name: ''
+  });
+  check('and an empty box deletes nothing',
+    (await familyCount()) === standing, 'an empty confirmation went through');
+
+  /* The straight apostrophe, which is what an administrator can actually
+     type, and which used to be refused here. */
+  res = await request('GET', '/admin/settings');
+  token = csrfFrom(res.body);
+  res = await request('POST', '/admin/settings/delete-database', {
+    _csrf: token, confirm_name: "  st. peter's mar thoma church  "
+  });
+  check('the name as a keyboard types it is accepted',
+    (await familyCount()) === 0 && /notice=/.test(res.location || ''),
+    res.location);
+
   console.log('\n--- signing out ---');
   res = await request('GET', '/');
   res = await request('POST', '/logout', { _csrf: csrfFrom(res.body) });

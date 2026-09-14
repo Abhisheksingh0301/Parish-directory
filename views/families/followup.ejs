@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="<%= base %>/stylesheets/app.css">
 <style>
   /*
-   * The sheet the Area Representative actually carries.
+   * The sheet the Prayer Group's representative actually carries.
    *
    * Deliberately plain: black on white, one table, wide enough columns to write
    * in by hand. It is printed, folded and taken to somebody's door, so it does
@@ -40,8 +40,8 @@
   <h1><%= settings.parish_name %></h1>
   <p class="meta">
     Directory verification follow-up<%
-    %><% if (filter.area) { %> — Area: <strong><%= filter.area %></strong><% } %><%
     %><% if (filter.prayerGroup) { %> — Prayer Group: <strong><%= filter.prayerGroup %></strong><% } %><%
+    %><% if (filter.search) { %> — matching &ldquo;<%= filter.search %>&rdquo;<% } %><%
     %><% if (filter.status) { %> — <%= statusLabel %><% } %>.
     <%= families.length %> famil<%= families.length === 1 ? 'y' : 'ies' %>.
     Printed <%= printedOn %>.

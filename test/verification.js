@@ -118,7 +118,6 @@ function familyForm(overrides = {}) {
     hometown: '',
     home_parish: '',
     prayer_group: 'St Thomas',
-    area: 'North',
     email: 'alpha@example.com',
     'members[0][id]': '',
     'members[0][name]': 'Alpha Dsouza',
@@ -164,7 +163,7 @@ async function main() {
     head_name: 'Alpha Dsouza',
     address: '12 Old Street',
     hometown: '', home_parish: '',
-    prayer_group: 'St Thomas', area: 'North',
+    prayer_group: 'St Thomas',
     email: 'alpha@example.com',
     is_published: true,
     members: [
@@ -181,7 +180,7 @@ async function main() {
     head_name: 'Gamma Pereira',
     address: '7 New Road',
     hometown: '', home_parish: '',
-    prayer_group: 'St Thomas', area: 'South',
+    prayer_group: 'St Peter',
     email: '',
     is_published: true,
     members: [
@@ -476,12 +475,42 @@ async function main() {
   check('and holds only the family at that status',
     res.body.includes('Gamma Pereira') && !res.body.includes('>Alpha Dsouza<'));
 
-  res = await office('GET', '/families/status?area=South');
-  check('it narrows to one Area', res.body.includes('Gamma Pereira') && !res.body.includes('0001'));
+  res = await office('GET', '/families/status?group=St%20Peter');
+  check('it narrows to one Prayer Group',
+    res.body.includes('Gamma Pereira') && !res.body.includes('>Alpha Dsouza<'));
 
-  res = await office('GET', '/families/status/print?area=South');
-  check('the follow-up sheet prints for that Area', res.status === 200, `status ${res.status}`);
+  res = await office('GET', '/families/status/print?group=St%20Peter');
+  check('the follow-up sheet prints for that Prayer Group', res.status === 200, `status ${res.status}`);
   check('with the contact number on it', res.body.includes('9222222222'));
+
+  /*
+   * Searching by name, which is what an office of two hundred households
+   * actually does to find one. It has to narrow the same three things the
+   * Prayer Group filter narrows \— the table, the chain and the batch \— because
+   * the buttons below act on whatever this filter selected.
+   */
+  res = await office('GET', '/families/status?q=Gamma');
+  check('a search by family head finds that household',
+    res.body.includes('Gamma Pereira') && !res.body.includes('>Alpha Dsouza<'),
+    `status ${res.status}`);
+
+  res = await office('GET', '/families/status?q=0001');
+  check('and a search by Family ID finds it too',
+    res.body.includes('Alpha Dsouza') && !res.body.includes('Gamma Pereira'));
+
+  res = await office('GET', '/families/status?q=Beta');
+  check('a member\’s name finds the family they belong to',
+    res.body.includes('Alpha Dsouza'), 'searching members');
+
+  res = await office('GET', '/families/status?q=Nobody%20At%20All');
+  check('and a search that matches nothing says so, rather than showing everyone',
+    res.body.includes('No family matches this view'), 'empty search');
+
+  res = await office('GET', '/families/status/print?q=Gamma');
+  check('the follow-up sheet honours the search as well',
+    res.status === 200 && res.body.includes('Gamma Pereira') &&
+    !res.body.includes('Alpha Dsouza'),
+    `status ${res.status}`);
 
   res = await post(office, '/families/status', '/families/invitations');
   check('a batch can be marked as invited', res.status === 302, `status ${res.status}`);
@@ -501,7 +530,7 @@ async function main() {
     head_name: 'Epsilon Rodrigues',
     address: '4 West Lane',
     hometown: '', home_parish: '',
-    prayer_group: 'St Thomas', area: 'West',
+    prayer_group: 'St Thomas',
     email: '',
     is_published: false,
     members: [
@@ -570,12 +599,76 @@ async function main() {
   check('and the notice says why',
     /not in the printed directory/.test(decodeURIComponent(res.location || '')), res.location);
 
-  // The office puts it in the book. This is what an import leaves undone: every
-  // imported family arrives as a draft, so the whole parish starts outside it.
+  /*
+   * The same refusal from the chain, which is where the Parish met it: filter
+   * the screen to one step, press Approved, press Ready for Printing, and get
+   * back "0 families moved". The rule is right — an entry nobody has put in
+   * the book is not part of the run — but the office has to be able to see
+   * what to do next, and the families it must act on have to be on the screen
+   * it lands on.
+   */
+  res = await post(office, '/families/status?status=not_started', '/families/status/move',
+    { selection: '1', family_ids: String(unpublishedId), from: 'approved', to: 'ready_for_printing' });
+  const stuck = decodeURIComponent(res.location || '');
+  check('the chain refuses to carry a draft into the run',
+    (await statusOf(unpublishedId)) === 'approved', await statusOf(unpublishedId));
+  check('and says so as an error rather than a silent nothing',
+    /error=/.test(res.location || '') && /not in the printed directory/.test(stuck), stuck);
+  check('landing on the step those families are actually standing at',
+    /status=approved/.test(res.location || ''),
+    'the advice pointed at a list the held-back families were not in');
+  check('so the button it names can reach them',
+    /Include in the printed book/.test(stuck), stuck);
+
+  /*
+   * The office puts it in the book — and, being approved already, it goes to
+   * Ready for Printing with it. This is what an import leaves undone: every
+   * imported family arrives as a draft, so the office approves first and
+   * includes second, and that order used to leave it stranded at Approved with
+   * a third button to find.
+   */
   res = await post(office, '/families/status', '/families/published',
     { selection: '1', family_ids: String(unpublishedId), include: '1' });
   check('the office can put a batch into the printed book', res.status === 302, `status ${res.status}`);
   check('and the family is in it', await publishedOf(unpublishedId));
+  check('an approved family put into the book goes to Ready for Printing with it',
+    (await statusOf(unpublishedId)) === 'ready_for_printing', await statusOf(unpublishedId));
+  check('and the notice says that happened',
+    /Ready for Printing/.test(decodeURIComponent(res.location || '')), res.location);
+
+  /*
+   * Which is the whole of the fix: whichever order the two decisions are made
+   * in, the family ends up in the same place. Approving one already in the
+   * book has always done this; including one already approved now does too.
+   */
+  const bothWays = await Family.create(church.id, {
+    family_id: '0010', head_name: 'Iota Baptista', address: '',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', email: '',
+    is_published: false,
+    members: [{ name: 'Iota Baptista', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '',
+      occupation: '', emails: '' }]
+  });
+  await post(office, '/families/status', '/families/published',
+    { selection: '1', family_ids: String(bothWays), include: '1' });
+  await post(office, '/families/status', '/families/approved',
+    { selection: '1', family_ids: String(bothWays) });
+  check('include-then-approve reaches Ready for Printing as well',
+    (await statusOf(bothWays)) === 'ready_for_printing', await statusOf(bothWays));
+
+  // A family nobody has approved is not swept into the run by being included.
+  const draftOnly = await Family.create(church.id, {
+    family_id: '0011', head_name: 'Kappa Noronha', address: '',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', email: '',
+    is_published: false,
+    members: [{ name: 'Kappa Noronha', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '',
+      occupation: '', emails: '' }]
+  });
+  await post(office, '/families/status', '/families/published',
+    { selection: '1', family_ids: String(draftOnly), include: '1' });
+  check('but an unapproved family is only included, not made ready',
+    (await statusOf(draftOnly)) === 'not_started', await statusOf(draftOnly));
 
   res = await post(office, '/families/status', '/families/ready',
     { selection: '1', family_ids: String(unpublishedId) });
@@ -610,7 +703,7 @@ async function main() {
     head_name: 'Zeta Fernandes',
     address: '5 North Lane',
     hometown: '', home_parish: '',
-    prayer_group: 'St Thomas', area: 'North',
+    prayer_group: 'St Thomas',
     email: '',
     is_published: true,
     members: [
@@ -781,7 +874,7 @@ async function main() {
    */
   const doomedA = await Family.create(church.id, {
     family_id: '0006', head_name: 'Eta Pinto', address: '6 East Lane',
-    hometown: '', home_parish: '', prayer_group: 'St Thomas', area: 'East',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas',
     email: '', is_published: false,
     members: [{ name: 'Eta Pinto', relation: 'Head', dob_day: null, dob_month: null,
       dom_day: null, dom_month: null, mobile: '9555555555', blood_group: '',
@@ -789,7 +882,7 @@ async function main() {
   });
   const doomedB = await Family.create(church.id, {
     family_id: '0007', head_name: 'Theta Coelho', address: '7 East Lane',
-    hometown: '', home_parish: '', prayer_group: 'St Thomas', area: 'East',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas',
     email: '', is_published: false,
     members: [{ name: 'Theta Coelho', relation: 'Head', dob_day: null, dob_month: null,
       dom_day: null, dom_month: null, mobile: '9666666666', blood_group: '',
@@ -853,7 +946,7 @@ async function main() {
     family_id: '0009',
     head_name: 'Delta Fernandes',
     address: '', hometown: '', home_parish: '',
-    prayer_group: '', area: '', email: '',
+    prayer_group: '', email: '',
     is_published: false,
     members: [{ name: 'Delta Fernandes', relation: 'Head', dob_day: null, dob_month: null,
       dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '', occupation: '', emails: '' }]

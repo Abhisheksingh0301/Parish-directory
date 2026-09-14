@@ -463,6 +463,23 @@ code {
 .danger-zone-confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .danger-zone-confirm input[type="text"] { min-width: 220px; }
 
+/* The name to type, and whether what is typed matches it yet. A disabled
+   button is not a message; these two are. */
+.danger-zone-hint { flex: 1 0 100%; margin: 2px 0 0; max-width: 520px; }
+.danger-zone-name {
+  /* Set in the mono face so a curly apostrophe is visibly a curly one, and
+     so trailing spaces in the parish's own name have nowhere to hide. */
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: .95em;
+  color: var(--ink);
+  background: var(--vellum);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.danger-zone-state { display: block; margin-top: 3px; color: var(--rose); }
+.danger-zone-state.is-match { color: var(--sage); font-weight: 600; }
+.danger-zone-state[hidden] { display: none; }
+
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -732,6 +749,8 @@ select {
   color: var(--ink-faint);
 }
 .filter-bar select { min-width: 180px; }
+/* Wide enough for a full name — this is the box the office reaches for most. */
+.filter-bar input[type=search] { min-width: 240px; }
 
 /* ==========================================================================
    Buttons
@@ -1114,6 +1133,24 @@ details.invite textarea { min-height: 96px; font-size: 13.5px; }
 .move-count { margin-left: auto; font-size: 12.5px; color: var(--ink-faint); }
 .move-count b { color: var(--ink); }
 
+/* The search sits above the tools, so "Tick all shown" reads as acting on
+   what the box has just narrowed the list to. */
+.move-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.move-search input[type=search] { flex: 1 1 auto; min-width: 0; }
+.move-found {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.move-found[hidden] { display: none; }
+
 .move-tools {
   display: flex;
   align-items: center;
@@ -1136,11 +1173,13 @@ details.invite textarea { min-height: 96px; font-size: 13.5px; }
   border-bottom: 1px solid var(--rule-soft);
   cursor: pointer;
 }
+.move-row[hidden] { display: none; }
 .move-row:last-child { border-bottom: none; }
 .move-row:hover { background: var(--vellum); }
 .move-row input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--ink); }
 .move-who { font-weight: 500; }
 .move-meta { margin-left: auto; font-size: 12px; color: var(--ink-faint); }
+.move-empty[hidden] { display: none; }
 .move-empty {
   margin: 0;
   padding: 24px 15px;
@@ -1847,7 +1886,8 @@ body.auth:not(.split) .indus-badge { box-shadow: 0 24px 60px -24px rgba(20, 27, 
   .detail-grid { grid-template-columns: 1fr; }
   .detail-grid dl { grid-template-columns: 1fr; }
   .detail-grid dt { border-bottom: none; }
-  .filter-bar select { min-width: 0; width: 100%; }
+  .filter-bar select,
+  .filter-bar input[type=search] { min-width: 0; width: 100%; }
   .line-actions { justify-content: flex-start; }
   .member-row { grid-template-columns: 1fr; }
 }

@@ -803,6 +803,191 @@ async function familySortOrder({ qi, transaction }) {
   }, { transaction });
 }
 
+// ---------------------------------------------------------------------------
+// 13 — the Area goes
+// ---------------------------------------------------------------------------
+
+/**
+ * Two names for one thing, and the Parish only ever used one of them.
+ *
+ * Migration 9 gave a family a Prayer Group; migration 10 added an Area beside
+ * it, on the reasoning that a Prayer Group is a neighbourhood group that meets
+ * and an Area is the division an Area Representative walks. In practice this
+ * Parish files a family under exactly one of those, writes the same value into
+ * both when it is asked for two, and reads the follow-up sheet by Prayer
+ * Group. A second field nobody fills in is a second column on every form, in
+ * every filter and in the exported sheet — so it goes, and Prayer Group is the
+ * one grouping the directory has.
+ *
+ * The column is dropped rather than left behind: a dead column is a thing the
+ * next person has to ask about, and it would come back on the next export the
+ * moment somebody added it to a list of fields "for completeness".
+ *
+ * Rebuilt rather than `removeColumn`-ed, for the same reason migration 11
+ * rebuilds: SQLite's own DROP COLUMN is newer than some of the sqlite3 builds
+ * this runs on, and Sequelize's emulation of it re-creates the table without
+ * the indexes and the unique key. Doing it by hand here means the schema after
+ * this migration is exactly the schema a fresh install gets.
+ */
+async function dropFamilyArea({ qi, sequelize, transaction }) {
+  const opts = { transaction };
+
+  await qi.createTable('families_new', {
+    id: ID,
+    church_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'churches', key: 'id' },
+      onDelete: 'CASCADE'
+    },
+    family_id: { type: DataTypes.TEXT, allowNull: false },
+    head_name: { type: DataTypes.TEXT, allowNull: false },
+    address: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    hometown: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    home_parish: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    prayer_group: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    sort_order: { type: DataTypes.INTEGER, allowNull: true },
+    email: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    photo: { type: DataTypes.TEXT, allowNull: true },
+    is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    verify_status: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'not_started' },
+    verify_status_at: { type: DataTypes.STRING, allowNull: true },
+    invited_at: { type: DataTypes.STRING, allowNull: true },
+    printed_at: { type: DataTypes.STRING, allowNull: true },
+    created_at: TIMESTAMP,
+    updated_at: TIMESTAMP
+  }, {
+    ...opts,
+    uniqueKeys: { families_church_family: { fields: ['church_id', 'family_id'] } }
+  });
+
+  /*
+   * A family filed under an Area and nothing else would lose its grouping
+   * outright, so the Area is folded into the Prayer Group where the Prayer
+   * Group is empty. Where both are set the Prayer Group wins — it is the one
+   * the printed directory and the follow-up sheet have always read.
+   */
+  await sequelize.query(
+    `INSERT INTO families_new
+       (id, church_id, family_id, head_name, address, hometown, home_parish,
+        prayer_group, sort_order, email, photo, is_published,
+        verify_status, verify_status_at, invited_at, printed_at,
+        created_at, updated_at)
+     SELECT
+        id, church_id, family_id, head_name, address, hometown, home_parish,
+        CASE WHEN TRIM(COALESCE(prayer_group, '')) = ''
+             THEN COALESCE(area, '') ELSE prayer_group END,
+        sort_order, email, photo, is_published,
+        verify_status, verify_status_at, invited_at, printed_at,
+        created_at, updated_at
+     FROM families`,
+    { transaction }
+  );
+
+  await qi.dropTable('families', opts);
+  await qi.renameTable('families_new', 'families', opts);
+
+  await qi.addIndex('families', ['head_name'], { name: 'idx_families_head', ...opts });
+  await qi.addIndex('families', ['church_id', 'family_id'], { name: 'idx_families_church', ...opts });
+  await qi.addIndex('families', ['church_id', 'verify_status'], { name: 'idx_families_verify', ...opts });
+
+  /*
+   * A church that had put the Area in its routine tier would otherwise keep a
+   * setting naming a field that no longer exists. Harmless, but it would show
+   * up as a blank row on the Settings page.
+   */
+  for (const table of ['settings', 'church_settings']) {
+    const rows = await sequelize.query(
+      `SELECT ${table === 'settings' ? "'' AS church_id" : 'church_id'}, value
+         FROM ${table} WHERE key = 'routine_fields'`,
+      { transaction, type: QueryTypes.SELECT }
+    );
+
+    for (const row of rows) {
+      const kept = String(row.value || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s && s.toLowerCase() !== 'area')
+        .join(', ');
+      if (kept === String(row.value || '')) continue;
+
+      await sequelize.query(
+        table === 'settings'
+          ? `UPDATE settings SET value = :kept WHERE key = 'routine_fields'`
+          : `UPDATE church_settings SET value = :kept
+               WHERE key = 'routine_fields' AND church_id = :churchId`,
+        { transaction, replacements: { kept, churchId: row.church_id } }
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 14 — what was left in `emails` that was never an address
+// ---------------------------------------------------------------------------
+
+/**
+ * Migration 11 renamed the members' free-text `links` column to `emails` and
+ * began checking it as what it said it was. It copied the old text across
+ * untouched, on the reasoning stated there: `links` "was free text that in
+ * practice held email addresses".
+ *
+ * In this parish it mostly held something else. Of fifty-five values, two were
+ * addresses; the other fifty-three were notes about where a member had got to
+ * — "Working in Bangalore", "Studying in Kochi", "Working in UAE". Perfectly
+ * sensible things to have written in a column that accepted anything, and
+ * stranded the moment the column stopped accepting anything.
+ *
+ * Stranded in three places at once, which is why this is a migration and not
+ * a note in the documentation:
+ *
+ *   The printed book. The Emails cell prints its value split on whitespace,
+ *   one address to a line, so "Working in Bangalore" set as three lines
+ *   reading "Working", "in", "Bangalore".
+ *
+ *   The import. The exported sheet carried these values out and the importer
+ *   refused every one of them on the way back in — fifty-three rows, each
+ *   holding back its whole family. Editing the downloaded file could not fix
+ *   it, because the next download brought them back: the database was the
+ *   thing supplying them.
+ *
+ *   The form. A household opening its own entry to correct anything at all
+ *   could not save it while that field held a value the field would not take.
+ *
+ * So the non-addresses are cleared, and the Parish was asked before they
+ * were: they are fifty-three things somebody typed, and losing them is a
+ * decision for the office rather than for this file. The alternative offered
+ * was a field of their own, printed and carried in the sheet; the office
+ * chose to clear them.
+ *
+ * Nothing that is an address is touched. "Has an @ in it" is the whole test,
+ * deliberately: this is not the place to re-run the email checks in
+ * lib/email.js and start deleting addresses somebody merely mistyped. A value
+ * with an @ that is still malformed stays, and the form and the importer go on
+ * saying so — which is a message about one member's address, not a silent
+ * deletion of it.
+ */
+async function clearNonAddressEmails({ sequelize, transaction }) {
+  const [{ n }] = await sequelize.query(
+    `SELECT COUNT(*) AS n FROM members
+       WHERE TRIM(COALESCE(emails, '')) <> '' AND emails NOT LIKE '%@%'`,
+    { transaction, type: QueryTypes.SELECT }
+  );
+
+  if (!Number(n)) return;
+
+  await sequelize.query(
+    `UPDATE members SET emails = ''
+       WHERE TRIM(COALESCE(emails, '')) <> '' AND emails NOT LIKE '%@%'`,
+    { transaction }
+  );
+
+  console.log(
+    `Cleared ${n} member Emails field${Number(n) === 1 ? '' : 's'} that held ` +
+    'something other than an email address.'
+  );
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -819,7 +1004,9 @@ const MIGRATIONS = [
   familyPrayerGroup,
   familyVerificationWorkflow,
   entryFieldsPerParishReview,
-  familySortOrder
+  familySortOrder,
+  dropFamilyArea,
+  clearNonAddressEmails
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };
