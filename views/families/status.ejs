@@ -200,29 +200,10 @@
       </button>
 
       <button type="submit" class="btn ghost" form="<%= batchForm %>"
-              formaction="<%= base %>/families/approved<%= query %>"
-              data-batch-confirm="Approve %n as correct? Any of them with corrections still waiting in the review queue is left alone.">
-        Approve <span data-batch-count><%= families.length %></span>
-      </button>
-
-      <button type="submit" class="btn ghost" form="<%= batchForm %>"
-              formaction="<%= base %>/families/published<%= query %>"
-              name="include" value="1"
-              data-batch-confirm="Include %n in the printed directory?">
-        Include <span data-batch-count><%= families.length %></span> in the printed book
-      </button>
-
-      <button type="submit" class="btn ghost" form="<%= batchForm %>"
               formaction="<%= base %>/families/published<%= query %>"
               name="include" value="0"
               data-batch-confirm="Leave %n out of the printed directory?">
         Leave them out of the printed book
-      </button>
-
-      <button type="submit" class="btn ghost" form="<%= batchForm %>"
-              formaction="<%= base %>/families/ready<%= query %>"
-              data-batch-confirm="Of the %n ticked, mark the approved ones Ready for Printing?">
-        Mark the approved ones ready for printing
       </button>
 
       <form method="post" action="<%= base %>/families/printed"
@@ -251,31 +232,22 @@
     </p>
 
     <p class="help">
-      <strong>Approve</strong> records the office&rsquo;s own decision that
-      these entries are correct as they stand, for households that have
-      nothing to correct and will never sign in to say so. A family with
-      corrections still waiting in the
-      <a href="<%= base %>/review">review queue</a> is left alone no matter
-      how it is ticked &mdash; those are approved line by line, by a reviewer
-      who can see what is being proposed.
+      <strong>Approving</strong> and <strong>putting families in the book</strong>
+      are done on the chain above. Move families to <strong>Approved</strong>
+      to record that their entries are correct as they stand &mdash; a family
+      with corrections still waiting in the
+      <a href="<%= base %>/review">review queue</a> is left alone, because
+      those are approved line by line. An approved family already in the book
+      goes straight on to Ready for Printing.
     </p>
 
     <p class="help">
-      <strong>In book</strong> is a separate decision from the chain, and it
-      belongs to the office alone. An imported family arrives as a
-      <span class="tag draft">Draft</span>, because a spreadsheet is not a
-      decision about what to print. Putting a family that has already been
-      approved into the book carries it on to Ready for Printing in the same
-      press &mdash; there is no second button to remember after an import.
-    </p>
-
-    <p class="help">
-      <strong>Ready for Printing</strong> follows approval on its own, in
-      whichever order the two decisions were made: approve a family already in
-      the book, or include one already approved, and it lands in the same
-      place. This button is here for the odd batch that needs sweeping up. It
-      moves approved families only &mdash; an entry nobody has verified does
-      not go into the run.
+      Move families from Approved to <strong>Ready for Printing</strong> and
+      any <span class="tag draft">Draft</span> among them is included in the
+      printed book in the same move. Only approved families go into the run
+      &mdash; an entry nobody has verified is left where it is.
+      &ldquo;Leave them out of the printed book&rdquo; is the one book decision
+      that stays here, for taking a family back out.
     </p>
   </div>
 <% } %>

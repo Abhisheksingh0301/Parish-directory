@@ -306,8 +306,8 @@
     } else if (!n) {
       note.textContent = 'Tick at least one family.';
     } else if (target === 'ready_for_printing') {
-      note.textContent = 'Only approved families already in the printed book are moved; ' +
-        'the rest are reported back and left alone.';
+      note.textContent = 'Only approved families are moved, and any draft among them is ' +
+        'included in the printed book; the rest are reported back and left alone.';
     } else if (target === 'approved') {
       note.textContent = 'A family with corrections still waiting in the review queue ' +
         'is left alone — those are approved line by line.';

@@ -600,25 +600,46 @@ async function main() {
     /not in the printed directory/.test(decodeURIComponent(res.location || '')), res.location);
 
   /*
-   * The same refusal from the chain, which is where the Parish met it: filter
-   * the screen to one step, press Approved, press Ready for Printing, and get
-   * back "0 families moved". The rule is right — an entry nobody has put in
-   * the book is not part of the run — but the office has to be able to see
-   * what to do next, and the families it must act on have to be on the screen
-   * it lands on.
+   * The chain does it in one move. Approve a draft, then move it from Approved
+   * to Ready for Printing, and it is put into the book as part of that move —
+   * there is no separate Include button on the screen to find first.
    */
+  const chainDraft = await Family.create(church.id, {
+    family_id: '0012', head_name: 'Lambda Dsouza', address: '',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', email: '',
+    is_published: false,
+    members: [{ name: 'Lambda Dsouza', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '',
+      occupation: '', emails: '' }]
+  });
+  await post(office, '/families/status', '/families/status/move',
+    { selection: '1', family_ids: String(chainDraft), from: 'not_started', to: 'approved' });
+  check('a draft approved on the chain stops at Approved',
+    (await statusOf(chainDraft)) === 'approved', await statusOf(chainDraft));
   res = await post(office, '/families/status?status=not_started', '/families/status/move',
-    { selection: '1', family_ids: String(unpublishedId), from: 'approved', to: 'ready_for_printing' });
-  const stuck = decodeURIComponent(res.location || '');
-  check('the chain refuses to carry a draft into the run',
-    (await statusOf(unpublishedId)) === 'approved', await statusOf(unpublishedId));
-  check('and says so as an error rather than a silent nothing',
-    /error=/.test(res.location || '') && /not in the printed directory/.test(stuck), stuck);
-  check('landing on the step those families are actually standing at',
-    /status=approved/.test(res.location || ''),
-    'the advice pointed at a list the held-back families were not in');
-  check('so the button it names can reach them',
-    /Include in the printed book/.test(stuck), stuck);
+    { selection: '1', family_ids: String(chainDraft), from: 'approved', to: 'ready_for_printing' });
+  const carried = decodeURIComponent(res.location || '');
+  check('the chain carries an approved draft into the run',
+    (await statusOf(chainDraft)) === 'ready_for_printing', await statusOf(chainDraft));
+  check('and puts it into the printed book with it', await publishedOf(chainDraft));
+  check('and says so', /notice=/.test(res.location || '') &&
+    /included in the printed book/.test(carried), carried);
+
+  // Printed means printed in the book: a draft moved straight there must not
+  // be left out of the directory that was printed.
+  const printedDraft = await Family.create(church.id, {
+    family_id: '0013', head_name: 'Mu Pereira', address: '',
+    hometown: '', home_parish: '', prayer_group: 'St Thomas', email: '',
+    is_published: false,
+    members: [{ name: 'Mu Pereira', relation: 'Head', dob_day: null, dob_month: null,
+      dom_day: null, dom_month: null, mobile: '', blood_group: '', qualification: '',
+      occupation: '', emails: '' }]
+  });
+  await post(office, '/families/status', '/families/status/move',
+    { selection: '1', family_ids: String(printedDraft), from: 'not_started', to: 'printed' });
+  check('a draft moved to Printed on the chain is marked Printed',
+    (await statusOf(printedDraft)) === 'printed', await statusOf(printedDraft));
+  check('and is in the printed book', await publishedOf(printedDraft));
 
   /*
    * The office puts it in the book — and, being approved already, it goes to

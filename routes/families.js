@@ -780,8 +780,8 @@ router.post('/ready', isAdmin, wrap(async (req, res) => {
   if (unpublished) {
     parts.push(
       `${howMany(unpublished)} not in the printed directory — a draft entry is ` +
-      'not part of the run. Tick them and press "Include in the printed book": ' +
-      'the approved ones go to Ready for Printing with it.'
+      'not part of the run. Move them from Approved to Ready for Printing on ' +
+      'the chain, and they are included in the book with it.'
     );
   }
 
@@ -795,8 +795,8 @@ router.post('/ready', isAdmin, wrap(async (req, res) => {
  * The chain on the status screen is a pair of tiles as well as a set of
  * counts: one step to move families *from*, one to move them *to*, and the
  * families themselves ticked in between. This is the single route behind that,
- * and the named buttons above it — invited, approved, ready for printing —
- * remain as the shorthand for the three moves an office makes most often.
+ * and it is where the office approves a batch and carries it into the print
+ * run — the screen has no separate Approve or Include buttons for those.
  *
  * It is deliberately not a free "set verify_status to whatever was posted".
  * Every rule those buttons enforce is enforced here as well, because the same
@@ -808,8 +808,9 @@ router.post('/ready', isAdmin, wrap(async (req, res) => {
  *                           because somebody dropped it on an earlier tile
  *   an open correction      a family with a proposal waiting in the review
  *                           queue is never swept into Approved
- *   the printed run         only an approved family already in the book is
- *                           marked Ready for Printing
+ *   the printed run         only an approved family is marked Ready for
+ *                           Printing, and a draft among them is put into the
+ *                           book as part of the move
  *
  * Nothing the rules hold back is dropped quietly: every family left behind is
  * counted, and the notice says which rule left it there.
@@ -857,38 +858,15 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
     }
   }
 
-  /*
-   * Where the office is sent back to.
-   *
-   * Ordinarily its own filter, untouched. The exception is the dead end below:
-   * when the whole batch was held back for being drafts, the notice tells the
-   * office to include them in the book — and that button acts on the list at
-   * the bottom of the screen, which is filtered by status. Sending it back to
-   * the filter it came from would leave the advice pointing at a list those
-   * families are not in, so the screen is narrowed to the step they are
-   * standing at instead, where the button can reach them.
-   */
-  let back = filter;
-
   if (to === 'ready_for_printing') {
-    const unapproved = targets.filter((f) => f.is_published && f.verify_status !== 'approved').length;
-    const unpublished = targets.filter((f) => !f.is_published);
-    targets = targets.filter((f) => f.is_published && f.verify_status === 'approved');
+    const unapproved = targets.filter((f) => f.verify_status !== 'approved').length;
+    targets = targets.filter((f) => f.verify_status === 'approved');
 
     if (unapproved) {
       notes.push(
         `${howMany(unapproved)} not approved yet, and an entry goes into the ` +
         'book only once it has been approved.'
       );
-    }
-    if (unpublished.length) {
-      notes.push(
-        `${howMany(unpublished.length)} not in the printed directory — a draft ` +
-        'entry is not part of the run. They are ticked in the list below: press ' +
-        '"Include in the printed book", and the approved ones go to Ready for ' +
-        'Printing with it.'
-      );
-      if (!targets.length && verification.isStatus(from)) back = { ...filter, status: from };
     }
   }
 
@@ -899,6 +877,23 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
       `${howMany(backwards.length)} left where they were — the chain does not ` +
       `run backwards to ${label}.`
     );
+  }
+
+  /*
+   * Ready for Printing and Printed both mean "this entry is in the printed
+   * book", and the directory prints only families that are. So a draft moved
+   * to either step is included in the book as part of the same move — the
+   * chain is the one place these decisions are made, and a family marked
+   * Printed that the printed directory then leaves out is a contradiction.
+   */
+  let included = 0;
+
+  if (to === 'ready_for_printing' || to === 'printed') {
+    const drafts = targets.filter((f) => !f.is_published).map((f) => f.id);
+    if (drafts.length) {
+      await Family.setPublished(req.churchId, drafts, true);
+      included = drafts.length;
+    }
   }
 
   const moved = await Family.setStatusMany(req.churchId, targets.map((f) => f.id), to);
@@ -922,15 +917,20 @@ router.post('/status/move', isAdmin, wrap(async (req, res) => {
     churchId: req.churchId,
     detail: `${moved} family/families moved from ` +
       `${verification.statusLabel(from)} to ${label}` +
+      (included ? `; ${included} added to the printed directory` : '') +
       (notes.length ? `; ${picked.length - moved} left behind` : '')
   });
 
   const parts = [`${howMany(moved)} moved to ${label}.`];
+  if (included) {
+    parts.push(`${included} of them ${included === 1 ? 'was a draft and is' : 'were drafts and are'} ` +
+      'now included in the printed book.');
+  }
   if (ready) {
     parts.push(`${ready} of them are in the printed book and are now Ready for Printing.`);
   }
 
-  return backToStatus(res, back, parts.concat(notes).join(' '),
+  return backToStatus(res, filter, parts.concat(notes).join(' '),
     moved ? 'notice' : 'error');
 }));
 
