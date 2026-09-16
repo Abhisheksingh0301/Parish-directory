@@ -1,7 +1,51 @@
 </main>
 
+<%
+  /*
+   * The idle notice.
+   *
+   * Rendered on every page that has a signed-in person on it, hidden, and
+   * shown by session-timeout.js when the window is nearly up. The timings are
+   * written into the element rather than the script so SESSION_IDLE_MINUTES
+   * remains the one place the number lives.
+   *
+   * Nothing here is what enforces the timeout — lib/idle.js does that, on the
+   * server, on every request. This is the warning and the tidy exit. With
+   * JavaScript off there is no notice and no countdown, and the session still
+   * ends on time; the person simply finds out when they next click something.
+   */
+%>
+<div id="session-timeout"
+     data-base="<%= base %>"
+     data-idle-ms="<%= idleTimeout.idleMs %>"
+     data-warn-ms="<%= idleTimeout.warnMs %>"
+     data-csrf="<%= csrfToken %>"></div>
+
+<div class="session-dialog" id="session-timeout-dialog" hidden
+     role="alertdialog" aria-modal="true"
+     aria-labelledby="session-timeout-title"
+     aria-describedby="session-timeout-body">
+  <div class="session-dialog-card">
+    <h2 id="session-timeout-title">Your session is about to expire</h2>
+    <p id="session-timeout-body">
+      You have been idle for a while. For safety, this directory signs you out
+      when it is left alone &mdash; anything you have typed and not saved would
+      be lost. You will be signed out in
+      <strong id="session-timeout-remaining">a moment</strong>.
+    </p>
+    <div class="actions">
+      <button type="button" class="btn" id="session-timeout-stay">Continue working</button>
+      <form method="post" action="<%= base %>/logout">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn ghost">Sign out now</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="<%= base %>/javascripts/nav-menu.js"></script>
 <script src="<%= base %>/javascripts/password-toggle.js"></script>
 <script src="<%= base %>/javascripts/default-password-banner.js"></script>
+<script src="<%= base %>/javascripts/session-timeout.js"></script>
 </body>
 </html>

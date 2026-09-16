@@ -362,16 +362,20 @@
   </p>
 
   <p class="help">
-    <strong>Email addresses.</strong> There are two columns, and they are not
-    the same thing. <code>Email</code> is the family&rsquo;s own address, and
-    it doubles as the household&rsquo;s sign-in name &mdash; a typo here means
-    that family cannot sign in to verify its own entry. <code>Emails</code> is
-    the member&rsquo;s own, and one member may list up to three, separated by
-    commas.
+    <strong>Email</strong> belongs to the member, not the family, so it goes on
+    that person&rsquo;s own row beside their mobile number. One member may list
+    up to three addresses, separated by commas.
   </p>
 
   <p class="help">
-    Both are checked properly, not loosely. <code>steve@gmail</code> is
+    A household&rsquo;s own address &mdash; the one it signs in with &mdash; is
+    no longer a column on this sheet. It is set on each family&rsquo;s own page
+    instead, and an import leaves whatever is already there untouched, so
+    uploading a corrected sheet never costs a family its sign-in.
+  </p>
+
+  <p class="help">
+    Addresses are checked properly, not loosely. <code>steve@gmail</code> is
     refused, because a bare hostname like that is a real address only on an
     office network, not on the internet. Anything that is not an email address
     at all &mdash; a name, a phone number, a note &mdash; stops the whole file,

@@ -46,6 +46,65 @@ function resolveSessionSecret() {
   return generated;
 }
 
+/**
+ * A number from the environment, or the default when it is missing, not a
+ * number, or outside what the setting can mean.
+ *
+ * Silently falling back matters more here than shouting: a typo in
+ * SESSION_IDLE_MINUTES that produced NaN would otherwise expire every session
+ * on its first request and lock the parish out of its own directory.
+ */
+function numberEnv(name, fallback, min, max) {
+  const raw = (process.env[name] || '').trim();
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < min || value > max) {
+    console.warn(
+      `${name}="${raw}" is not a number between ${min} and ${max}; using ${fallback}.`
+    );
+    return fallback;
+  }
+  return value;
+}
+
+/*
+ * The floor is there to catch a typo — a negative, a NaN, an empty product of
+ * some deployment script — and not to second-guess an operator who means it.
+ * A parish that writes 5 gets 5. The sub-minute end of the range is what
+ * test/idle.js runs on, so the timeout can be proved in ten seconds rather
+ * than by waiting out a real window.
+ */
+const idleMs = numberEnv('SESSION_IDLE_MINUTES', 30, 0.05, 24 * 60) * 60 * 1000;
+
+/*
+ * The warning has to fit inside the timeout, and leave room to be read and
+ * acted on. Half the window is the ceiling: with a 2-minute timeout the notice
+ * comes at one minute, not at the 60 seconds asked for, which would put it
+ * almost at sign-in.
+ */
+const warnMs = Math.min(
+  numberEnv('SESSION_WARNING_SECONDS', 60, 1, 30 * 60) * 1000,
+  Math.floor(idleMs / 2)
+);
+
+/**
+ * How long the cookie and the stored row outlive the idle window.
+ *
+ * They have to outlive it a little, or the two expiries race and the cookie
+ * usually wins: the session record vanishes underneath the request, lib/idle.js
+ * sees an anonymous visitor rather than an expired one, and the person is
+ * dropped on the sign-in page with no explanation of what happened to their
+ * afternoon.
+ *
+ * With the grace, the decision is always lib/idle.js's and it is always able to
+ * say so. The cookie and the row are then a backstop rather than the mechanism:
+ * they clear up a session the server never hears from again. Nothing is granted
+ * by holding a cookie inside the grace — every request is still checked against
+ * `lastSeen` on arrival, and one past the window is refused.
+ */
+const cookieMs = idleMs + 5 * 60 * 1000;
+
 module.exports = {
   env,
   isProduction,
@@ -78,6 +137,21 @@ module.exports = {
     logSql: process.env.LOG_SQL === '1'
   },
   sessionSecret: resolveSessionSecret(),
+  /**
+   * Idle timeout: how long a signed-in session survives with nothing happening
+   * on it, and how long before that the browser offers to keep it alive.
+   *
+   * Measured from the last request the person actually caused, not from when
+   * they signed in — a clerk working steadily through the afternoon is never
+   * interrupted, and one who walks away from an unlocked machine in the parish
+   * office is signed out whether or not the browser is still open.
+   *
+   * Two numbers so the warning can be tuned separately: a 5-minute timeout
+   * wants a shorter notice than an hour-long one. The warning is clamped below
+   * the timeout because a notice that appears before the countdown starts would
+   * never be shown at all.
+   */
+  session: { idleMs, warnMs, cookieMs },
   trustProxy: process.env.TRUST_PROXY === '1',
   secureCookies:
     process.env.SECURE_COOKIES === '1' ||

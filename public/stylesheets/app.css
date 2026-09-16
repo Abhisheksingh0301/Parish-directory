@@ -728,6 +728,11 @@ select {
 .daymonth { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
 .daymonth select { min-width: 0; }
 
+/* Same two-box track as a date, but the first box here holds a whole relation
+   rather than a two-digit day: "Mother-in-law" has to fit without scrolling
+   under the caret. The column gives way on a narrow screen. */
+.relation-add { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 8px; }
+
 .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
 .actions .spacer { margin-left: auto; }
 
@@ -815,6 +820,63 @@ select {
 .alert.notice { background: var(--sage-bg); border-color: var(--sage-line); border-left-color: var(--sage); color: #2C4434; }
 .alert ul { margin: 6px 0 0; padding-left: 20px; }
 .alert strong { font-weight: 600; }
+
+/* ==========================================================================
+   The idle notice
+
+   Deliberately a stop rather than a toast in the corner. It is asking a
+   question — carry on, or go — and it appears on a page that may have an
+   unsaved family form under it, so it covers the work instead of competing
+   with it for attention.
+
+   Kept out of anything printed: a directory sent to the printer while the
+   notice is up should come out as the register, not as the register with a
+   warning across it.
+   ========================================================================== */
+
+.session-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 27, 46, .55);
+}
+/* `display: flex` above would otherwise beat the browser's own [hidden] rule,
+   and the notice would stand on every page from the moment it loaded. */
+.session-dialog[hidden] { display: none; }
+
+.session-dialog-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--gilt);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 44px rgba(20, 27, 46, .28);
+  padding: 26px 28px;
+  max-width: 460px;
+  width: 100%;
+}
+
+.session-dialog-card h2 {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+.session-dialog-card p {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.session-dialog-card strong { color: var(--ink); font-weight: 600; }
+.session-dialog-card .actions { margin-top: 0; }
+.session-dialog-card form { margin: 0; }
+
+@media print { .session-dialog { display: none !important; } }
 
 /* ==========================================================================
    Tables — a register, read across
@@ -1839,6 +1901,64 @@ body.auth:not(.split) .indus-badge { box-shadow: 0 24px 60px -24px rgba(20, 27, 
 
 @media (max-width: 1080px) {
   .cols { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   The import pages: instructions to read, one control to use
+   ========================================================================== */
+
+/*
+ * The upload panel keeps its place on screen while the instructions beside it
+ * are scrolled — the rules are long, the control is small, and somebody
+ * re-reading the naming rule should not have to scroll back up to act on it.
+ *
+ * Only where there are in fact two columns. Below 1080px `.cols` stacks, and a
+ * sticky panel in a single column would pin itself over the prose underneath
+ * it. `align-items: start` on `.cols` is what lets this work at all: a grid
+ * item stretched to the row's full height has no room left to move in.
+ */
+@media (min-width: 1081px) {
+  .upload-panel { position: sticky; top: 24px; }
+}
+
+/*
+ * The file picker, which is otherwise the one unstyled control on the page —
+ * the browser's default sits flush against the label in a different typeface
+ * and looks like something the stylesheet forgot.
+ */
+.field input[type="file"] {
+  width: 100%;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: var(--vellum);
+  border: 1px dashed var(--rule-firm);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+}
+.field input[type="file"]:hover { border-color: var(--ink-faint); }
+.field input[type="file"]:focus-visible {
+  outline: 2px solid var(--gilt);
+  outline-offset: 2px;
+}
+/* The "Choose file" button inside the control, inked to match .btn.ghost. */
+.field input[type="file"]::file-selector-button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 12px;
+  padding: 7px 13px;
+  color: var(--ink-soft);
+  background: var(--panel);
+  border: 1px solid var(--rule-firm);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.field input[type="file"]::file-selector-button:hover {
+  background: var(--vellum);
+  border-color: var(--ink-soft);
+  color: var(--ink);
 }
 
 /* ==========================================================================

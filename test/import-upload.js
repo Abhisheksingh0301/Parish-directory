@@ -131,24 +131,30 @@ async function signIn(request, username) {
   });
 }
 
-// Two email columns, because a sheet has two and they mean different things:
-// the family's own address is its login, a member's is their own.
-const HEAD = 'Family ID,Head of family,Address,Prayer group,Email,'
-  + 'Date of marriage,Member,Relation,Date of birth,Mobile,Emails\r\n';
+/*
+ * One email column, and it is the member's own.
+ *
+ * The sheet used to carry a second, for the household's own address, and the
+ * two a cell apart both called some form of "email" is what got them merged.
+ * The headings here are not in the template's order on purpose: a column is
+ * found by its heading and never by its position, and this is what proves it.
+ */
+const HEAD = 'Family ID,Head of family,Address,Prayer group,'
+  + 'Date of marriage,Member,Relation,Date of birth,Mobile,Email\r\n';
 
 /** A sheet with two families in it, five people, nothing wrong. */
 const GOOD = HEAD
-  + 'F-001,Thomas Mathew,"12 Church Road\nTown",St Peter,thomas@example.com,'
+  + 'F-001,Thomas Mathew,"12 Church Road\nTown",St Peter,'
     + '14-Feb-1990,Thomas Mathew,HF,02-Aug-1965,9000000001,"thomas@example.com, thomas@work.in"\r\n'
-  + 'F-001,,,,,,Mary Thomas,W,11-Mar-1968,9000000002,mary@example.com\r\n'
-  + 'F-001,,,,,,Anil Thomas,S,2001-06-30,,\r\n'
-  + 'F-002,George Kurian,45 Hill View,St Paul,george@example.com,'
+  + 'F-001,,,,,Mary Thomas,W,11-Mar-1968,9000000002,mary@example.com\r\n'
+  + 'F-001,,,,,Anil Thomas,S,2001-06-30,,\r\n'
+  + 'F-002,George Kurian,45 Hill View,St Paul,'
     + ',George Kurian,HF,19-Sep-1972,9000000003,george@example.com\r\n'
-  + 'F-002,,,,,,Sara George,W,04-Apr-1975,9000000004,\r\n';
+  + 'F-002,,,,,Sara George,W,04-Apr-1975,9000000004,\r\n';
 
 /** The header again, with one family under it, for the checks that need one. */
-const oneFamily = (email, memberEmails) => HEAD
-  + `F-101,Anil Varkey,Road,,${email},,Anil Varkey,HF,,9000000009,${memberEmails}\r\n`;
+const oneFamily = (memberEmails) => HEAD
+  + `F-101,Anil Varkey,Road,,,Anil Varkey,HF,,9000000009,${memberEmails}\r\n`;
 
 async function main() {
   const db = require('../db');
@@ -224,31 +230,24 @@ async function main() {
     res.body.includes('renamed'), 'a zip was read as a spreadsheet');
 
   console.log('');
-  console.log('--- the email columns are checked before a single row is written ---');
+  console.log('--- the email column is checked before a single row is written ---');
 
-  res = await post('parish.csv', oneFamily('anil-at-example.com', 'anil@example.com'));
-  check('a family Email that is not an address is refused',
+  res = await post('parish.csv', oneFamily('not-an-address'));
+  check('an Email cell that is not an address is refused',
     res.body.includes('Nothing was imported'), 'it was imported anyway');
-  check('and the report names the column, because a sheet has two of them',
-    /Email \(the family(&#39;|')s own\)/.test(res.body), 'the column was not named');
-
-  res = await post('parish.csv', oneFamily('anil@example.com', 'not-an-address'));
-  check("a member's Emails cell that is not an address is refused",
-    res.body.includes('Nothing was imported'), 'it was imported anyway');
-  check('and that report names its column too', res.body.includes('Emails:'), 'not named');
+  check('and the report names the column', res.body.includes('Email:'), 'not named');
 
   // The one the browser's own type=email would wave through. lib/email.js is
   // deliberately stricter, and the importer has to be as strict as the form.
-  res = await post('parish.csv', oneFamily('anil@gmail', 'anil@example.com'));
+  res = await post('parish.csv', oneFamily('anil@gmail'));
   check('a bare hostname is caught, which type=email would have accepted',
     res.body.includes('missing the end of the domain'), 'it was accepted');
 
-  res = await post('parish.csv',
-    oneFamily('anil@example.com', '"a@x.com, b@x.com, c@x.com, d@x.com"'));
+  res = await post('parish.csv', oneFamily('"a@x.com, b@x.com, c@x.com, d@x.com"'));
   check('more addresses than the printed cell holds is refused',
     res.body.includes('Nothing was imported'), 'it was imported anyway');
 
-  check('and not one of those four sheets wrote anything',
+  check('and not one of those three sheets wrote anything',
     (await db.Family.count({ where: { church_id: church.id } })) === 0,
     'a refused sheet still created a family');
 
@@ -280,8 +279,8 @@ async function main() {
   check('and the year in the sheet was dropped rather than refused',
     head && head.dob_day === 2 && head.dob_month === 8,
     `${head && head.dob_day}/${head && head.dob_month}`);
-  check("the family's own email went to the family",
-    first && first.email === 'thomas@example.com', JSON.stringify(first && first.email));
+  check('the Email column went to the member, not the family',
+    first && first.email === '', JSON.stringify(first && first.email));
   check('and a member carrying two addresses kept both',
     head && head.emails === 'thomas@example.com,thomas@work.in',
     JSON.stringify(head && head.emails));
@@ -309,18 +308,25 @@ async function main() {
    * update must leave alone.
    */
 
-  // The office has since published F-001 and given it a photograph. Neither is
-  // the sheet's business: there is no column for either.
+  /*
+   * The office has since published F-001, given it a photograph, and set the
+   * address the household signs in with. None of the three is the sheet's
+   * business: there is no column for any of them.
+   */
   const before = await db.Family.findOne({
     where: { church_id: church.id, family_id: 'F-001' }
   });
-  await before.update({ is_published: true, photo: 'kept.jpg' });
+  await before.update({
+    is_published: true,
+    photo: 'kept.jpg',
+    email: 'household@example.com'
+  });
 
   const CORRECTED = HEAD
-    + 'F-001,Thomas Mathew,"13 New Road\nTown",,thomas@example.com,'
+    + 'F-001,Thomas Mathew,"13 New Road\nTown",,'
       + '14-Feb-1990,Thomas Mathew,HF,02-Aug-1965,9000000001,thomas@example.com\r\n'
-    + 'F-001,,,,,,Susan Thomas,D,05-May-2003,9000000005,\r\n'
-    + 'F-003,Peter Jacob,9 Market Street,St Peter,peter@example.com,'
+    + 'F-001,,,,,Susan Thomas,D,05-May-2003,9000000005,\r\n'
+    + 'F-003,Peter Jacob,9 Market Street,St Peter,'
       + ',Peter Jacob,HF,01-Jan-1980,9000000006,\r\n';
 
   res = await post('corrected.csv', CORRECTED, { on_existing: 'update' });
@@ -368,7 +374,7 @@ async function main() {
 
   // A sheet correcting only the family's own columns, with no member rows on
   // it at all, is not an instruction to empty the household.
-  const FAMILY_ONLY = HEAD + 'F-001,,,St Jude,,,,,,,\r\n';
+  const FAMILY_ONLY = HEAD + 'F-001,,,St Jude,,,,,,\r\n';
   res = await post('areas.csv', FAMILY_ONLY, { on_existing: 'update' });
   check('a sheet with no member rows is accepted',
     !res.body.includes('Nothing was imported'), 'a family-only sheet was refused');
@@ -379,6 +385,20 @@ async function main() {
     (await db.Family.findOne({
       where: { church_id: church.id, family_id: 'F-001' }, raw: true
     })).prayer_group === 'St Jude', 'the corrected cell was not written');
+
+  /*
+   * The household's own address survives every one of those imports.
+   *
+   * It stopped being a column when the sheet's two email columns were merged
+   * into the member's one, and `Family.update` writes every field it is given
+   * — so without lib/import-families.js handing the stored value back, each
+   * upload above would have quietly emptied the address the family signs in
+   * with, and nobody would find out until a household could not sign in.
+   */
+  check("and the household's own sign-in address is untouched by any of it",
+    (await db.Family.findOne({
+      where: { church_id: church.id, family_id: 'F-001' }, raw: true
+    })).email === 'household@example.com', 'an import emptied the family email');
 
   // And the default is still to refuse: the option has to be asked for.
   res = await post('corrected.csv', CORRECTED);
@@ -409,9 +429,9 @@ async function main() {
    * value on it that belongs to a person went with it. The family imported
    * with a head, no members and no telephone number.
    */
-  //          id    Head of family  addr pg em dom  Member  Relation  DOB           Mobile          Emails
+  //          id    Head of family  addr pg dom  Member  Relation  DOB           Mobile         Email
   const HEADONLY = HEAD
-    + 'P008,Mr. Easow T V,,,,,,Head,02-Aug-1965,+919545999967,\r\n';
+    + 'P008,Mr. Easow T V,,,,,Head,02-Aug-1965,+919545999967,\r\n';
 
   res = await post('headonly.csv', HEADONLY);
   check('a head named only in Head of family imports',
@@ -462,8 +482,8 @@ async function main() {
    * describes it — a head listed among them is not duplicated by this.
    */
   const BOTH = HEAD
-    + 'P010,Mr. Named Head,Road,Camp,,,Mr. Named Head,Head,,9000000001,\r\n'
-    + 'P010,,,,,,Mrs. Named Spouse,Spouse,,9000000002,\r\n';
+    + 'P010,Mr. Named Head,Road,Camp,,Mr. Named Head,Head,,9000000001,\r\n'
+    + 'P010,,,,,Mrs. Named Spouse,Spouse,,9000000002,\r\n';
   res = await post('both.csv', BOTH);
   const both = await db.Family.findOne({
     where: { church_id: church.id, family_id: 'P010' }, raw: true

@@ -63,6 +63,10 @@
    * church prints for itself.
    */
 %>
+<%
+  // The year of printing, on every sheet. See the note in print.ejs.
+  const edition = new Date().getFullYear() + ' Edition';
+%>
 <% sections.forEach(function (section) { %>
   <%
     const palette = [
@@ -90,23 +94,34 @@
 
     <% section.pages.forEach(function (page) { %>
       <div class="page<%= page.single ? ' page-single' : '' %>">
+
+        <%# Each church's own masthead, so a leaf out of the combined book
+            still names the parish it belongs to rather than the volume. %>
+        <div class="masthead">
+          <div class="masthead-row">
+            <div>
+              <span class="eyebrow"><%= section.settings.directory_title %></span>
+              <h1><%= section.settings.parish_name %><%
+                %><% if (section.church.city) { %> &middot; <%= section.church.city %><% } %></h1>
+            </div>
+            <span class="edition"><%= edition %></span>
+          </div>
+        </div>
+
         <div class="entries">
-          <% page.families.forEach(function (f) { %>
+          <% page.families.forEach(function (f, i) { %>
+            <% if (i > 0) { %><div class="entry-divider"><span class="dot"></span></div><% } %>
             <%- include('_entry', { f: f, settings: section.settings, church: section.church }) %>
           <% }); %>
         </div>
 
         <div class="page-foot">
-          <div class="lattice"></div>
           <div class="foot-row">
             <span class="parish-name">
               <%= section.settings.parish_name %><%
-              %><% if (section.church.city) { %>, <%= section.church.city %><% } %>
+              %><% if (section.church.city) { %> <span class="sep">&middot;</span> <%= section.church.city %><% } %>
             </span>
-            <% if (section.settings.directory_title) { %>
-              <span class="foot-edition"><%= section.settings.directory_title %></span>
-            <% } %>
-            <span class="folio"><%= page.folio %></span>
+            <span class="folio">Page <%= page.folio %></span>
           </div>
         </div>
       </div>

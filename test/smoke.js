@@ -196,7 +196,10 @@ async function main() {
     ['/families/1', 'One family', ['Steve Smith', 'Mrs. Riva Smith']],
     ['/families/1/edit', 'Edit a family', ['Steve Smith']],
     ['/families/new', 'Add a family', []],
-    ['/directory', 'Printed directory', ['Steve Smith', 'FAMILY ID']],
+    // The head's name, the Family ID in its pill, and the masthead's edition
+    // mark — one thing from each of the three bands the sheet is built from.
+    ['/directory', 'Printed directory',
+      ['Steve Smith', 'fam-id', `${new Date().getFullYear()} Edition`]],
     ['/admin/users', 'User accounts', ['tester']],
     ['/admin/settings', 'Settings', []],
     ['/account', 'My account', []]

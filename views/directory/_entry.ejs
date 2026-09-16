@@ -3,16 +3,27 @@
    * One family's printed entry.
    *
    * Shared by the single-church book (print.ejs) and the combined one
-   * (multi.ejs) so the two can never drift apart — this markup reproduces
-   * public/parish-directory-template.html and is the thing a parish has
-   * already approved.
+   * (multi.ejs) so the two can never drift apart.
    *
-   * Expects: f (a family with members), nl2br.
+   * Expects: f (a family with members), settings, church, nl2br.
    *
-   * The DOM cell used to be one value on the family, merged down the first two
-   * member rows to read as the couple. It is now the member's own, so each row
-   * carries its own date and there is no merge to get wrong — which is what a
-   * household with a married son in it always needed.
+   * The layout is the 2026 design: the household's name over a gilt rule, the
+   * photograph beside a card of the three "where" answers, and the members as
+   * a banded table under both. Two of these to an A4 sheet.
+   *
+   * Two fields that used to print here no longer do, and both moved rather
+   * than went:
+   *
+   *   Prayer Group  is in the eyebrow beside the Family ID, which is where
+   *                 somebody looking for a household's group actually reads.
+   *   Email ID      the family's own address, which is the one it signs in
+   *                 with rather than one the book is for. Each member's own
+   *                 address is in the table, which is where a reader looks
+   *                 for a person's email.
+   *
+   * Relation is no longer a column of its own either: it is set in italic
+   * beside the name, which reads as "Nibin Babu John (Son)" and gives the
+   * column it used to occupy to the addresses, which needed it.
    */
   // Flattened for the on-page search box: name, group, and every "place" field.
   const searchText = [
@@ -21,152 +32,94 @@
    .filter(Boolean).join(' ').toLowerCase();
 %>
 <section class="entry" data-search="<%= searchText %>">
-  <div class="entry-head">
-    <div class="head-id">
-      <span class="head-id-label">FAMILY ID</span>
-      <span class="head-id-value"><%= f.family_id %></span>
+
+  <div class="p-head">
+    <div class="p-eyebrow">
+      <span class="fam-id"><%= f.family_id %></span>
+      <% if (f.prayer_group) { %>
+        <span class="prayer"><%= f.prayer_group %></span>
+      <% } %>
     </div>
-    <%
-      /*
-       * The eyebrow and the subtitle place this leaf: whose book it is, and
-       * who the name below belongs to. Both are shown only on the one-family
-       * sheet — see .head-eyebrow/.head-sub in directory.css, hidden by
-       * default the same way .leaf-caption is, so the two-up book (already
-       * budgeted to the millimetre) never pays for lines it doesn't print.
-       */
-    %>
-    <div class="head-eyebrow">
-      <%= settings.parish_name %><% if (church && church.city) { %>, <%= church.city %><% } %>
-    </div>
-    <div class="head-name"><%= f.head_name %></div>
-    <div class="head-sub">Head of Family<% if (f.prayer_group) { %> &middot; <%= f.prayer_group %><% } %></div>
+    <div class="p-name"><%= f.head_name %></div>
+    <%# The one ornament an entry gets, and it is a rule rather than a flourish. %>
+    <div class="gold-rule"></div>
   </div>
 
-  <div class="entry-body">
+  <div class="p-top">
     <div class="photo-frame">
       <% if (f.photo) { %>
         <img class="photo" src="<%= f.photo_url %>"
              alt="Photograph of the <%= f.head_name %> family">
       <% } else { %>
-        <div class="photo-empty">Photograph</div>
+        <div class="photo photo-empty">Family Photo</div>
       <% } %>
-    </div>
-
-    <div class="leaf-caption">
-      <span class="t">Household</span>
-      <span class="line"></span>
     </div>
 
     <%
       /*
-       * The household register.
+       * The household's three "where" answers, each named.
        *
-       * Every row is named. The one-family sheet lays these out as a grid —
-       * the residence across the top, the three short answers side by side
-       * under it, the email address along the bottom — and it used to decide
-       * which was which by counting: first row full width, last row full
-       * width, everything between paired up two to a line.
-       *
-       * That worked only for as long as the number of rows stayed even.
-       * Dropping Area / Unit left three answers to pair up instead of four,
-       * and the odd one out sat alone against an empty half-cell. A layout
-       * that quietly comes apart when a field is added or removed is a layout
-       * that will come apart again, so the rows carry their own names now and
-       * the stylesheet places each one by name. Removing a field from here is
-       * a rule that stops matching, which is visible, rather than a hole in
-       * the grid, which is not.
-       *
-       * A missing value is a dash, the same as in the members table below and
-       * for the same reason: a blank cell in a printed register reads as a
-       * question nobody asked, and every one of these was asked.
+       * A missing value is a dash rather than a blank, the same as in the
+       * members table below and for the same reason: an empty space in a
+       * printed register reads as a question nobody asked, and every one of
+       * these was asked. A dash says the household did not answer.
        */
     %>
-    <table class="details">
+    <div class="info">
+      <div class="info-row">
+        <div class="ir-label">Residence</div>
+        <div class="ir-value"><% if (f.address) { %><%- nl2br(f.address) %><% } else { %><span class="dash">&mdash;</span><% } %></div>
+      </div>
+      <div class="info-row">
+        <div class="ir-label">Home Parish</div>
+        <div class="ir-value"><% if (f.home_parish) { %><%= f.home_parish %><% } else { %><span class="dash">&mdash;</span><% } %></div>
+      </div>
+      <div class="info-row">
+        <div class="ir-label">Home Town</div>
+        <div class="ir-value"><% if (f.hometown) { %><%- nl2br(f.hometown) %><% } else { %><span class="dash">&mdash;</span><% } %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="members-wrap">
+    <table class="members">
+      <thead>
+        <tr>
+          <th class="cw-name">Member</th>
+          <th class="cw-bday">Birthday</th>
+          <th class="cw-anniv">Anniv.</th>
+          <th class="cw-mob">Mobile</th>
+          <th class="cw-blood c">Blood</th>
+          <th class="cw-qual">Qualification</th>
+          <th class="cw-occ">Occupation</th>
+          <th class="cw-email">Email</th>
+        </tr>
+      </thead>
       <tbody>
-        <tr class="d-residence">
-          <th>
-            <svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/>
-            </svg>
-            <%# The icon is the label here, so the word itself is left for
-                anyone reading the page rather than looking at it. %>
-            <span class="vh">Residence</span>
-          </th>
-          <td><% if (f.address) { %><%- nl2br(f.address) %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-        </tr>
-        <tr class="d-group">
-          <th>Prayer Group</th>
-          <td><% if (f.prayer_group) { %><%= f.prayer_group %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-        </tr>
-        <tr class="d-parish">
-          <th>Home Parish (HOF)</th>
-          <td><% if (f.home_parish) { %><%= f.home_parish %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-        </tr>
-        <tr class="d-hometown">
-          <th>Home Town Name / Address (HOF)</th>
-          <td><% if (f.hometown) { %><%- nl2br(f.hometown) %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-        </tr>
-        <tr class="d-email">
-          <th>Email ID</th>
-          <td class="email"><% if (f.email) { %><%= f.email %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-        </tr>
+        <% f.members.forEach(function (m) { %>
+          <tr>
+            <td>
+              <span class="m-name"><%= m.name %><%
+                %><% if (m.relation) { %> <span class="rel">(<%= m.relation %>)</span><% } %></span>
+            </td>
+            <td class="m-mono"><% if (m.dob) { %><%= m.dob %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <td class="m-mono"><% if (m.dom) { %><%= m.dom %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <%# A member may hold more than one of either, one to a line. Each is
+                escaped on its own rather than joined into a blob of markup. %>
+            <td class="m-mono"><% if (!m.mobiles.length) { %><span class="dash">&mdash;</span><% } %><%
+              %><% m.mobiles.forEach(function (n, j) { %><%
+              %><%= n %><% if (j < m.mobiles.length - 1) { %><br><% } %><% }) %></td>
+            <%# The one value on the row read at a glance in an emergency, so it
+                is the one set apart rather than merely printed. %>
+            <td class="c"><% if (m.blood_group) { %><span class="blood-pill"><%= m.blood_group %></span><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <td><% if (m.qualification) { %><%= m.qualification %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <td><% if (m.occupation) { %><%= m.occupation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <td><% if (!m.email_list.length) { %><span class="dash">&mdash;</span><% } %><%
+              %><% m.email_list.forEach(function (a, j) { %><%
+              %><span class="email"><%= a %></span><% if (j < m.email_list.length - 1) { %><br><% } %><% }) %></td>
+          </tr>
+        <% }); %>
       </tbody>
     </table>
   </div>
-
-  <div class="leaf-caption">
-    <span class="t">Members</span>
-    <span class="line"></span>
-    <span class="n"><%= f.members.length %> on register</span>
-  </div>
-
-  <table class="members">
-    <thead>
-      <tr>
-        <%# "Member", not "Family Members": the caption above the table already
-            says whose members these are, and the longer wording was the second
-            heading on the row to wrap onto two lines and set the band taller. %>
-        <th>Member</th>
-        <th class="c">Relation</th>
-        <th class="c">DOB</th>
-        <th class="c">DOM</th>
-        <th class="c">Mobile</th>
-        <th class="c">Blood</th>
-        <th class="c">Qualification</th>
-        <th class="c">Occupation</th>
-        <th class="c">Emails</th>
-      </tr>
-    </thead>
-    <tbody>
-      <%
-        /*
-         * A missing value is written as a dash rather than left blank. An
-         * empty cell in a printed register reads as "nobody asked", and every
-         * one of these was asked; a dash says the household did not give it.
-         * It costs no height — the row is already as tall as its other cells.
-         */
-      %>
-      <% f.members.forEach(function (m) { %>
-        <tr>
-          <td class="nm"><%= m.name %></td>
-          <td class="c rel"><% if (m.relation) { %><%= m.relation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <td class="c d"><% if (m.dob) { %><%= m.dob %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <td class="c d"><% if (m.dom) { %><%= m.dom %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <%# A member may hold more than one of either, one to a line. Each is
-              escaped on its own rather than joined into a blob of markup. %>
-          <td class="c"><% if (!m.mobiles.length) { %><span class="dash">&mdash;</span><% } %><%
-            %><% m.mobiles.forEach(function (n, j) { %><%
-            %><%= n %><% if (j < m.mobiles.length - 1) { %><br><% } %><% }) %></td>
-          <%# The one value on the row that is read at a glance in an emergency,
-              so it is the one that is set apart rather than merely printed. %>
-          <td class="c"><% if (m.blood_group) { %><span class="bg"><%= m.blood_group %></span><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <td class="c"><% if (m.qualification) { %><%= m.qualification %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <td class="c"><% if (m.occupation) { %><%= m.occupation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-          <td class="c em"><% if (!m.email_list.length) { %><span class="dash">&mdash;</span><% } %><%
-            %><% m.email_list.forEach(function (a, j) { %><%
-            %><%= a %><% if (j < m.email_list.length - 1) { %><br><% } %><% }) %></td>
-        </tr>
-      <% }); %>
-    </tbody>
-  </table>
 </section>

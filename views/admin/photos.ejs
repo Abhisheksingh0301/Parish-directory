@@ -84,6 +84,28 @@
   </div>
 <% } %>
 
+<%
+  /*
+   * Two columns: everything to read on the left, the one thing to do on the
+   * right, where it stays put while the instructions are scrolled.
+   *
+   * The upload panel is short and the instructions are long, so stacking them
+   * the way this page used to put the file picker below a screen and a half of
+   * prose — a person who knew the rules still had to scroll past all of them to
+   * reach the control, every time they came back to correct a folder.
+   *
+   * `.cols` and `.side` are the dashboard's, and collapse to one column below
+   * 1080px. On a narrow screen the order in the markup is the order on the
+   * page: instructions first, then the upload, which is the right way round for
+   * somebody meeting this page for the first time on a laptop or a tablet.
+   *
+   * The report above stays full width and above both columns. It is the only
+   * thing the person is looking for when the page comes back after an upload.
+   */
+%>
+<div class="cols">
+  <div class="instructions">
+
 <div class="card">
   <h2>Naming the files</h2>
   <p class="help" style="margin-top:0">
@@ -113,33 +135,60 @@
   </p>
 </div>
 
-<form class="card" method="post" action="<%= base %>/admin/photos"
-      enctype="multipart/form-data">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-
-  <h2>Upload the folder</h2>
+<%
+  /*
+   * What to ask the photographer for.
+   *
+   * The numbers are the printed frame, not a preference. The frame is 4:3 in
+   * both books (.photo / .page-single .photo in directory.css) and it is
+   * `object-fit: cover`, so a picture of any other shape is not letterboxed —
+   * it is cropped to fill, and the parish does not get to choose which edge
+   * goes. That is the part worth saying out loud, because it is invisible
+   * until the book is printed.
+   *
+   * The two printed sizes are worked out in directory.css: 76×57mm in the
+   * two-up book (see --photo-width) and about 127×95mm on the one-family
+   * sheet (--single-photo, 68% of 186mm of content). 1200×900px covers the
+   * first at 400dpi and the second at 240dpi, which is why "larger is welcome"
+   * is here rather than a flat "300dpi is enough".
+   *
+   * None of this is enforced. The importer checks landscape and nothing else
+   * (lib/import-photos.js), so this is a card of advice and says so — a page
+   * that reads like a rule, and then imports a 400px photograph without
+   * complaint, teaches people to stop reading the page.
+   */
+%>
+<div class="card">
+  <h2>Photo size and resolution</h2>
   <p class="help" style="margin-top:0">
-    Every image in the archive is opened and checked before a single one is
-    stored. If anything is wrong anywhere &mdash; a name that matches no
-    family, a picture that is portrait, or a file that is not really the kind
-    of image its name claims &mdash; it is listed at the top of this page in
-    plain words, and <strong>nothing at all is imported</strong>. Fix the
-    folder and upload it again.
+    <strong>4&nbsp;&times;&nbsp;3 inches, landscape, 300&nbsp;dpi.</strong>
+    In pixels, which is what a file will actually tell you, that is
+    <strong>1200&nbsp;&times;&nbsp;900</strong>. Ask whoever takes or scans the
+    photographs for that and the whole folder will print cleanly.
   </p>
-
-  <div class="field">
-    <label for="archive">Your folder of photographs, zipped</label>
-    <input type="file" id="archive" name="archive" accept=".zip,application/zip" required>
-    <p class="help">
-      A single <code>.zip</code> file. A large archive takes a moment to check
-      &mdash; every picture in it is opened.
-    </p>
-  </div>
-
-  <div class="actions">
-    <button type="submit" class="btn">Check and import</button>
-  </div>
-</form>
+  <p class="help">
+    The frame in the book is <strong>4:3</strong>, and a picture of any other
+    shape is <strong>cropped to fill it</strong> rather than shrunk to fit
+    inside it &mdash; a very wide photograph loses its sides, a nearly square
+    one loses its top and bottom. Framing a family at 4&nbsp;&times;&nbsp;3
+    before uploading is how the parish decides what stays in the picture
+    instead of leaving it to the crop.
+  </p>
+  <p class="help">
+    <strong>Larger is welcome</strong>, and costs nothing but the file size
+    limit above. The two-up directory prints each photograph at about
+    76&nbsp;&times;&nbsp;57&nbsp;mm, but a single family printed on its own
+    sheet gets about 127&nbsp;&times;&nbsp;95&nbsp;mm &mdash; roughly
+    5&nbsp;&times;&nbsp;3&frac34; inches &mdash; and that is the page where a
+    small photograph starts to look soft.
+  </p>
+  <p class="help">
+    This is a recommendation, not a rule the import enforces. The only shape
+    it insists on is landscape: a smaller or oddly proportioned picture is
+    imported without complaint, and shows up when the book is printed rather
+    than today.
+  </p>
+</div>
 
 <div class="card">
   <h2>What the import will and will not do</h2>
@@ -164,5 +213,38 @@
     family&rsquo;s own page, which is where a single late picture belongs.
   </p>
 </div>
+
+  </div><%# /.instructions %>
+
+  <div class="side">
+    <form class="card upload-panel" method="post" action="<%= base %>/admin/photos"
+          enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <h2>Upload the folder</h2>
+      <p class="help" style="margin-top:0">
+        Every image in the archive is opened and checked before a single one is
+        stored. If anything is wrong anywhere &mdash; a name that matches no
+        family, a picture that is portrait, or a file that is not really the
+        kind of image its name claims &mdash; it is listed at the top of this
+        page in plain words, and <strong>nothing at all is imported</strong>.
+        Fix the folder and upload it again.
+      </p>
+
+      <div class="field">
+        <label for="archive">Your folder of photographs, zipped</label>
+        <input type="file" id="archive" name="archive" accept=".zip,application/zip" required>
+        <p class="help">
+          A single <code>.zip</code> file. A large archive takes a moment to
+          check &mdash; every picture in it is opened.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn">Check and import</button>
+      </div>
+    </form>
+  </div>
+</div><%# /.cols %>
 
 <%- include('../partials/footer') %>

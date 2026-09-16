@@ -6,6 +6,7 @@ const Users = require('../models/user');
 const Family = require('../models/family');
 const Churches = require('../models/church');
 const auth = require('../lib/auth');
+const idle = require('../lib/idle');
 const wrap = require('../lib/async');
 
 const router = express.Router();
@@ -47,6 +48,10 @@ function startSession(req, user) {
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = user.id;
+      // Start the idle window here. Without this the first page after signing
+      // in has no `lastSeen`, and lib/idle.js would be measuring from whenever
+      // the request after it happened to arrive.
+      idle.markActive(req.session);
       req.session.save((saveErr) => (saveErr ? reject(saveErr) : resolve()));
     });
   });
@@ -114,7 +119,20 @@ router.get('/login', wrap(async (req, res) => {
   if ((await auth.countUsers()) === 0) return res.redirect('/setup');
   if (req.user) return res.redirect('/');
 
-  res.render('auth/login', { title: 'Sign in', username: '', error: null });
+  /*
+   * `?timeout=1` is set by whatever noticed the expiry — lib/auth.js on a
+   * blocked request, or the countdown in the browser when it ran out with the
+   * page still open. Saying so is the difference between a directory that
+   * signs you out for safety and one that appears to have lost your session.
+   */
+  res.render('auth/login', {
+    title: 'Sign in',
+    username: '',
+    error: null,
+    notice: req.query.timeout
+      ? 'You were signed out because the directory was left idle. Please sign in again.'
+      : null
+  });
 }));
 
 router.post('/login', wrap(async (req, res) => {
@@ -123,7 +141,7 @@ router.post('/login', wrap(async (req, res) => {
   const key = attemptKey(req, username);
 
   const fail = (error, status = 401) =>
-    res.status(status).render('auth/login', { title: 'Sign in', username, error });
+    res.status(status).render('auth/login', { title: 'Sign in', username, error, notice: null });
 
   if (isLockedOut(key)) {
     return fail('Too many failed attempts. Please wait 15 minutes and try again.', 429);

@@ -10,6 +10,7 @@ const config = require('./config');
 const auth = require('./lib/auth');
 const tenancy = require('./lib/tenancy');
 const csrf = require('./lib/csrf');
+const idle = require('./lib/idle');
 const html = require('./lib/html');
 const settings = require('./lib/settings');
 const wrap = require('./lib/async');
@@ -19,6 +20,7 @@ const { acceptPhoto } = require('./lib/upload');
 const { acceptSheet, acceptArchive } = require('./lib/import-upload');
 
 const authRouter = require('./routes/auth');
+const sessionRouter = require('./routes/session');
 const indexRouter = require('./routes/index');
 const familiesRouter = require('./routes/families');
 const directoryRouter = require('./routes/directory');
@@ -68,10 +70,25 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const SqliteStore = createSqliteStore(session);
 
+/*
+ * The cookie now lives about as long as the idle window rather than a
+ * fortnight, and `rolling` pushes it forward on every response — so a session
+ * nobody comes back to falls out of the browser and is pruned from the
+ * database on roughly the same clock that lib/idle.js keeps.
+ *
+ * `cookieMs` is deliberately a few minutes longer than the idle window; see
+ * the note in config/index.js for why the two must not expire together.
+ *
+ * Three layers end up saying the same thing, and the outer two are
+ * conveniences: the page counts down, the cookie expires, and the server
+ * checks `lastSeen` on arrival. Only the last of those is trusted. A cookie
+ * kept past the window reaches a session whose `lastSeen` has not moved, and
+ * is refused.
+ */
 app.use(session({
   name: 'parish.sid',
   secret: config.sessionSecret,
-  store: new SqliteStore({}),
+  store: new SqliteStore({ ttl: config.session.cookieMs / 1000 }),
   resave: false,
   saveUninitialized: false,
   rolling: true,
@@ -79,9 +96,12 @@ app.use(session({
     httpOnly: true,
     sameSite: 'lax',
     secure: config.secureCookies,
-    maxAge: 14 * 24 * 60 * 60 * 1000
+    maxAge: config.session.cookieMs
   }
 }));
+
+// Expire a session left alone, before anything downstream reads a user off it.
+app.use(idle.touch);
 
 app.use(auth.loadUser);
 // Which church this request is about, before anything reads or writes a row.
@@ -142,6 +162,14 @@ app.use((req, res, next) => {
 
 app.use(csrf);
 
+/*
+ * From here down every response is a page about somebody's family. None of it
+ * may be left in the browser's cache for the Back button to re-show after the
+ * session behind it has gone. The stylesheets and scripts are mounted above
+ * the session middleware and keep their ordinary caching.
+ */
+app.use(idle.noStore);
+
 // View helpers: current path for nav highlighting, role checks, and the
 // escape-then-linebreak helper used for multi-line addresses.
 app.use((req, res, next) => {
@@ -150,6 +178,9 @@ app.use((req, res, next) => {
   res.locals.isFamilyLogin = auth.isFamilyLogin(req.user);
   res.locals.roleLabel = (role) => (auth.ROLES[role] ? auth.ROLES[role].label : role);
   res.locals.nl2br = html.nl2br;
+  // The countdown reads these off the page rather than hard-coding them, so
+  // SESSION_IDLE_MINUTES is the only place the number is written down.
+  res.locals.idleTimeout = config.session;
   next();
 });
 
@@ -170,6 +201,10 @@ app.use(wrap(async (req, res, next) => {
 
 // Sign-in, first-run setup and the account page manage their own access.
 app.use('/', authRouter);
+
+// The idle countdown's two endpoints. Above requireAuth because both have to
+// be able to answer "you are signed out" to a page that is still on screen.
+app.use('/', sessionRouter);
 
 // Everything past this point requires a signed-in user.
 app.use(auth.requireAuth);

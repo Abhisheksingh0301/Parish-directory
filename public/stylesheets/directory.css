@@ -22,6 +22,20 @@
   --gilt:      #B08A3E;
   --gilt-deep: #8F6E2C;
   --claret:    #7C3B3B;
+  /* The ground the blood group is struck on. Not a parish setting: it is read
+     in an emergency and should look the same in every book. */
+  --claret-soft: #F4E9E6;
+  /*
+   * The warm accent the 2026 design marks an entry with: the Family ID, the
+   * edition, the eyebrow over the masthead, and the relation beside a name.
+   *
+   * Deliberately NOT one of the five the parish sets. Those five colour the
+   * bands and rules of the table, and they are chosen for the paper a parish
+   * prints on; these four marks have to stay legible whatever is chosen, and
+   * a pill drawn in the parish's own band colour disappears into the band.
+   */
+  --accent:      #7C3A2E;
+  --accent-soft: #F2E8E2;
   --parchment: #F7F4ED;
   --vellum:    #EFEADE;
   --band:      #EFEADE;
@@ -35,26 +49,6 @@
   --frame:     #ffffff;
   --radius:    4px;
 
-  /*
-   * The photograph's share of the row it shares with the details table.
-   *
-   * Two families to a page is what governs this. On A4 less 12mm margins there
-   * are 255mm of height once the footer is taken off, so an entry has to come
-   * in under about 127mm for two of them to sit on one sheet. The details
-   * table is 58mm of that on its own — it renders all five rows whether or not
-   * a family filled them in — and the members table grows by 7mm a person.
-   *
-   * At 0.72fr the photograph is 76mm by 57mm, and its frame is 61mm: just past
-   * the 58mm details table beside it, so it costs the entry almost nothing in
-   * height. Widening it is not free after that — every millimetre the frame
-   * gains above the details table is a millimetre on the entry, and two
-   * millimetres on the sheet.
-   *
-   * A photograph stacked above the details instead cannot do two to a page at
-   * any size: stacking pays the full height of both, where this pays only the
-   * taller of the two.
-   */
-  --photo-width: 0.72fr;
 }
 
 body.directory-body {
@@ -235,815 +229,588 @@ mark.dir-hit {
 }
 
 /*
- * Above the lattice, not under it.
+ * Its own layer.
  *
- * The watermark is 150px tall against a footer of about 69px, so some 80px of
- * it rises deliberately behind the foot of the page. It is absolutely
- * positioned and the entries are not, which put it in front of them: on a full
- * page the diamonds printed over the last family's table. Lifting the entries
- * into their own layer keeps the bleed and puts the data back on top of it —
- * the whitespace between entries is still transparent, so the pattern shows
- * through it and only the tables themselves cover the diamonds.
+ * This was what kept the entries above the ornament that used to bleed up
+ * behind the foot of the page: the ornament was absolutely positioned and the
+ * entries were not, which put the pattern in front of them and printed it over
+ * the last family's table. The ornament is gone, but the stacking context is
+ * kept — it costs nothing, and anything else given to the footer in future
+ * starts out behind the data rather than on top of it.
  */
 .entries { flex: 1 1 auto; position: relative; z-index: 1; }
+/* ==========================================================================
+   The masthead, and the edition mark
 
-/* ---------- one family entry ---------- */
-/* 34px here and 70px of footer padding were what stood between four members
-   and two families on a sheet. See --photo-width. */
-.entry { margin-bottom: 22px; }
+   Every sheet says which book it is and which year it was printed. The old
+   book said neither until the footer, which is the wrong end of the page for
+   somebody holding a loose sheet.
 
-.entry-head {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: stretch;
+   The year is the year of printing, written by the template rather than
+   settled here — see `edition` in print.ejs.
+   ========================================================================== */
+
+.masthead {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--band-dark);
   margin-bottom: 10px;
-  /* A tapered gilt rule, brightest under the name and fading to nothing at
-     both ends — the divider the printed book has always wanted under a
-     heading, in place of the band that used to be behind it. */
-  position: relative;
-  padding-bottom: 7px;
 }
-.entry-head::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent, rgba(176, 138, 62, .18) 6%, var(--gilt) 45%,
-    var(--gilt) 55%, rgba(176, 138, 62, .18) 94%, transparent);
-}
-/*
- * The name is set, not boxed.
- *
- * Both of these were solid bands of --band with the name reversed out in
- * capitals. A band is a cheap way to make a heading loud, and it costs the
- * page its quiet: two of them to an entry and four to a sheet is a lot of
- * furniture around six lines of data. The name is now simply the largest
- * thing on the entry, which is what a name in a register should be, and the
- * parish's --band is kept for the plate around the reference beside it — the
- * one place on the entry where a tint still does work.
- */
-.head-name {
-  padding: 6px 0;
-  font-size: 25px;
-  font-weight: 500;
-  letter-spacing: -.01em;
-  line-height: 1.15;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-}
-.head-id {
-  background: var(--band);
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  align-self: end;
-}
-/* "Family ID" and the number were one text node; they are now two, so the
-   two-up book (which never shows the label on its own line) still reads
-   them as a single "FAMILY ID : F-001". */
-.head-id-value::before { content: ' : '; }
-
-/*
- * Whose book this leaf is from, and who the name belongs to.
- *
- * Both are printed only on the one-family sheet — see .page-single below —
- * the same way .leaf-caption is: hidden here so the two-up book, tuned to
- * the millimetre for two families a page, never pays for a line it doesn't
- * show.
- */
-.head-eyebrow, .head-sub { display: none; }
-
-/*
- * The photograph beside the details, not above them. Stacking gave a far
- * larger photograph but made the entry 232mm, which is one family to a sheet.
- * Side by side the entry pays only the taller of the two. See --photo-width.
- */
-.entry-body {
-  display: grid;
-  grid-template-columns: var(--photo-width) 1fr;
-  gap: 18px;
-  align-items: start;
-  margin-bottom: 12px;
-}
-
-/* details table */
-.details {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--rule);
-  font-size: 17px;
-  line-height: 1.35;
-}
-.details th, .details td {
-  border: 1px solid var(--rule);
-  padding: 8px 12px;
-  text-align: left;
-  vertical-align: middle;
-}
-.details th {
-  width: 31%;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  background: var(--row-b);
-}
-.details td { background: var(--row-a); }
-/* The residence, which carries the house rather than a word and wants the
-   room for it. Named, not counted, for the reason given over the
-   `.page-single .details` rules below. */
-.details .d-residence th,
-.details .d-residence td { padding-top: 12px; padding-bottom: 12px; }
-.home-icon { display: block; margin: 0 auto; width: 34px; height: 34px; fill: var(--ink-soft); }
-.email { word-break: break-all; }
-
-/* photo */
-.photo-frame {
-  background: var(--frame);
-  border: 1px solid var(--rule);
-  padding: 7px;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
-}
-.photo {
-  width: 100%;
-  aspect-ratio: 4/3;
+.masthead .eyebrow {
   display: block;
-  object-fit: cover;
-  background: var(--row-b);
-}
-.photo-empty {
-  width: 100%;
-  aspect-ratio: 4/3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--row-b);
-  color: #8d8577;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: .08em;
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .2em;
   text-transform: uppercase;
+  color: var(--accent);
 }
-
-/* members table */
-.members {
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: 6px;
-  overflow: hidden;
-  font-size: 14px;
-}
-.members th {
-  background: var(--band-dark);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  padding: 7px 8px;
-  text-align: left;
-  /* The gilt hairline under the header is what separates the column names
-     from the people; the parish's own --band-dark is the fill above it. */
-  border-bottom: 1px solid var(--gilt);
-}
-.members th.c, .members td.c { text-align: center; }
-.members td { padding: 6px 8px; border: none; font-variant-numeric: tabular-nums; }
-
-/* The name carries the row, so it is the one cell set in the ink. */
-.members td.nm { font-weight: 600; color: var(--ink); }
-
-/* The relation is not data the way a number is — it is the word that places
-   the person in the household — so it is set in the italic serif, the same
-   voice the book uses for its captions. */
-.members td.rel {
-  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  font-style: italic;
-  color: var(--gilt-deep);
+.masthead h1 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: .005em;
+  color: var(--ink);
 }
 
 /*
- * The blood group, as a struck chip rather than two more characters in a row
- * of them. It is the one value on the line that somebody may one day need to
- * find in a hurry, and the claret is the only place this palette uses a warm
- * red — nothing else on the sheet can be mistaken for it.
- *
- * line-height 1.3 and no vertical padding on purpose: the chip has to sit
- * inside the height the row already had. A taller row costs 7mm a family on
- * the printed sheet, which is the difference between two households on a page
- * and one.
+ * The edition mark sits in the masthead's own top-right rather than being
+ * positioned against the sheet: the page is a flex column and `.page` already
+ * carries padding that differs between screen and print, so an absolutely
+ * placed badge had two different resting places. In the row, it has one.
  */
-.members .bg {
-  display: inline-block;
-  padding: 0 7px;
-  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  font-weight: 600;
-  font-size: .92em;
-  line-height: 1.3;
-  color: var(--claret);
-  background: rgba(124, 59, 59, .05);
-  border: 1px solid rgba(124, 59, 59, .3);
-  border-radius: 20px;
-}
-
-/* A value the household did not give. Quiet enough not to speckle the page,
-   dark enough to be seen as a mark rather than a blemish. */
-.members .dash,
-.details .dash { color: #C7BEA9; }
-
-/* Said to a screen reader, not shown: the residence's label, which the page
-   itself draws as a house. */
-.details .vh {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-.members tbody tr:nth-child(odd)  td { background: var(--member-a); }
-.members tbody tr:nth-child(even) td { background: var(--member-b); }
-.members td[rowspan] { text-align: center; vertical-align: middle; }
-/* A date of birth carries a year: "02 - Aug - 1975" must not wrap. */
-.members .d { white-space: nowrap; }
-
-/*
- * The section captions. Hidden here, and shown by .page-single below.
- *
- * They are in the shared markup rather than in a copy of it made for the
- * one-up sheet, for the same reason everything else in _entry.ejs is: two
- * copies of an entry drift, and the drift shows up in a printed book that
- * nobody proof-reads twice.
- */
-.leaf-caption { display: none; }
-
-/* ---------- footer ---------- */
-.page-foot { margin-top: auto; position: relative; padding: 30px 0 18px; }
-/*
- * The ornament that closes the page.
- *
- * This was a lattice watermark bled 150px up behind the last entry — a
- * pattern the eye had to look past to read the family printed over it. It is
- * now the Mar Thoma crest the sign-in plate carries, sitting in the footer's
- * own space and rising into nothing: the same mark at both ends of the book,
- * and no ink where the data is.
- *
- * Inlined as a data URI rather than a file under /images because a
- * stylesheet is served as-is and cannot carry the `base` prefix a proxied
- * deployment puts in front of every other asset path.
- *
- * It keeps the class name because _entry.ejs and both directory views write
- * <div class="lattice">, and those templates are shared with the combined
- * book.
- */
-.lattice {
-  position: absolute;
-  left: 0; right: 0; bottom: 100%;
-  height: 30px;
-  margin-bottom: 9px;
-  pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: center bottom;
-  background-size: auto 26px;
-  background-image: url("data:image/png;base64,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");
-}
-.foot-row {
-  position: relative;
+.masthead-row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: flex-end;
-  border-top: 1px solid var(--rule);
-  /*
-   * The name and the folio stay at the two ends, but pulled in from them, so
-   * that neither sits hard against the edge of the text area. The padding is
-   * inside the border, so the rule above them still runs the full width of
-   * the page — an inset line under a full-width rule, rather than a shorter
-   * rule.
-   */
-  padding: 8px 18mm 0;
-  font-size: 17px;
+  gap: 16px;
 }
-.parish-name {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 500;
-  font-size: 14px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-/*
- * The edition line under the parish's name — "Family Directory 2026" — on
- * the one-family sheet only. The two-up footer is a single tight row between
- * the name and the folio (see the 34px/70px budget above .entry); a second
- * line there is a line the pagination math never priced in, so it stays off
- * until .page-single turns it back on.
- */
-.foot-edition { display: none; }
-.page-single .foot-edition {
-  display: block;
+.edition {
+  flex: none;
   margin-top: 2px;
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: .16em;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--ink-mute);
-}
-.folio {
-  font-family: 'Fraunces', Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 15px;
-  color: var(--ink-soft);
+  white-space: nowrap;
 }
 
 /* ==========================================================================
-   One family to a sheet.
+   One family entry
 
-   A different layout, not the two-up entry with more room around it. The
-   photograph moves above the details and becomes the thing the page is about,
-   which is what the whole sheet is now for.
-
-   Everything below is reached only through `.page-single`, put on the page by
-   the two directory views when the parish has set one family per printed page.
-   The entry markup does not change at all — `_entry.ejs` is shared by the
-   single-church book and the combined one precisely so the two cannot drift,
-   and a second copy of it for this layout would be the drift.
-
-   ── The height budget, which is what governs the photograph ────────────────
-
-   Measured, not reasoned about: the layout is rendered for a five-member
-   family and printed to A4 through a headless browser, and the pages in the
-   resulting PDF are counted. Three families are tried at each size —
-
-       real      the largest household in the pilot parish
-       typical   five members, one number and one address each, a two-line
-                 residence. What most of a parish looks like once the
-                 households have filled their entries in.
-       worst     five members, every one with two mobile numbers, two email
-                 addresses, a long qualification and a long occupation, a
-                 three-line residence and a two-line home town. The guarantee
-                 has to hold for the entry nobody has typed yet.
-
-   The worst case runs onto a second sheet at 74%. It is set to 68% rather
-   than 73% because that cliff is measured in one browser with one font: the
-   webfont may not load in a parish office printing offline, and the fallback
-   does not have the same metrics. Five points is the margin for that, not
-   timidity — at 73% a font that renders a hair taller costs a whole sheet.
-
-   Re-measure rather than adjust by eye if the entry changes shape again. It
-   has already happened once: this budget previously read 62%, computed when
-   the details table had five rows and no cell could run to two lines. The
-   sixth row and the multi-value mobile and email cells put a full five-member
-   family onto two sheets, and nothing here said so until it was printed.
-
-   The household register stands its three short answers side by side, which
-   is what affords a photograph this size at all — stacked five deep, the same
-   guarantee held only to 60%. See the `.page-single .details` rules below.
-
-   Dropping Area / Unit and setting the label over the answer left the register
-   the same height to within a line: it lost a band, and the two it kept grew
-   by about as much as the band was worth. So this figure is unchanged, and
-   deliberately so. If a household does run onto a second sheet, that is the
-   household being large — it is not a reason to shrink the photograph, which
-   is the one thing on the page a family actually keeps.
+   Three bands down the sheet: who they are, where they live, and who is in
+   the household. Two of these to an A4 page.
    ========================================================================== */
 
-.page-single {
+/*
+ * The entries take the height between the masthead and the foot. `z-index`
+ * keeps them a layer of their own, so anything the sheet is given later —
+ * a watermark, a keyline — starts out behind the data rather than over it.
+ */
+.entries {
+  flex: 1 1 auto;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
   /*
-   * A proportion, not a pixel width, and that is the whole trick.
-   *
-   * The screen page and the printed sheet are not to the same scale: on screen
-   * a page is 960px wide for what will be 210mm of paper, but in print the
-   * padding drops away and the content is 186mm — 703px at the 96dpi a browser
-   * prints at — against 1032px of usable height. A photograph fixed in pixels
-   * is therefore a different share of the two, and the one that fits the
-   * screen runs the printed sheet over.
+   * 14px, not 20. The sheet is budgeted to the millimetre — see the note on
+   * the column widths — and the space between two entries is the cheapest
+   * height on the page to give back: six pixels here and at the three margins
+   * below is about one more member row per household before a family is
+   * pushed onto a sheet of its own.
    */
-  --single-photo: 68%;
+  gap: 14px;
+}
+
+.entry { display: flex; flex-direction: column; }
+
+/* ---------- the name, and what places it ---------- */
+
+.p-head { margin-bottom: 8px; }
+
+.p-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
 }
 
 /*
- * The heading: the name on the left, the reference on the right, sharing one
- * rule.
+ * The Family ID as a struck mark rather than a labelled field.
  *
- * `_entry.ejs` writes the id first and the name second, which is the order the
- * two-up entry wants — a narrow id column beside a wide name band. Here they
- * are swapped with `order` rather than by moving the markup, because that
- * markup is shared with the compact layout and with the combined book; a
- * second copy of it to reorder two elements is the drift the sharing exists to
- * prevent. Grid auto-placement follows `order`, so nothing else is needed.
+ * It used to be the words "FAMILY ID" over the reference, which spent two
+ * lines saying what the shape of the thing already says — every household is
+ * filed under one, and a reader looking for P036 is looking for the only
+ * pill on the entry.
  */
-.page-single .entry-head {
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto auto;
-  align-items: center;
-  column-gap: 16px;
-  margin-bottom: 16px;
-  /*
-   * One rule under both, rather than an accent under the name alone: with the
-   * two pushed to opposite ends, a rule under only one of them reads as a
-   * mistake.
-   *
-   * It used to be 3px of --band-dark, which is the parish's own colour doing
-   * a structural job — the sheet's one horizontal line got heavier or lighter
-   * depending on the band a parish had picked for its members table. It is now
-   * the tapered gilt rule .entry-head::after draws for every layout, and only
-   * the room above it is set here.
-   */
-  padding-bottom: 10px;
-}
-.page-single .head-eyebrow {
-  display: block;
-  grid-column: 1;
-  grid-row: 1;
-  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  font-style: italic;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-.page-single .head-name {
-  grid-column: 1;
-  grid-row: 2;
-  justify-self: start;
-  justify-content: flex-start;
-  text-align: left;
-  font-size: 34px;
-  font-weight: 400;
-  letter-spacing: -.015em;
-  /* No band and no box: the name is the title of the page it is on, not
-     another cell in another table. */
-  background: transparent;
-  padding: 2px 0;
-  border-radius: 0;
-}
-.page-single .head-sub {
-  display: block;
-  grid-column: 1;
-  grid-row: 3;
-  font-size: 11.5px;
+.fam-id {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.p-eyebrow .prayer {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.p-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+
+/* The one ornament an entry gets. */
+.gold-rule {
+  height: 2px;
+  width: 56px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: var(--gilt);
+}
+
+/* ---------- the photograph, and the three "where" answers ---------- */
+
+/*
+ * Side by side, and that is a height decision rather than a taste one: a
+ * photograph stacked above the card pays the full height of both, where this
+ * pays only the taller of the two. Two families to a sheet does not survive
+ * the stack — see .page-single, which is the layout for when it need not.
+ */
+.p-top {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+
+.photo-frame {
+  flex: 0 0 auto;
+  display: flex;
+  padding: 7px;
+  border-radius: 5px;
+  background: var(--frame);
+  box-shadow: 0 3px 12px rgba(50, 40, 28, .12);
+}
+
+/*
+ * 4:3, and the same 4:3 the upload page asks a parish to send — see the
+ * "Photo size and resolution" card in views/admin/photos.ejs. `cover` rather
+ * than `contain`, so a picture that is not quite 4:3 fills the frame and is
+ * cropped, instead of sitting in a box of empty grey.
+ */
+/*
+ * 4:3, and the size is a height budget rather than a taste.
+ *
+ * The design was drawn with a 2.15 x 1.62in picture. Printed with real
+ * households that is a household of five per entry and no more: a parish's
+ * names and addresses are long enough that most rows of the members table
+ * fold to two lines, and at 1.62in a sixth member pushed the second family
+ * onto a sheet of its own. Measured, not guessed — eight households of six
+ * printed to sixteen sheets instead of eight.
+ *
+ * 1.84 x 1.38in is the same 4:3 picture, about a seventh smaller, and buys
+ * the ~5mm an entry needs to carry a sixth member. It also widens the card
+ * beside it, which is where the long addresses go.
+ */
+.photo {
+  width: 1.84in;
+  height: 1.38in;
+  display: block;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--band);
+}
+.photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 22px;
+  border-radius: 5px;
+  background: var(--frame);
+  box-shadow: 0 3px 12px rgba(50, 40, 28, .09);
+}
+/*
+ * 5px, not 8. With the picture trimmed, this card became the taller half of
+ * the row and therefore the thing setting the entry's height — three rows of
+ * padding is 4.8mm of sheet, which is most of a member row.
+ */
+.info-row { padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.info-row:last-child { border-bottom: none; }
+.ir-label {
+  margin-bottom: 2px;
+  font-size: 8.5px;
+  font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--ink-mute);
 }
-/*
- * The reference, as an engraved plate rather than a pill: a keyline, and a
- * second one struck inside it. The sheet it sits on is drawn that way, and a
- * rounded pill on a ruled page reads as something pasted onto it.
- *
- * Stacked rather than run together — "Family ID" over "F-001" — the same
- * distinction the plate on a real register makes between the label engraved
- * on it and the number filled in.
- */
-.page-single .head-id {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  align-self: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: linear-gradient(180deg, #FFFDF8, #FBF6EC);
-  border: 1px solid var(--gilt);
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 3px #FCFAF3, inset 0 0 0 3.7px rgba(143, 110, 44, .45);
-  padding: 9px 20px;
+.ir-value {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink-soft);
 }
-.page-single .head-id-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .2em;
+
+/* ---------- the members ---------- */
+
+.members-wrap {
+  border-radius: 5px;
+  background: var(--frame);
+  box-shadow: 0 3px 12px rgba(50, 40, 28, .07);
+  overflow: hidden;
+}
+
+/*
+ * `table-layout: fixed` and a width on every column but the last.
+ *
+ * Without it the browser widens whichever column happens to hold the longest
+ * word, which in this table is always an email address — so one household
+ * with a long address set its own table to a different shape from the one
+ * above it, on the same sheet. Fixed widths mean every entry in the book has
+ * its columns in the same places, which is what makes it a register rather
+ * than a series of tables.
+ */
+.members {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/*
+ * border-box, and it is load-bearing rather than tidiness.
+ *
+ * Under `table-layout: fixed` a column's declared width is the content box and
+ * the cell's padding is added on top of it. Widths that looked like they came
+ * to the full width therefore came to more, and the last column — the one
+ * without a width, which is the addresses — absorbed the whole difference: it
+ * was measured at 52px while wanting 233, so every address wrapped to three
+ * lines and every row in the book was three lines tall. Two families stopped
+ * fitting on a sheet.
+ *
+ * With border-box the declared widths are what the columns actually occupy,
+ * so the percentages below can be made to add up to 100 and be believed.
+ */
+.members th,
+.members td { box-sizing: border-box; }
+
+.members thead th {
+  padding: 8px 6px;
+  border-bottom: 1.5px solid var(--band-dark);
+  background: var(--band);
+  text-align: left;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
-.page-single .head-id-value {
-  font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: .05em;
-  color: var(--ink);
-}
-/* The two-up book's " : " separator is a two-up-only stitch — the plate
-   stacks the label over the number instead. */
-.page-single .head-id-value::before { content: ''; }
+.members thead th.c { text-align: center; }
 
-/* The photograph above the details, mounted rather than merely bordered. */
-.page-single .entry-body {
-  grid-template-columns: 1fr;
-  gap: 0;
-  margin-bottom: 18px;
+.members tbody td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+  font-size: 9.5px;
+  line-height: 1.25;
+  color: var(--ink-soft);
 }
-.page-single .photo-frame {
-  /*
-   * `width: 100%` and not merely `max-width`. A grid item given `margin: 0
-   * auto` stops stretching to its column and sizes to its contents instead —
-   * and its contents are an image at `width: 100%`, which then resolves
-   * against the picture's own intrinsic width. The frame collapses to whatever
-   * size the photograph happened to be uploaded at. Setting the width
-   * explicitly takes the decision away from the file.
-   */
-  width: 100%;
-  max-width: var(--single-photo);
-  margin: 0 auto 18px;
-  padding: 9px;
-  border-radius: 3px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, .16);
-}
-.page-single .photo,
-.page-single .photo-empty {
-  aspect-ratio: 4 / 3;
-}
-.page-single .photo-empty { font-size: 15px; }
+.members tbody tr:last-child td { border-bottom: none; }
+/* The parish's own two row colours, from the Settings page. */
+.members tbody tr:nth-child(odd)  { background: var(--member-a); }
+.members tbody tr:nth-child(even) { background: var(--member-b); }
+.members td.c { text-align: center; }
 
+.m-name { font-size: 10px; font-weight: 600; color: var(--ink); }
 /*
- * The household register: three bands, and the label over the answer.
- *
- * Five label-and-value rows stacked down the page is 40mm of sheet spent on
- * five short answers — a prayer group does not need half the width of an A4
- * between the label and the word. So the three short ones stand side by side
- * and the register is three bands tall, and the height that frees goes to the
- * photograph, which is what the page is for. See --single-photo.
- *
- * Done by re-flowing the same table rather than by writing a second one:
- * `_entry.ejs` is shared with the two-up book and the combined one, and a
- * separate markup for this layout is exactly the drift that sharing prevents.
- *
- * Three things this is deliberately not, all of them what it used to be.
- *
- * It is not placed by counting. Every row is placed by the name it carries
- * — .d-residence, .d-group and so on — rather than by being the first or the
- * last or an even one. The old rule paired up everything between the first
- * row and the last, which held only while that number stayed even: dropping
- * Area / Unit left three to pair, and the third sat on its own beside an
- * empty bordered half-cell. Named placement cannot develop a hole, because
- * every cell in the grid is somewhere a rule put something.
- *
- * It is not a label column. "Home Town Name / Address (HOF)" does not fit
- * beside its answer in a third of a page, so it wrapped to two lines and
- * pushed its value out of line with the value beside it. The label sits over
- * the answer instead, where its length costs nothing — and because the three
- * share one grid row for their labels and another for their answers, the
- * three answers sit on one line however long the labels above them run.
- *
- * It is not a spreadsheet. Every cell used to be boxed on four sides with the
- * labels filled one colour and the answers another, which is the look of a
- * form to be filled in rather than a register to be read. One sheet of white,
- * a hairline between the bands and between the three columns, and nothing
- * else.
+ * The relation, set beside the name instead of in a column of its own. It
+ * reads as "Nibin Babu John (Son)", and it gave the column it used to occupy
+ * to the email addresses, which needed the width.
  */
-.page-single .details {
-  display: block;
-  font-size: 15px;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: var(--row-a);
+.m-name .rel {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 9.5px;
+  color: var(--accent);
 }
 
-/*
- * Four tracks down: the residence, then the labels of the three, then their
- * answers, then the email address. The two full-width bands are rows of their
- * own; the three in the middle hand their label and their answer straight to
- * this grid (`display: contents`) so that all three labels share one track
- * and all three answers share the next.
- */
-.page-single .details tbody {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto auto auto auto;
+/* Figures that line up down the column, and never break across two lines. */
+.m-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.1px;
+  white-space: nowrap;
 }
 
-.page-single .details th,
-.page-single .details td {
-  display: block;
-  min-width: 0;
-  border: 0;
-  background: none;
+.dash { color: var(--ink-mute); }
+
+/* The one value read at a glance in an emergency. */
+.blood-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--claret-soft);
+  color: var(--claret);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
 }
 
-/* The label: small, spaced, and quiet enough that the answer is what is read. */
-.page-single .details th {
-  width: auto;
-  padding: 9px 14px 0;
-  font-size: 10.5px;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+.email {
+  font-size: 8px;
+  line-height: 1.15;
+  letter-spacing: -.1px;
   color: var(--ink-mute);
-}
-
-/* The answer. `anywhere` because a long parish name must wrap inside its
-   third rather than widen it and knock the other two out of line. */
-.page-single .details td {
-  padding: 1px 14px 10px;
-  font-size: 15px;
-  line-height: 1.4;
-  color: var(--ink);
-  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 /*
- * The residence and the email address run the width of the register. The
- * residence is the one answer that can run to three lines, and the email is
- * one long unbroken string; neither belongs in a third of a page. Both keep
- * their label beside the answer rather than over it — across the full width
- * there is room, and it saves the band a line.
- */
-.page-single .details .d-residence,
-.page-single .details .d-email {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 13px;
-  min-width: 0;
-  padding: 10px 14px;
-}
-.page-single .details .d-residence { grid-row: 1; align-items: flex-start; }
-.page-single .details .d-email { grid-row: 4; align-items: baseline; }
-
-.page-single .details .d-residence th,
-.page-single .details .d-email th { flex: none; padding: 0; }
-.page-single .details .d-residence td,
-.page-single .details .d-email td { padding: 0; min-width: 0; }
-
-/* The email label is the only one set beside an answer at this size, so it
-   takes the answer's line-height to sit on the same baseline as it. */
-.page-single .details .d-email th { line-height: 1.4; padding-top: 1px; }
-
-/* The three short answers, left to right in the order the entry reads them. */
-.page-single .details .d-group,
-.page-single .details .d-parish,
-.page-single .details .d-hometown { display: contents; }
-
-.page-single .details .d-group th    { grid-area: 2 / 1; }
-.page-single .details .d-group td    { grid-area: 3 / 1; }
-.page-single .details .d-parish th   { grid-area: 2 / 2; }
-.page-single .details .d-parish td   { grid-area: 3 / 2; }
-.page-single .details .d-hometown th { grid-area: 2 / 3; }
-.page-single .details .d-hometown td { grid-area: 3 / 3; }
-
-/*
- * The rules, drawn once each. `border-collapse` does not survive the grid, so
- * a band is separated from the one above it by a single top border, and the
- * three columns by a single left border on the two that have a neighbour.
- */
-.page-single .details .d-group th,
-.page-single .details .d-parish th,
-.page-single .details .d-hometown th,
-.page-single .details .d-email { border-top: 1px solid var(--rule); }
-
-.page-single .details .d-parish th,
-.page-single .details .d-parish td,
-.page-single .details .d-hometown th,
-.page-single .details .d-hometown td { border-left: 1px solid var(--rule); }
-
-/* The icon is the residence's label, so it is sized to the label row rather
-   than centred in a cell of its own the way the two-up book sets it. */
-.page-single .home-icon { width: 22px; height: 22px; margin: 0; }
-
-/*
- * The captions, on the one layout with the height to spend on them.
+ * Column widths, as shares of the table rather than in inches.
  *
- * A small diamond, the word, and a rule running out to the margin: the same
- * device on both halves of the entry, so "Household" and "Members" read as
- * two sections of one document rather than two tables that happen to follow
- * each other.
+ * In inches they were a set of numbers that had to be re-derived every time
+ * the page margin or the paper changed, and got it wrong when it did. As
+ * percentages of a border-box table they simply add to 100 and hold on any
+ * width the sheet turns out to have.
+ *
+ * Measured against the widest real values in a parish's own book, on A4
+ * inside a 12mm margin (703px of table):
+ *
+ *   Mobile must never wrap — it is `white-space: nowrap`, so a column too
+ *   narrow overflows the cell rather than folding. 16% is a ten-digit number
+ *   with a few pixels to spare.
+ *   Member and Email are the two that may fold, and both fold to exactly two
+ *   lines: "Jesty Kunjumon (Daughter-in-law)" and a 26-character address are
+ *   the worst cases in the sheet this was measured against.
+ *
+ * Two lines is the row height the whole page is budgeted on. Take width away
+ * from Member or Email and a third line appears, which costs ~3mm on every
+ * row of every entry and is what stops two families fitting on a sheet.
  */
-.page-single .leaf-caption {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.page-single .leaf-caption .t {
+.cw-name  { width: 23%; }
+.cw-bday  { width: 8.5%; }
+.cw-anniv { width: 8.5%; }
+.cw-mob   { width: 16%; }
+.cw-blood { width: 6.5%; }
+.cw-qual  { width: 9.5%; }
+.cw-occ   { width: 9.5%; }
+.cw-email { width: 18.5%; }
+
+/* ---------- between two families on one sheet ---------- */
+
+/*
+ * A struck rule with a gilt point in the middle, rather than a plain border:
+ * two entries on a sheet need to read as two, and the eye finds a break in a
+ * line faster than it finds a line.
+ */
+.entry-divider {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--ink);
+  justify-content: center;
+  gap: 14px;
 }
-.page-single .leaf-caption .t::before {
+.entry-divider::before,
+.entry-divider::after {
   content: '';
-  width: 8px;
-  height: 8px;
-  flex: none;
-  transform: rotate(45deg);
-  border: 1px solid var(--gilt);
-  background: rgba(176, 138, 62, .14);
+  height: 1px;
+  flex: 0 0 90px;
+  background: var(--band-dark);
 }
-.page-single .leaf-caption .line { flex: 1; height: 1px; background: var(--rule); }
-.page-single .leaf-caption .n {
-  font-size: 11px;
-  letter-spacing: .05em;
+.entry-divider .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gilt);
+}
+
+/* ---------- footer ---------- */
+
+.page-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--band-dark);
+}
+.foot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.parish-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  color: var(--ink-soft);
+}
+.parish-name .sep { color: var(--gilt); }
+.folio {
+  font-size: 9px;
+  letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--ink-mute);
 }
-/* The Members caption follows the household register, which closes on a rule
-   of its own; without this the two lines sit on top of one another. */
-.page-single .members + .leaf-caption,
-.page-single .details + .leaf-caption,
-.page-single .entry-body + .leaf-caption { margin-top: 16px; }
+/* The edition line is in the masthead now, at the top of every sheet. */
+.foot-edition { display: none; }
 
-.page-single .members { font-size: 13px; }
-.page-single .members th { padding: 6px 7px; letter-spacing: .02em; }
-.page-single .members td { padding: 5px 7px; }
+/* ==========================================================================
+   One family to a sheet
+
+   The same markup, given the room. Reached only through `.page-single`, which
+   routes/directory.js puts on the page when the parish sets one family per
+   page — which is the default.
+
+   The difference is the photograph: side by side is a compromise the two-up
+   sheet makes to fit two households, and a sheet carrying one household has
+   no reason to make it. So the picture goes above the card and across the
+   width, which is what the parish wanted the leaf for.
+   ========================================================================== */
+
+.page-single .entries { justify-content: flex-start; }
+
+.page-single .p-name { font-size: 34px; }
+.page-single .gold-rule { width: 72px; }
+
+.page-single .p-top {
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/*
+ * A proportion, not a fixed size, and that is the whole trick: the screen page
+ * and the printed sheet are not to the same scale, so a photograph fixed in
+ * pixels is a different share of the two and the one that fits the screen runs
+ * the sheet over.
+ *
+ * `width` and not merely `max-width`. A flex item given `margin: 0 auto` stops
+ * stretching and sizes to its contents instead — and its contents are an image
+ * at width:100%, which then resolves against the picture's own intrinsic
+ * width, collapsing the frame to whatever size the photograph happened to be
+ * uploaded at.
+ */
+.page-single .photo-frame {
+  width: 68%;
+  max-width: 68%;
+  align-self: center;
+  padding: 9px;
+  box-shadow: 0 8px 22px rgba(50, 40, 28, .16);
+}
+.page-single .photo {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+.page-single .photo-empty { font-size: 13px; }
+
+.page-single .info { padding: 4px 26px; }
+.page-single .ir-value { font-size: 13px; }
+
+.page-single .members thead th { font-size: 8px; padding: 9px 9px; }
+.page-single .members tbody td { font-size: 11px; padding: 7px 9px; }
+.page-single .m-name { font-size: 11.5px; }
+.page-single .m-name .rel { font-size: 11px; }
+.page-single .email { font-size: 9.5px; }
 
 /*
  * The foot of a leaf is centred, not split.
  *
  * On a sheet of two families the parish name and the folio are at opposite
- * ends of one line, which is how a page of a book is numbered. A sheet that
- * is one family is a certificate, and its imprint belongs under the ornament
- * in the middle — with the folio dropped to the corner, where it stays out of
- * the way of the imprint but can still be found when the sheets are collated.
+ * ends of one line, which is how a page of a book is numbered. A sheet that is
+ * one family is a certificate, and its imprint belongs in the middle — with
+ * the folio dropped to the corner, where it stays out of the way but can still
+ * be found when the sheets are collated.
  */
 .page-single .foot-row {
   position: relative;
   display: block;
-  border-top: 0;
   text-align: center;
-  padding-top: 0;
-  padding-bottom: 6px;
 }
-/*
- * The ornament sits hard against its imprint here, not floating in the
- * 30px/9px the two-up footer gives it to clear a full-width rule it no
- * longer draws — .foot-row's border is off in this layout, so that room was
- * just air between the crest and the name.
- */
-.page-single .page-foot { padding-top: 6px; }
-.page-single .lattice { margin-bottom: 2px; }
+.page-single .page-foot { border-top: 0; padding-top: 6px; }
 .page-single .parish-name { display: block; }
 .page-single .folio {
   position: absolute;
   right: 0;
-  bottom: 6px;
+  bottom: 0;
 }
-
 /* ---------- responsive ---------- */
+
+/*
+ * The book on a screen it was never cut for.
+ *
+ * Nothing here is about paper. A sheet is a fixed thing and the layout above
+ * is measured against it; a phone is not, so the two things that assume width
+ * give it up — the photograph stops sitting beside the card, and the members
+ * table, which has eight columns and cannot usefully have fewer, scrolls
+ * sideways inside its own panel rather than crushing every column to
+ * illegibility.
+ */
 @media (max-width: 720px) {
   body.directory-body { padding: 14px 8px 40px; }
   .page { padding: 16px 16px 0; min-height: 0; }
-  /* No page to fit on a phone, so the photograph takes the full width. */
-  .entry-body { grid-template-columns: 1fr; }
-  .entry-head { grid-template-columns: 1fr; }
-  .head-name { font-size: 20px; }
-  .head-id { font-size: 17px; align-self: auto; }
-  .details, .members { font-size: 15px; }
-  .members { display: block; overflow-x: auto; }
-  /* 18mm a side is most of a phone; the footer goes back to the edges. */
-  .foot-row { padding-left: 0; padding-right: 0; }
-  /* The single-page photograph is capped for an A4 sheet, which a phone is
-     not — below that width the cap is wider than the screen and does nothing,
-     so this only matters on a narrow tablet. */
-  .page-single { --single-photo: 100%; }
-  .page-single .head-name { font-size: 20px; }
-  /* The plate keeps its inset keyline, so the padding cannot come below the
-     7px the two struck lines need to sit inside it. */
-  .page-single .head-id { font-size: 10px; letter-spacing: .14em; padding: 8px 14px; }
+
+  .masthead-row { flex-direction: column; gap: 8px; }
+  .masthead h1 { font-size: 17px; }
+  .edition { margin-top: 0; align-self: flex-start; }
+
+  .p-name { font-size: 22px; }
+  .page-single .p-name { font-size: 24px; }
+
+  /* Stacked, and the picture takes the full width it is given. */
+  .p-top { flex-direction: column; gap: 12px; }
+  .photo-frame,
+  .page-single .photo-frame { width: 100%; max-width: 100%; align-self: stretch; }
+  .photo,
+  .page-single .photo { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .info, .page-single .info { padding: 4px 16px; }
 
   /*
-   * A phone is not a sheet, so the register stops standing its three answers
-   * side by side — a third of a phone is about eleven characters, and "Home
-   * Town Name / Address (HOF)" over eleven characters is not a saving. The
-   * grid is dropped altogether rather than narrowed to one column: with the
-   * tracks gone, the named placements have nothing to place against, and
-   * plain stacked bands are what the layout would want anyway.
+   * The one place a horizontal scrollbar is the right answer. Fixed column
+   * widths in inches are meaningless here, so they are released and the table
+   * is given a floor it will not go under.
    */
-  .page-single .details tbody,
-  .page-single .details tr { display: block; }
-  .page-single .details .d-residence,
-  .page-single .details .d-email { display: flex; }
+  .members-wrap { overflow-x: auto; }
+  .members { table-layout: auto; min-width: 640px; }
+  .members thead th { font-size: 8px; }
+  .members tbody td { font-size: 11px; }
+  .email { font-size: 10px; }
 
-  /* One hairline between each band, and none down the middle of anything. */
-  .page-single .details .d-group,
-  .page-single .details .d-parish,
-  .page-single .details .d-hometown { border-top: 1px solid var(--rule); }
-  .page-single .details .d-group th,
-  .page-single .details .d-parish th,
-  .page-single .details .d-hometown th { border-top: 0; }
-  .page-single .details .d-parish th,
-  .page-single .details .d-parish td,
-  .page-single .details .d-hometown th,
-  .page-single .details .d-hometown td { border-left: 0; }
+  .cw-name, .cw-bday, .cw-anniv, .cw-mob,
+  .cw-blood, .cw-qual, .cw-occ, .cw-email { width: auto; }
+
+  .entry-divider::before,
+  .entry-divider::after { flex: 1 1 auto; }
 }
 
 /* ---------- print ---------- */

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "node --watch ./bin/www",
-    "test": "node ./test/smoke.js && node ./test/console.js && node ./test/tenancy.js && node ./test/reports.js && node ./test/verification.js && node ./test/export.js && node ./test/import-template.js && node ./test/import-upload.js && node ./test/import-photos.js && node ./test/roundtrip.js && node ./test/photo-formats.js",
+    "test": "node ./test/smoke.js && node ./test/console.js && node ./test/tenancy.js && node ./test/reports.js && node ./test/verification.js && node ./test/export.js && node ./test/import-template.js && node ./test/import-upload.js && node ./test/import-photos.js && node ./test/roundtrip.js && node ./test/photo-formats.js && node ./test/idle.js",
     "superadmin": "node ./bin/superadmin.js",
     "test:smoke": "node ./test/smoke.js",
     "test:console": "node ./test/console.js",
@@ -20,7 +20,8 @@
     "test:import-template": "node ./test/import-template.js",
     "test:import-upload": "node ./test/import-upload.js && node ./test/import-photos.js",
     "test:roundtrip": "node ./test/roundtrip.js",
-    "test:photos": "node ./test/photo-formats.js"
+    "test:photos": "node ./test/photo-formats.js",
+    "test:idle": "node ./test/idle.js"
   },
   "engines": {
     "node": ">=18"

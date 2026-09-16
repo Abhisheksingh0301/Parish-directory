@@ -46,11 +46,29 @@ const DEFAULT_SETTINGS = {
    */
   approval_tiers: '1',
   routine_fields: verification.DEFAULT_ROUTINE_FIELDS,
-  color_band: '#cec4b3',
-  color_band_dark: '#b6ab97',
-  color_member_a: '#d9d2c4',
-  color_member_b: '#cec6b6',
-  color_rule: '#a99e8a'
+  /*
+   * The printed book's five colours, as the 2026 design wants them.
+   *
+   * They used to be a set of tans that put a solid khaki band behind every
+   * row of every members table. The design the parish approved is a white
+   * card with the banding barely there — the ink and the gilt do the work,
+   * and the table is read rather than looked at.
+   *
+   * These are only the fallback. A church that has chosen its own colours on
+   * the Settings page keeps them, and its book will still print in the old
+   * tans until somebody goes and changes them.
+   *
+   *   band        the head of the members table
+   *   band_dark   the rules that close a band: under the table head, and
+   *               above the masthead and the foot of the sheet
+   *   member_a/b  the two row colours, alternating down the table
+   *   rule        the hairline between rows, and inside the details card
+   */
+  color_band: '#faf8f3',
+  color_band_dark: '#ddd5c6',
+  color_member_a: '#ffffff',
+  color_member_b: '#fbfaf6',
+  color_rule: '#ece6da'
 };
 
 /**

@@ -71,24 +71,54 @@
 
 <p id="dir-search-empty" class="dir-search-empty" hidden>No families match your search.</p>
 
+<%
+  /*
+   * The edition, which is the year the book is printed.
+   *
+   * Taken from the clock rather than from a setting: it marks the copy in
+   * somebody's hands, and a parish that reprints the directory next February
+   * should get "2027" on it without having to remember to go and change a
+   * field first. A date is the one thing a computer can be trusted to know.
+   */
+  const edition = new Date().getFullYear() + ' Edition';
+%>
 <% pages.forEach(function (page) { %>
   <div class="page<%= page.single ? ' page-single' : '' %>">
+
+    <%
+      /*
+       * The masthead, on every sheet. A loose leaf out of a printed book
+       * should still say which book it came from and which year it is — and
+       * the foot of the page, where that used to be, is the wrong end to find
+       * it when the sheets are spread on a table.
+       */
+    %>
+    <div class="masthead">
+      <div class="masthead-row">
+        <div>
+          <span class="eyebrow"><%= settings.directory_title %></span>
+          <h1><%= settings.parish_name %><%
+            %><% if (church && church.city) { %> &middot; <%= church.city %><% } %></h1>
+        </div>
+        <span class="edition"><%= edition %></span>
+      </div>
+    </div>
+
     <div class="entries">
-      <% page.families.forEach(function (f) { %>
+      <% page.families.forEach(function (f, i) { %>
+        <%# A struck rule with a gilt point between two families on one sheet. %>
+        <% if (i > 0) { %><div class="entry-divider"><span class="dot"></span></div><% } %>
         <%- include('_entry', { f: f, settings: settings, church: church }) %>
       <% }); %>
     </div>
 
     <div class="page-foot">
-      <div class="lattice"></div>
       <div class="foot-row">
         <span class="parish-name">
-          <%= settings.parish_name %><% if (church && church.city) { %>, <%= church.city %><% } %>
+          <%= settings.parish_name %><%
+          %><% if (church && church.city) { %> <span class="sep">&middot;</span> <%= church.city %><% } %>
         </span>
-        <% if (settings.directory_title) { %>
-          <span class="foot-edition"><%= settings.directory_title %></span>
-        <% } %>
-        <span class="folio"><%= page.folio %></span>
+        <span class="folio">Page <%= page.folio %></span>
       </div>
     </div>
   </div>
@@ -110,13 +140,17 @@
    * scanning a matched entry still has to find the word on the page — so the
    * term is wrapped in <mark> where it shows in the entry.
    *
-   * Only the cells holding a family's own words are marked, never the printed
-   * labels beside them: a short term would otherwise light up "Relation" and
-   * "Email ID" in every entry on the page. Entries that carry a mark are
+   * Only the parts holding a family's own words are marked, never the printed
+   * labels beside them: a short term would otherwise light up "Residence" and
+   * "Occupation" in every entry on the page. Entries that carry a mark are
    * remembered so the next keystroke unwraps those alone, which keeps a long
    * book from being rewritten letter by letter.
+   *
+   * The list is the four places a searched word can actually be: the head's
+   * name, the Family ID, the prayer group, the three "where" answers, and the
+   * member names down the first column of the table.
    */
-  var MARKABLE = '.head-name, .head-id, .details td, .members tbody td:first-child';
+  var MARKABLE = '.p-name, .fam-id, .prayer, .ir-value, .members tbody td:first-child';
   var marked = [];
 
   function unmark() {

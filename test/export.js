@@ -253,8 +253,16 @@ async function main() {
   check('one row per member, drafts included',
     rows.length === 1 + 6, `${rows.length} rows for 3 families of 2`);
 
+  /*
+   * Asked as "does it end with the last of the shared columns", not as "does
+   * it end with a particular heading". The point of the check is that nothing
+   * was appended, and spelling a heading out here only made it a test that
+   * fails every time the sheet's columns are reordered.
+   */
+  const columns = require('../lib/import-columns');
+  const lastColumn = columns.headerRow()[columns.FIELDS.length - 1];
   check('a spreadsheet without photographs has no photograph column',
-    rows[0].endsWith('"Emails"'), rows[0].slice(-40));
+    rows[0].endsWith(`"${lastColumn}"`), rows[0].slice(-40));
 
   res = await admin('GET', '/admin/export.csv?drafts=0');
   rows = res.body.replace(/^﻿/, '').trim().split('\r\n');

@@ -191,7 +191,8 @@ async function main() {
   check('the section titles use each parish name',
     res.body.includes('Alpha Parish') && res.body.includes('Gamma Parish'));
 
-  const folios = (res.body.match(/class="folio">(\d+)</g) || [])
+  // The foot reads "Page 12" now, not a bare figure.
+  const folios = (res.body.match(/class="folio">\s*Page\s+(\d+)\s*</g) || [])
     .map((m) => Number(m.replace(/\D/g, '')));
   check('page numbers run continuously across churches',
     folios.length === 3 && folios[0] === 1 && folios[1] === 2 && folios[2] === 3,
