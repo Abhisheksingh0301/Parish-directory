@@ -95,15 +95,32 @@
           <th class="cw-email">Email</th>
         </tr>
       </thead>
+      <%
+        /*
+         * A married couple share one wedding date, so when the second member
+         * is the spouse, the Anniv. cell spans both of their rows instead of
+         * repeating — matching the guidance the family form itself gives for
+         * ordering members. A second member who is a son or daughter instead
+         * gets no such cell to share, so nothing merges.
+         */
+        const mergeAnniv = f.members.length > 1 &&
+          String(f.members[1].relation || '').trim().toLowerCase() === 'spouse';
+      %>
       <tbody>
-        <% f.members.forEach(function (m) { %>
+        <% f.members.forEach(function (m, i) { %>
           <tr>
             <td>
               <span class="m-name"><%= m.name %><%
                 %><% if (m.relation) { %> <span class="rel">(<%= m.relation %>)</span><% } %></span>
             </td>
             <td class="m-mono"><% if (m.dob) { %><%= m.dob %><% } else { %><span class="dash">&mdash;</span><% } %></td>
-            <td class="m-mono"><% if (m.dom) { %><%= m.dom %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <% if (!(mergeAnniv && i === 1)) { %>
+              <%
+                const anniv = (mergeAnniv && i === 0) ? (m.dom || f.members[1].dom) : m.dom;
+              %>
+              <td class="m-mono"<% if (mergeAnniv && i === 0) { %> rowspan="2"<% } %>><%
+                if (anniv) { %><%= anniv %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <% } %>
             <%# A member may hold more than one of either, one to a line. Each is
                 escaped on its own rather than joined into a blob of markup. %>
             <td class="m-mono"><% if (!m.mobiles.length) { %><span class="dash">&mdash;</span><% } %><%
