@@ -2,53 +2,80 @@
    Printed parish directory.
 
    Lifted from public/parish-directory-template.html so the printed output
-   stays pixel-identical to the approved layout. The five palette variables
-   are overridden inline by the server from the parish's saved settings —
-   do not hard-code those colours below.
+   stays identical to the approved layout — that file is the mockup of record,
+   and anything changed here should be changed there too.
+
+   The paper is US Letter, 8.5 x 11in, and the measurements below are the
+   mockup's own inches and pixels. The sheet carries its own margin as padding
+   and @page gives none; the eight column widths are derived against the 7.3in
+   of table that leaves, so they hold only on this paper at this padding.
+
+   The five palette variables are overridden inline by the server from the
+   parish's saved settings — do not hard-code those below.
    ========================================================================== */
+
+/*
+ * border-box for the whole book, which the mockup sets globally as
+ * `*{box-sizing:border-box}` and every measurement below assumes.
+ *
+ * Load-bearing, not tidiness. `.page` is `width: 8.5in` with 0.6in of padding
+ * either side: as content-box that is a 9.7in sheet, which overflows Letter by
+ * 1.2in and takes the Email column off the right-hand edge of the paper. It
+ * also handed the members table 8.5in to divide instead of 7.3in, so the eight
+ * column widths — derived against 7.3in — no longer added up.
+ *
+ * On screen the same 1.2in was why the toolbar sat narrower than the sheet
+ * under it: both are 8.5in, but only one of them was paying for its padding
+ * out of that.
+ */
+.directory,
+.directory *,
+.directory *::before,
+.directory *::after { box-sizing: border-box; }
 
 .directory {
   /*
-   * The five variables the server overrides inline are --band, --band-dark,
-   * --member-a, --member-b and --rule. They are the parish's own choice, made
-   * on the Settings page, and the values here are only the fallback for a
-   * church that has never opened it — so the engraving below is drawn in
-   * --gilt and --ink, which no parish sets and which therefore look the same
-   * in every book.
+   * The palette is the mockup's, value for value — its :root block, renamed
+   * to the names this stylesheet already uses. The warm near-black and the
+   * brown-greys replace the blue-greys the book used to be set in; the ground
+   * is #f7f4ee rather than #FCFAF4, which is the same paper a shade warmer.
+   *
+   * Five of these are the parish's own, overridden inline by the server from
+   * the Settings page: --band, --band-dark, --member-a, --member-b and --rule.
+   * The values here are the mockup's, and every church in the installation now
+   * sits on them — do not hard-code those five below.
    */
-  --ink:       #141B2E;
-  --ink-soft:  #4A5268;
-  --ink-mute:  #7B8296;
-  --gilt:      #B08A3E;
-  --gilt-deep: #8F6E2C;
-  --claret:    #7C3B3B;
+  --ink:       #23201b;   /* mockup --ink      */
+  --ink-soft:  #403a31;   /* mockup --ink-soft */
+  --ink-mute:  #9a9284;   /* mockup --faint    */
+  --muted:     #6b6459;   /* mockup --muted: the table head and the addresses */
+  --gilt:      #b08a4f;   /* mockup --gold     */
+  --gilt-deep: #8f6e2c;
   /* The ground the blood group is struck on. Not a parish setting: it is read
      in an emergency and should look the same in every book. */
-  --claret-soft: #F4E9E6;
+  --claret:      #9a3f34; /* mockup --blood      */
+  --claret-soft: #f4e9e6; /* mockup --blood-soft */
   /*
-   * The warm accent the 2026 design marks an entry with: the Family ID, the
-   * edition, the eyebrow over the masthead, and the relation beside a name.
+   * The warm accent an entry is marked with: the Family ID, the edition, the
+   * eyebrow over the masthead, and the relation beside a name.
    *
    * Deliberately NOT one of the five the parish sets. Those five colour the
    * bands and rules of the table, and they are chosen for the paper a parish
    * prints on; these four marks have to stay legible whatever is chosen, and
    * a pill drawn in the parish's own band colour disappears into the band.
    */
-  --accent:      #7C3A2E;
-  --accent-soft: #F2E8E2;
-  --parchment: #F7F4ED;
-  --vellum:    #EFEADE;
-  --band:      #EFEADE;
-  --band-dark: #DED6C4;
-  --row-a:     #ffffff;
-  --row-b:     #F7F4ED;
+  --accent:      #7c3a2e;
+  --accent-soft: #f2e8e2;
+  /* The slate a household with no photograph yet is held on. */
+  --photo:     #8a94a0;
+  --vellum:    #efeade;
+  --band:      #faf8f3;
+  --band-dark: #ddd5c6;   /* mockup --line-strong */
   --member-a:  #ffffff;
-  --member-b:  #F7F4ED;
-  --rule:      #DED6C4;
-  --page:      #FCFAF4;
-  --frame:     #ffffff;
-  --radius:    4px;
-
+  --member-b:  #fbfaf6;
+  --rule:      #ece6da;   /* mockup --line */
+  --page:      #f7f4ee;   /* mockup --paper */
+  --frame:     #ffffff;   /* mockup --card  */
 }
 
 body.directory-body {
@@ -71,7 +98,7 @@ body.directory-body {
 
 /* ---------- controls (screen only) ---------- */
 .dir-toolbar {
-  max-width: 960px;
+  max-width: 8.5in;
   margin: 0 auto 22px;
   display: flex;
   gap: 12px;
@@ -151,7 +178,7 @@ mark.dir-hit {
 }
 
 .dir-search-empty {
-  max-width: 960px;
+  max-width: 8.5in;
   margin: 0 auto 22px;
   background: #FFFDF9;
   border: 1px solid var(--rule);
@@ -167,48 +194,46 @@ mark.dir-hit {
 
 /* ---------- page ---------- */
 .page {
-  max-width: 960px;
-  margin: 0 auto 26px;
+  /*
+   * US Letter, the sheet the mockup is drawn on, and every measurement below
+   * is its inch measurement verbatim. The sheet carries its own margin as
+   * padding and @page gives none, so what is set here is what the paper gets.
+   */
+  width: 8.5in;
+  /*
+   * `min-height`, where the mockup fixes the height and hides the overflow.
+   *
+   * The mockup holds two households that fit. This book holds real ones, and
+   * pagination is decided in routes/directory.js by count rather than by
+   * height — so a sheet given two large households can want more than 11in.
+   * Fixed at 11in with `overflow: hidden` that sheet loses the bottom of the
+   * second family with nothing on screen to say so. A minimum renders
+   * identically whenever the content fits, which is nearly always, and lets
+   * the rare oversized sheet run on visibly instead of swallowing a household.
+   */
+  min-height: 11in;
+  margin: 26px auto;
   background: var(--page);
-  /* The keyline sits at 12px; the footer's own 18px of padding then clears it
-     comfortably, which the old padding-bottom of 0 did not. */
-  padding: 26px 26px 10px;
+  padding: 0.42in 0.6in 0.36in;
   position: relative;
-  box-shadow: 0 34px 80px -34px rgba(20, 27, 46, .42),
-              0 6px 16px -8px rgba(20, 27, 46, .2),
-              0 0 0 1px rgba(20, 27, 46, .05);
+  box-shadow: 0 12px 48px rgba(50, 40, 28, .24);
   display: flex;
   flex-direction: column;
-  min-height: 1160px;
 }
 
 /*
  * The engraved double keyline, on the sheet that carries one family.
  *
- * It costs that sheet no height, and the fitting is the whole point. The
- * budget further down governs how much of an A4 an entry may occupy, and a
- * border that pushed the content inwards would have been paid for out of the
- * photograph. So the whitespace is not added, it is moved: the page margin
- * drops from 12mm to 6mm and .page-single takes that 6mm back as padding of
- * its own, which leaves the text exactly where it was, 12mm in from the paper
- * on every side. The keyline is drawn in the 6mm that now belongs to the
- * sheet rather than to the printer — 7.5mm and 8.9mm from the paper's edge,
- * the mockup's 8mm and 9.4mm within half a millimetre, and still clear of the
- * ~5mm a printer cannot reach.
+ * Drawn inside the sheet's own padding rather than in a strip of page margin.
+ * `.page` is 8.5 x 11in with 0.42in of padding at the top and 0.6in at the
+ * sides, and @page adds nothing — so insetting the frame 0.22in from the
+ * sheet's edge puts it in the blank between the paper's edge and the text,
+ * costing the entry no height at all and staying clear of the ~0.2in a
+ * printer cannot reach.
  *
- * Why only this layout. The same trick was tried on the two-up book and cost
- * it a sheet: padding on a block that is itself paginated changes where
- * Chrome fragments it, and a page that had just fitted no longer did. Trimming
- * the footer to win the height back did not help, which is what showed it to
- * be a fragmentation effect rather than a few millimetres of overflow. A
- * frame is not worth a sheet of paper in every copy of the book, and a sheet
- * holding two families is not what the leaf design is for.
- *
- * Measured rather than reasoned about, the way the budget below is: the book
- * is printed to PDF and the sheets counted. One-up 49 -> 49, two-up 26 -> 26.
- *
- * The margin itself is set by the two directory templates, not here, because
- * it has to follow the book: 6mm only when every sheet carries one family.
+ * Why only this layout. A two-up sheet carries no frame: it has two
+ * households to fit and nothing to spare, and a box around a page that is
+ * already two boxed entries reads as clutter rather than as an edition.
  */
 .page-single::before,
 .page-single::after {
@@ -218,12 +243,12 @@ mark.dir-hit {
   pointer-events: none;
 }
 .page-single::before {
-  inset: 12px;
+  inset: 0.22in;
   border: 1.2px solid var(--gilt);
   border-radius: 2px;
 }
 .page-single::after {
-  inset: 15px;
+  inset: 0.26in;
   border: .6px solid rgba(143, 110, 44, .55);
   border-radius: 1px;
 }
@@ -251,9 +276,9 @@ mark.dir-hit {
    ========================================================================== */
 
 .masthead {
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--band-dark);
-  margin-bottom: 10px;
+  margin-bottom: 0.22in;
 }
 .masthead .eyebrow {
   display: block;
@@ -268,7 +293,7 @@ mark.dir-hit {
   margin: 0;
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 500;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   letter-spacing: .005em;
   color: var(--ink);
@@ -304,7 +329,7 @@ mark.dir-hit {
    One family entry
 
    Three bands down the sheet: who they are, where they live, and who is in
-   the household. Two of these to an A4 page.
+   the household. Two of these to a Letter sheet.
    ========================================================================== */
 
 /*
@@ -318,21 +343,15 @@ mark.dir-hit {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  /*
-   * 14px, not 20. The sheet is budgeted to the millimetre — see the note on
-   * the column widths — and the space between two entries is the cheapest
-   * height on the page to give back: six pixels here and at the three margins
-   * below is about one more member row per household before a family is
-   * pushed onto a sheet of its own.
-   */
-  gap: 14px;
+  /* 0.24in between two households, as the mockup sets it. */
+  gap: 0.24in;
 }
 
 .entry { display: flex; flex-direction: column; }
 
 /* ---------- the name, and what places it ---------- */
 
-.p-head { margin-bottom: 8px; }
+.p-head { margin-bottom: 10px; }
 
 .p-eyebrow {
   display: flex;
@@ -372,7 +391,7 @@ mark.dir-hit {
 .p-name {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 500;
-  font-size: 25px;
+  font-size: 27px;
   line-height: 1.05;
   letter-spacing: -.01em;
   color: var(--ink);
@@ -380,9 +399,9 @@ mark.dir-hit {
 
 /* The one ornament an entry gets. */
 .gold-rule {
-  height: 2px;
+  height: 3px;
   width: 56px;
-  margin-top: 6px;
+  margin-top: 9px;
   border-radius: 2px;
   background: var(--gilt);
 }
@@ -399,7 +418,7 @@ mark.dir-hit {
   display: flex;
   gap: 18px;
   align-items: stretch;
-  margin-bottom: 8px;
+  margin-bottom: 11px;
 }
 
 .photo-frame {
@@ -416,34 +435,27 @@ mark.dir-hit {
  * "Photo size and resolution" card in views/admin/photos.ejs. `cover` rather
  * than `contain`, so a picture that is not quite 4:3 fills the frame and is
  * cropped, instead of sitting in a box of empty grey.
- */
-/*
- * 4:3, and the size is a height budget rather than a taste.
  *
- * The design was drawn with a 2.15 x 1.62in picture. Printed with real
- * households that is a household of five per entry and no more: a parish's
- * names and addresses are long enough that most rows of the members table
- * fold to two lines, and at 1.62in a sixth member pushed the second family
- * onto a sheet of its own. Measured, not guessed — eight households of six
- * printed to sixteen sheets instead of eight.
+ * 2.15 x 1.62in, the mockup's own size.
  *
- * 1.84 x 1.38in is the same 4:3 picture, about a seventh smaller, and buys
- * the ~5mm an entry needs to carry a sixth member. It also widens the card
- * beside it, which is where the long addresses go.
+ * It was cut to 1.84 x 1.38in to buy the ~5mm a sixth member costs, so that a
+ * household of six still shared its sheet. That trade is refused here: a large
+ * household may run onto a second sheet, and the photograph is not what pays
+ * for it. Expect a few more sheets in a book with large families.
  */
 .photo {
-  width: 1.84in;
-  height: 1.38in;
+  width: 2.15in;
+  height: 1.62in;
   display: block;
   object-fit: cover;
   border-radius: 3px;
-  background: var(--band);
+  background: var(--photo);
 }
 .photo-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink-mute);
+  color: rgba(255, 255, 255, .9);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .12em;
@@ -466,10 +478,10 @@ mark.dir-hit {
  * the row and therefore the thing setting the entry's height — three rows of
  * padding is 4.8mm of sheet, which is most of a member row.
  */
-.info-row { padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.info-row { padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .info-row:last-child { border-bottom: none; }
 .ir-label {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   font-size: 8.5px;
   font-weight: 700;
   letter-spacing: .14em;
@@ -479,7 +491,7 @@ mark.dir-hit {
 .ir-value {
   font-size: 12px;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: 1.35;
   color: var(--ink-soft);
 }
 
@@ -509,24 +521,15 @@ mark.dir-hit {
 }
 
 /*
- * border-box, and it is load-bearing rather than tidiness.
- *
- * Under `table-layout: fixed` a column's declared width is the content box and
- * the cell's padding is added on top of it. Widths that looked like they came
- * to the full width therefore came to more, and the last column — the one
- * without a width, which is the addresses — absorbed the whole difference: it
- * was measured at 52px while wanting 233, so every address wrapped to three
- * lines and every row in the book was three lines tall. Two families stopped
- * fitting on a sheet.
- *
- * With border-box the declared widths are what the columns actually occupy,
- * so the percentages below can be made to add up to 100 and be believed.
+ * Under `table-layout: fixed` a column's declared width is the content box
+ * unless the cell is border-box, and the padding is added on top of it — so
+ * widths that looked like they came to the full width came to more, and the
+ * last column absorbed the difference. The border-box rule at the top of this
+ * file is what makes the widths below mean what they say.
  */
-.members th,
-.members td { box-sizing: border-box; }
 
 .members thead th {
-  padding: 8px 6px;
+  padding: 8px 8px;
   border-bottom: 1.5px solid var(--band-dark);
   background: var(--band);
   text-align: left;
@@ -534,12 +537,12 @@ mark.dir-hit {
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--muted);
 }
 .members thead th.c { text-align: center; }
 
 .members tbody td {
-  padding: 4px 6px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--rule);
   vertical-align: middle;
   font-size: 9.5px;
@@ -591,41 +594,31 @@ mark.dir-hit {
   font-size: 8px;
   line-height: 1.15;
   letter-spacing: -.1px;
-  color: var(--ink-mute);
+  color: var(--muted);
   word-break: break-word;
   font-variant-numeric: tabular-nums;
 }
 
 /*
- * Column widths, as shares of the table rather than in inches.
+ * Column widths, in the mockup's inches.
  *
- * In inches they were a set of numbers that had to be re-derived every time
- * the page margin or the paper changed, and got it wrong when it did. As
- * percentages of a border-box table they simply add to 100 and hold on any
- * width the sheet turns out to have.
+ * They add to 5.62in against the 7.3in of table the sheet offers (8.5in less
+ * the 0.6in padding either side), which leaves 1.68in of Email to take up the
+ * remainder — so these hold only while the paper is Letter and the padding is
+ * 0.6in. Change either and these have to be re-derived.
  *
- * Measured against the widest real values in a parish's own book, on A4
- * inside a 12mm margin (703px of table):
- *
- *   Mobile must never wrap — it is `white-space: nowrap`, so a column too
- *   narrow overflows the cell rather than folding. 16% is a ten-digit number
- *   with a few pixels to spare.
- *   Member and Email are the two that may fold, and both fold to exactly two
- *   lines: "Jesty Kunjumon (Daughter-in-law)" and a 26-character address are
- *   the worst cases in the sheet this was measured against.
- *
- * Two lines is the row height the whole page is budgeted on. Take width away
- * from Member or Email and a third line appears, which costs ~3mm on every
- * row of every entry and is what stops two families fitting on a sheet.
+ * Mobile must never wrap: it is `white-space: nowrap`, so a column too narrow
+ * overflows its cell rather than folding. Member and Email are the two that
+ * may fold, and two lines is the row height the sheet is budgeted on.
  */
-.cw-name  { width: 23%; }
-.cw-bday  { width: 8.5%; }
-.cw-anniv { width: 8.5%; }
-.cw-mob   { width: 16%; }
-.cw-blood { width: 6.5%; }
-.cw-qual  { width: 9.5%; }
-.cw-occ   { width: 9.5%; }
-.cw-email { width: 18.5%; }
+.cw-name  { width: 1.62in; }
+.cw-bday  { width: 0.56in; }
+.cw-anniv { width: 0.56in; }
+.cw-mob   { width: 1.08in; }
+.cw-blood { width: 0.44in; }
+.cw-qual  { width: 0.68in; }
+.cw-occ   { width: 0.68in; }
+.cw-email { width: auto;   }
 
 /* ---------- between two families on one sheet ---------- */
 
@@ -639,6 +632,7 @@ mark.dir-hit {
   align-items: center;
   justify-content: center;
   gap: 14px;
+  margin: -2px 0;
 }
 .entry-divider::before,
 .entry-divider::after {
@@ -672,7 +666,7 @@ mark.dir-hit {
   font-size: 10.5px;
   font-weight: 500;
   letter-spacing: .02em;
-  color: var(--ink-soft);
+  color: var(--muted);
 }
 .parish-name .sep { color: var(--gilt); }
 .folio {
@@ -778,7 +772,9 @@ mark.dir-hit {
  */
 @media (max-width: 720px) {
   body.directory-body { padding: 14px 8px 40px; }
-  .page { padding: 16px 16px 0; min-height: 0; }
+  /* The sheet gives up its paper width here — 8.5in is 816px, which a phone
+     does not have. Screen only; print is untouched. */
+  .page { width: 100%; padding: 16px 16px 0; min-height: 0; }
 
   .masthead-row { flex-direction: column; gap: 8px; }
   .masthead h1 { font-size: 17px; }
@@ -816,11 +812,9 @@ mark.dir-hit {
 /* ---------- print ---------- */
 
 /*
- * @page lives in print.ejs and multi.ejs, not here: the margin has to follow
- * the book. A book of one-family sheets asks for 6mm and gives the other 6mm
- * back as .page-single's own padding, so the keyline has somewhere to go; a
- * two-up book keeps the 12mm it has always had. @page cannot be selected on a
- * class, so the templates emit it.
+ * @page lives in print.ejs and multi.ejs, not here, because it cannot be
+ * selected on a class. It is now the same in both and for every layout:
+ * 8.5 x 11in with no margin, the sheet carrying its own margin as padding.
  */
 @media print {
   body.directory-body { background: #fff; padding: 0; }
@@ -828,40 +822,33 @@ mark.dir-hit {
   .dir-search-empty { display: none; }
   /* A filtered book still prints; the on-screen marking does not. */
   mark.dir-hit { background: none; padding: 0; }
+
+  /*
+   * The sheet keeps the padding it has on screen. @page now gives no margin
+   * at all — see print.ejs — so this padding IS the margin, and zeroing it
+   * here (as this block used to, back when @page gave 12mm) would print the
+   * book flush to the edge of the paper.
+   */
   .page {
-    box-shadow: none;
-    max-width: none;
+    width: 8.5in;
+    min-height: 11in;
     margin: 0;
-    padding: 0;
-    min-height: 0;
+    box-shadow: none;
     page-break-after: always;
   }
 
   /*
-   * The one-family sheet takes back the 6mm the page margin gave up, so its
-   * text still begins 12mm in from the paper and its height budget is the
-   * same 273mm it has always been.
+   * The cards are lifted off the page by shadow on screen; on paper a shadow
+   * is a grey smudge, so each takes a hairline instead. The mockup's own
+   * print rule.
    */
-  .page-single {
-    padding: 6mm;
-    /*
-     * A floor, so the keyline frames the sheet rather than just the entry on
-     * it. Without it a leaf with a small household drew its box halfway up
-     * the paper and took the folio with it.
-     *
-     * box-sizing is content-box here, so this excludes the padding: 272 + 12
-     * = 284mm against the 285mm the region offers. The millimetre of slack is
-     * deliberate — at exactly 285 a rounding error either way puts a blank
-     * sheet after every leaf in the book, and a frame stopping 1mm short of
-     * the paper cannot be seen.
-     */
-    min-height: 272mm;
+  .info,
+  .members-wrap,
+  .photo-frame {
+    box-shadow: none;
+    border: 1px solid var(--rule);
   }
 
-  /* In millimetres now, so the frame keeps its distance from the paper's edge
-     rather than from a pixel grid the printer does not share. */
-  .page-single::before { inset: 1.5mm; }
-  .page-single::after  { inset: 2.9mm; }
   .page:last-child { page-break-after: auto; }
   .entry { page-break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

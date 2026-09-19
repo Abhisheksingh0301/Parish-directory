@@ -159,24 +159,28 @@ async function main() {
     res.status === 302 && res.location === '/login',
     `${res.status} -> ${res.location}`);
 
-  console.log('\n--- "Powered & Secured By", on every door into the application ---');
+  console.log('\n--- the IndusNetwork banner, on every door into the application ---');
   /*
    * Attribution that appears on one of the two sign-in screens and not the
    * other is worse than none: a member who signs in with a Family ID would
    * see a different application from one who signs in with an email address.
-   * Both marks, on both doors, and the images actually served.
+   * The banner on both doors, and the image actually served.
+   *
+   * Its intrinsic size is asserted with it. The artwork is the whole mark now
+   * rather than one chip inside a built plate, so a file swapped for one of
+   * another shape would be stretched in silence by the `height: auto` that
+   * holds its ratio — the attributes are what make that visible here.
    */
   for (const door of ['/login', '/family-login']) {
     const page = await request('GET', door);
-    check(`${door} carries the badge`,
+    check(`${door} carries the banner`,
       page.status === 200
-      && page.body.includes('Powered &amp; Secured By')
-      && page.body.includes('Indus<span class="def">Defender</span>')
-      && page.body.includes('/images/indus-network.png'),
+      && page.body.includes('/images/indus-network-banner.jpg')
+      && page.body.includes('width="520" height="235"'),
       `status ${page.status}`);
   }
 
-  for (const asset of ['/images/indus-defender.png', '/images/indus-network.png']) {
+  for (const asset of ['/images/indus-network-banner.jpg']) {
     const file = await request('GET', asset);
     check(`${asset} is served`,
       file.status === 200 && file.body.length > 1000,

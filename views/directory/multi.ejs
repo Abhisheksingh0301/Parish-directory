@@ -6,25 +6,25 @@
 <link rel="stylesheet" href="<%= base %>/stylesheets/directory.css">
 <%
   /*
-   * The page margin, which has to follow the book rather than sit in the
-   * stylesheet.
+   * The paper.
    *
-   * A sheet carrying one family draws the engraved keyline, and the keyline
-   * needs somewhere to sit that is not paid for out of the entry's height
-   * budget. So the margin gives up 6mm and .page-single takes it back as its
-   * own padding (see directory.css): the text lands exactly where it always
-   * did, 12mm in, and the frame is drawn in the 6mm between. A two-up sheet
-   * has no frame and keeps the 12mm it has always had.
+   * US Letter, 8.5 x 11in, which is the sheet the approved mockup is drawn on
+   * and the sheet every measurement in directory.css is now derived from —
+   * the eight column widths in particular add up against a 7.3in table and
+   * would have to be re-derived on any other size.
    *
-   * @page cannot be selected on a class, so the choice is made here. Only a
-   * book that is one family to a sheet the whole way through qualifies — a
-   * combined book may hold churches that set it differently.
+   * No margin at all: `.page` carries the mockup's own 0.42in / 0.6in / 0.36in
+   * as padding, so the sheet sets its own margin and there is nothing here for
+   * @page to add on top. Every edge of that padding clears the ~5mm a printer
+   * cannot reach.
+   *
+   * It no longer varies by layout. It used to give 6mm on a book of one-family
+   * sheets so the keyline had somewhere to sit and 12mm otherwise; with the
+   * margin inside the sheet, the keyline is simply inset from the padding and
+   * both books want the same paper.
    */
-  const allSingle = sections.length > 0 && sections.every(function (section) {
-    return section.pages.length > 0 && section.pages.every(function (p) { return p.single; });
-  });
 %>
-<style>@page { size: A4 portrait; margin: <%= allSingle ? '6mm' : '12mm' %>; }</style>
+<style>@page { size: 8.5in 11in; margin: 0; }</style>
 </head>
 <body class="directory directory-body">
 

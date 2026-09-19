@@ -1,393 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Parish Directory — Template</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parish Family Directory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:            #2c2721;
-    --ink-soft:       #4a4239;
-    --band:           #cec4b3;   /* header band */
-    --band-dark:      #b6ab97;   /* table header */
-    --row-a:          #ffffff;
-    --row-b:          #f2efe9;
-    --member-a:       #d9d2c4;
-    --member-b:       #cec6b6;
-    --rule:           #a99e8a;
-    --page:           #ffffff;
-    --frame:          #ffffff;
-    --watermark:      #ded7c9;
-    --radius:         10px;
+    --paper:#f7f4ee; --card:#ffffff; --ink:#23201b; --ink-soft:#403a31;
+    --muted:#6b6459; --faint:#9a9284; --line:#ece6da; --line-strong:#ddd5c6;
+    --accent:#7c3a2e; --accent-soft:#f2e8e2; --gold:#b08a4f;
+    --blood:#9a3f34; --blood-soft:#f4e9e6; --photo:#8a94a0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:#e8e2d5;font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
 
-    /* The photograph's share of the row it shares with the details table.
-       Two families to a page governs it: an entry must come in under ~127mm,
-       the details table is 58mm of that on its own, and the members table
-       grows 7mm a person. At 0.72fr the photograph is 76x57mm and its frame
-       (61mm) only just exceeds the details table, so it costs almost nothing.
-       Stacked above the details it cannot do two to a page at any size. */
-    --photo-width:    0.72fr;
-  }
+  .page{width:8.5in;height:11in;margin:26px auto;background:var(--paper);box-shadow:0 12px 48px rgba(50,40,28,.24);display:flex;flex-direction:column;padding:0.42in 0.6in 0.36in;position:relative;overflow:hidden;}
 
-  *{box-sizing:border-box}
+  /* 2026 edition badge */
+  .edition{position:absolute;top:0.42in;right:0.6in;font-family:"Inter",sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:20px;pointer-events:none;}
 
-  html{-webkit-text-size-adjust:100%}
+  /* masthead */
+  .masthead{padding-bottom:10px;border-bottom:1px solid var(--line-strong);margin-bottom:0.22in;}
+  .masthead .eyebrow{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px;}
+  .masthead h1{font-family:"Fraunces",serif;font-weight:500;font-size:20px;color:var(--ink);letter-spacing:.005em;line-height:1;}
 
-  body{
-    margin:0;
-    background:#8d8577;
-    font-family:'Quicksand','Century Gothic','Futura','Trebuchet MS',sans-serif;
-    color:var(--ink);
-    padding:28px 16px 60px;
-  }
+  .profiles{flex:1;display:flex;flex-direction:column;gap:0.24in;}
+  .profile{display:flex;flex-direction:column;}
 
-  /* ---------- controls (screen only) ---------- */
-  .toolbar{
-    max-width:960px;margin:0 auto 22px;
-    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
-    background:#fffdf9;border-radius:var(--radius);padding:14px 18px;
-    font-size:14px;color:var(--ink-soft);
-  }
-  .toolbar strong{font-weight:700;color:var(--ink)}
-  .toolbar button{
-    font:inherit;font-weight:600;cursor:pointer;
-    background:var(--band-dark);color:#1f1b16;border:none;
-    padding:8px 16px;border-radius:6px;
-  }
-  .toolbar button:hover{background:var(--rule)}
-  .toolbar button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  /* name header */
+  .p-head{margin-bottom:10px;}
+  .p-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+  .fam-id{font-size:9px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;}
+  .p-eyebrow .prayer{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:500;}
+  .p-name{font-family:"Fraunces",serif;font-weight:500;font-size:27px;color:var(--ink);line-height:1.05;letter-spacing:-.01em;}
+  .gold-rule{height:3px;width:56px;background:var(--gold);margin-top:9px;border-radius:2px;}
 
-  /* ---------- page ---------- */
-  .page{
-    max-width:960px;margin:0 auto 26px;
-    background:var(--page);
-    padding:26px 26px 0;
-    position:relative;
-    box-shadow:0 10px 30px rgba(0,0,0,.28);
-    display:flex;flex-direction:column;
-    min-height:1160px;
-  }
+  /* photo + info */
+  .p-top{display:flex;gap:18px;align-items:stretch;margin-bottom:11px;}
+  .photo-frame{flex:0 0 auto;background:var(--card);padding:7px;border-radius:5px;box-shadow:0 3px 12px rgba(50,40,28,.12);display:flex;}
+  .photo{width:2.15in;height:1.62in;object-fit:cover;border-radius:3px;display:block;background:var(--photo);
+    display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.9);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+  .photo img{width:100%;height:100%;object-fit:cover;border-radius:3px;display:block;}
 
-  /* Above the lattice, not under it. The watermark is 150px tall against a
-     footer of about 69px, so ~80px of it rises behind the foot of the page;
-     being absolutely positioned it painted over the last family's table. */
-  .entries{flex:1 1 auto;position:relative;z-index:1}
-
-  /* ---------- one family entry ---------- */
-  /* 34px here and 70px of footer padding were what stood between four members
-     and two families on a sheet. See --photo-width. */
-  .entry{margin-bottom:22px}
-
-  .entry-head{
-    display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:stretch;
-    margin-bottom:10px;
-  }
-  .head-name{
-    background:var(--band);border-radius:var(--radius);
-    padding:9px 20px;
-    font-size:26px;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;line-height:1.15;
-    display:flex;align-items:center;
-  }
-  .head-id{
-    background:var(--band);border-radius:var(--radius);
-    padding:9px 20px;
-    font-size:22px;font-weight:600;letter-spacing:.02em;
-    display:flex;align-items:center;white-space:nowrap;
-    align-self:end;
-  }
-
-  /* Beside the details, not above them: side by side the entry pays only the
-     taller of the two, which is what lets two families share a sheet. */
-  .entry-body{
-    display:grid;grid-template-columns:var(--photo-width) 1fr;gap:18px;
-    align-items:start;
-    margin-bottom:12px;
-  }
-
-  /* details table */
-  .details{
-    width:100%;border-collapse:collapse;
-    border:1px solid var(--rule);
-    font-size:17px;line-height:1.35;
-  }
-  .details th,.details td{
-    border:1px solid var(--rule);
-    padding:8px 12px;text-align:left;vertical-align:middle;
-  }
-  .details th{
-    width:31%;font-weight:600;background:var(--row-b);
-  }
-  .details td{background:var(--row-a)}
-  .details tr:first-child th,
-  .details tr:first-child td{padding-top:12px;padding-bottom:12px}
-  .home-icon{display:block;margin:0 auto;width:34px;height:34px;fill:var(--ink-soft)}
-  .email{word-break:break-all}
-
-  /* photo */
-  .photo-frame{
-    background:var(--frame);
-    border:1px solid var(--rule);
-    padding:7px;border-radius:4px;
-    box-shadow:0 2px 6px rgba(0,0,0,.12);
-  }
-  .photo{
-    width:100%;aspect-ratio:4/3;display:block;object-fit:cover;
-    background:var(--row-b);
-  }
-  .photo-empty{
-    width:100%;aspect-ratio:4/3;
-    display:flex;align-items:center;justify-content:center;
-    background:var(--row-b);color:#8d8577;
-    font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  }
+  .info{flex:1;background:var(--card);border-radius:5px;box-shadow:0 3px 12px rgba(50,40,28,.09);padding:4px 22px;display:flex;flex-direction:column;justify-content:center;}
+  .info-row{padding:8px 0;border-bottom:1px solid var(--line);}
+  .info-row:last-child{border-bottom:none;}
+  .ir-label{font-size:8.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:4px;}
+  .ir-value{font-size:12px;color:var(--ink-soft);line-height:1.35;font-weight:400;}
 
   /* members table */
-  .members{
-    width:100%;border-collapse:collapse;
-    border-radius:6px;overflow:hidden;
-    font-size:14px;
-  }
-  .members th{
-    background:var(--band-dark);
-    font-weight:700;padding:6px 8px;text-align:left;
-  }
-  .members th.c,.members td.c{text-align:center}
-  .members td{padding:6px 8px;border:none}
-  .members tbody tr:nth-child(odd)  td{background:var(--member-a)}
-  .members tbody tr:nth-child(even) td{background:var(--member-b)}
-  .members td[rowspan]{text-align:center;vertical-align:middle}
+  .members-wrap{background:var(--card);border-radius:5px;box-shadow:0 3px 12px rgba(50,40,28,.07);overflow:hidden;}
+  .members{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .members thead th{font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 8px;border-bottom:1.5px solid var(--line-strong);background:#faf8f3;text-align:left;}
+  .members thead th.c{text-align:center;}
+  .members tbody td{padding:5px 8px;font-size:9.5px;color:var(--ink-soft);vertical-align:middle;line-height:1.25;border-bottom:1px solid var(--line);}
+  .members tbody tr:last-child td{border-bottom:none;}
+  .members tbody tr:nth-child(even){background:#fbfaf6;}
+  .members td.c{text-align:center;}
 
-  /* ---------- footer ---------- */
-  .page-foot{
-    margin-top:auto;
-    position:relative;
-    padding:30px 0 18px;
-  }
-  .lattice{
-    position:absolute;left:-26px;right:-26px;bottom:0;height:150px;
-    opacity:.55;pointer-events:none;
-    background-image:var(--lattice-svg);
-    background-size:88px 88px;
-  }
-  .foot-row{
-    position:relative;
-    display:flex;justify-content:space-between;align-items:flex-end;
-    border-top:1px solid var(--rule);
-    /* Both ends, pulled in from them. In print .page has no padding, which put
-       these hard against the printable edge. The padding is inside the border,
-       so the rule above still runs the full width of the page. */
-    padding:8px 18mm 0;
-    font-size:17px;
-  }
-  .parish-name{font-weight:500}
-  .folio{font-weight:600}
+  .m-name{font-weight:600;color:var(--ink);font-size:10px;}
+  .m-name .rel{font-family:"Fraunces",serif;font-style:italic;font-weight:400;color:var(--accent);font-size:9.5px;}
+  .m-mono{font-variant-numeric:tabular-nums;letter-spacing:-.1px;white-space:nowrap;}
+  .dash{color:var(--faint);}
+  .blood-pill{display:inline-block;font-size:8.5px;font-weight:700;color:var(--blood);background:var(--blood-soft);padding:2px 8px;border-radius:20px;letter-spacing:.02em;}
+  .email{font-size:8px;color:var(--muted);word-break:break-word;line-height:1.15;letter-spacing:-.1px;font-variant-numeric:tabular-nums;}
 
-  /* ---------- responsive ---------- */
-  @media (max-width:720px){
-    body{padding:14px 8px 40px}
-    .page{padding:16px 16px 0;min-height:0}
-    .entry-body{grid-template-columns:1fr}
-    .entry-head{grid-template-columns:1fr}
-    .head-name{font-size:20px}
-    .head-id{font-size:17px;align-self:auto}
-    .details,.members{font-size:15px}
-    .members{display:block;overflow-x:auto}
-    /* 18mm a side is most of a phone; the footer goes back to the edges. */
-    .foot-row{padding-left:0;padding-right:0}
-  }
+  /* column widths */
+  .cw-name{width:1.62in;} .cw-bday{width:0.56in;} .cw-anniv{width:0.56in;} .cw-mob{width:1.08in;}
+  .cw-blood{width:0.44in;} .cw-qual{width:0.68in;} .cw-occ{width:0.68in;} .cw-email{width:auto;}
 
-  /* ---------- print ---------- */
-  @page{size:A4 portrait;margin:12mm}
-  @media print{
-    body{background:#fff;padding:0}
-    .toolbar{display:none}
-    .page{box-shadow:none;max-width:none;margin:0;padding:0;min-height:0;page-break-after:always}
-    .page:last-child{page-break-after:auto}
-    .entry{page-break-inside:avoid}
-    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  }
+  /* divider between profiles */
+  .divider{display:flex;align-items:center;justify-content:center;gap:14px;margin:-2px 0;}
+  .divider::before,.divider::after{content:"";height:1px;flex:0 0 90px;background:var(--line-strong);}
+  .divider .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);}
+
+  /* footer */
+  .foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line-strong);display:flex;align-items:center;justify-content:space-between;}
+  .foot .church{font-family:"Fraunces",serif;font-size:10.5px;font-weight:500;letter-spacing:.02em;color:var(--muted);}
+  .foot .church span{color:var(--gold);}
+  .foot .pg{font-size:9px;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;}
+
+  @page{size:8.5in 11in;margin:0;}
+  @media print{html,body{background:#fff;}.page{margin:0;box-shadow:none;width:8.5in;height:11in;}
+    .info,.members-wrap,.photo-frame{box-shadow:none;border:1px solid var(--line);}}
 </style>
 </head>
 <body>
-
-<div class="toolbar">
-  <strong>Parish directory template.</strong>
-  <span>Edit the entry list at the bottom of this file, then print or save as PDF.</span>
-  <button onclick="window.print()">Print this directory</button>
-</div>
-
-<div id="directory"></div>
-
-<script>
-/* ============================================================
-   YOUR DATA GOES HERE
-   ------------------------------------------------------------
-   - Add one object per family to the `families` array.
-   - `photo` takes any image URL or file path; leave it as ""
-     to show an empty photo frame.
-   - `members` rows: [name, relation, dob, mobile, bloodGroup, qualification, occupation, links]
-   - `dom` is the marriage date shown merged across the first
-     two rows (leave "" to hide it).
-   - Set `perPage` to how many families print on one page.
-   ============================================================ */
-
-const parishName = "Your Parish Church";
-const parishCity = "City";
-const startingPage = 1;
-const perPage = 2;
-
-const families = [
-  {
-    headName: "Family Head Name",
-    familyId: "0001",
-    address: "Flat no., Building name, Street,\nLocality, City — 000000",
-    hometown: "House name, Village",
-    homeParish: "HOME PARISH NAME",
-    spouseHome: "House name, Village",
-    email: "name@example.com",
-    photo: "",
-    dom: "00 - Mon",
-    members: [
-      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", "O+", "B.A.",   "Teacher",      ""],
-      ["Mrs. Spouse Name",  "Spouse", "00 - Mon", "",       "B+", "B.Sc.",  "Nurse",        ""],
-      ["Mr. Child Name",    "S",  "00 - Mon", "",           "A+", "Std. X", "Student",      ""]
-    ]
-  },
-  {
-    headName: "Second Family Head",
-    familyId: "0002",
-    address: "Flat no., Building name, Street,\nLocality, City — 000000",
-    hometown: "House name, Village",
-    homeParish: "HOME PARISH NAME",
-    spouseHome: "House name, Village",
-    email: "name@example.com",
-    photo: "",
-    dom: "00 - Mon",
-    members: [
-      ["Mr. Family Head",   "HF", "00 - Mon", "0000000000", "O-",  "M.A.",       "Engineer", ""],
-      ["Mrs. Spouse Name",  "Spouse", "00 - Mon", "",       "AB+", "B.Com.",     "Clerk",    ""],
-      ["Ms. Child Name",    "D",  "00 - Mon", "",           "B-",  "Std. VIII",  "Student",  ""]
-    ]
-  }
-];
-
-/* ============================================================
-   RENDERING — no need to edit below this line
-   ============================================================ */
-
-const latticeSVG = `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'>
-     <g fill='none' stroke='#ded7c9' stroke-width='7'>
-       <path d='M44 4 L84 44 L44 84 L4 44 Z'/>
-       <path d='M4 4 L84 84 M84 4 L4 84'/>
-       <circle cx='44' cy='44' r='15'/>
-     </g>
-   </svg>`
-)}")`;
-
-const homeIcon = `<svg class="home-icon" viewBox="0 0 24 24" aria-hidden="true">
-  <path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>`;
-
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
-  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
-
-function renderMembers(f) {
-  const rows = f.members || [];
-  const domSpan = Math.min(2, rows.length);
-  return rows.map((m, i) => {
-    const [name, reltn, dob, mobile, bloodGroup, qualification, occupation, links] = m;
-    let domCell = "";
-    if (f.dom && i === 0) domCell = `<td class="c" rowspan="${domSpan}">${esc(f.dom)}</td>`;
-    else if (f.dom && i < domSpan) domCell = "";
-    else if (i >= domSpan) domCell = `<td class="c"></td>`;
-    else domCell = `<td class="c"></td>`;
-    return `<tr>
-      <td>${esc(name)}</td>
-      <td class="c">${esc(reltn)}</td>
-      <td class="c">${esc(dob)}</td>
-      ${domCell}
-      <td class="c">${esc(mobile)}</td>
-      <td class="c">${esc(bloodGroup)}</td>
-      <td class="c">${esc(qualification)}</td>
-      <td class="c">${esc(occupation)}</td>
-      <td class="c">${esc(links)}</td>
-    </tr>`;
-  }).join("");
-}
-
-function renderEntry(f) {
-  const photo = f.photo
-    ? `<img class="photo" src="${esc(f.photo)}" alt="Photograph of the ${esc(f.headName)} family">`
-    : `<div class="photo-empty">Photograph</div>`;
-
-  return `
-  <section class="entry">
-    <div class="entry-head">
-      <div class="head-id">FAMILY ID : ${esc(f.familyId)}</div>
-      <div class="head-name">${esc(f.headName)}</div>
-    </div>
-
-    <div class="entry-body">
-      <div class="photo-frame">${photo}</div>
-
-      <table class="details">
-        <tbody>
-          <tr>
-            <th>${homeIcon}</th>
-            <td>${esc(f.address).replace(/\n/g, "<br>")}</td>
-          </tr>
-          <tr><th>Home Town Address</th><td>${esc(f.hometown)}</td></tr>
-          <tr><th>Home Parish</th><td>${esc(f.homeParish)}</td></tr>
-          <tr><th>Spouse Home</th><td>${esc(f.spouseHome)}</td></tr>
-          <tr><th>Email ID</th><td class="email">${esc(f.email)}</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <table class="members">
-      <thead>
-        <tr>
-          <th>Family Members</th>
-          <th class="c">Reltn</th>
-          <th class="c">DOB</th>
-          <th class="c">DOM</th>
-          <th class="c">Mobile</th>
-          <th class="c">Blood Group</th>
-          <th class="c">Qualification</th>
-          <th class="c">Occupation</th>
-          <th class="c">Links</th>
-        </tr>
-      </thead>
-      <tbody>${renderMembers(f)}</tbody>
-    </table>
-  </section>`;
-}
-
-function renderPage(group, folio) {
-  return `
   <div class="page">
-    <div class="entries">${group.map(renderEntry).join("")}</div>
-    <div class="page-foot">
-      <div class="lattice" style="--lattice-svg:${latticeSVG}"></div>
-      <div class="foot-row">
-        <span class="parish-name">${esc(parishName)}${parishCity ? ", " + esc(parishCity) : ""}</span>
-        <span class="folio">${folio}</span>
-      </div>
+    <div class="edition">2026 Edition</div>
+
+    <div class="masthead">
+      <span class="eyebrow">Parish Family Directory</span>
+      <h1>St. Peter&#8217;s Mar Thoma Church &middot; Pune</h1>
     </div>
-  </div>`;
-}
 
-const pages = [];
-for (let i = 0; i < families.length; i += perPage) {
-  pages.push(families.slice(i, i + perPage));
-}
-document.getElementById("directory").innerHTML =
-  pages.map((g, i) => renderPage(g, startingPage + i)).join("");
-</script>
+    <div class="profiles">
+      <section class="profile">
+        <div class="p-head">
+          <div class="p-eyebrow">
+            <span class="fam-id">P036</span>
+            <span class="prayer">Ghorpadi Prayer Group</span>
+          </div>
+          <h1 class="p-name">Mr. Babu John</h1>
+          <div class="gold-rule"></div>
+        </div>
+        <div class="p-top">
+          <div class="photo-frame"><div class="photo">Family Photo</div></div>
+          <div class="info">
+            <div class="info-row"><div class="ir-label">Residence</div><div class="ir-value">Maruti Residency, A-Wing, Flat No. 04, Sai Park, Near Bharat Forge Company &mdash; 411036</div></div>
+            <div class="info-row"><div class="ir-label">Home Parish</div><div class="ir-value">St. Thomas MTC, Aylara</div></div>
+            <div class="info-row"><div class="ir-label">Home Town</div><div class="ir-value">Thenguvila Kizhakkathil, Chazhikulam Nirappil, Villakupara</div></div>
+          </div>
+        </div>
+        <div class="members-wrap">
+          <table class="members">
+            <thead><tr>
+              <th class="cw-name">Member</th><th class="cw-bday">Birthday</th><th class="cw-anniv">Anniv.</th>
+              <th class="cw-mob">Mobile</th><th class="cw-blood c">Blood</th><th class="cw-qual">Qualification</th>
+              <th class="cw-occ">Occupation</th><th class="cw-email">Email</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="m-name">Mr. Babu John <span class="rel">(Head)</span></span></td>
+                <td class="m-mono">25 May</td>
+                <td class="m-mono">30 May</td>
+                <td class="m-mono">+91 98504 08389</td>
+                <td class="c"><span class="blood-pill">B+</span></td>
+                <td>B.Com</td>
+                <td>Business</td>
+                <td><span class="email">bjohn7676@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Mini Babu John <span class="rel">(Spouse)</span></span></td>
+                <td class="m-mono">03 Apr</td>
+                <td class="m-mono">30 May</td>
+                <td class="m-mono">+91 97652 75144</td>
+                <td class="c"><span class="blood-pill">A+</span></td>
+                <td>B.A.</td>
+                <td>Homemaker</td>
+                <td><span class="email">minijohn013@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Nibin Babu John <span class="rel">(Son)</span></span></td>
+                <td class="m-mono">15 Aug</td>
+                <td class="m-mono">01 May</td>
+                <td class="m-mono">+91 83902 16614</td>
+                <td class="c"><span class="blood-pill">A+</span></td>
+                <td>MBA</td>
+                <td>Finance</td>
+                <td><span class="email">nibinjohn.john61@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Jesty Kunjumon <span class="rel">(Daughter-in-law)</span></span></td>
+                <td class="m-mono">19 Oct</td>
+                <td class="m-mono">01 May</td>
+                <td class="m-mono">+91 86052 74084</td>
+                <td class="c"><span class="blood-pill">B+</span></td>
+                <td>B.Sc.</td>
+                <td>Student</td>
+                <td><span class="email">jestykunjumon565@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Navia Babu John <span class="rel">(Daughter)</span></span></td>
+                <td class="m-mono">21 Sep</td>
+                <td class="m-mono"><span class="dash">&mdash;</span></td>
+                <td class="m-mono">+91 88051 88550</td>
+                <td class="c"><span class="blood-pill">B+</span></td>
+                <td>Class XII</td>
+                <td>Student</td>
+                <td><span class="email">johnnavia01@gmail.com</span></td>
+              </tr>
+</tbody>
+          </table>
+        </div>
+      </section>
+      <div class="divider"><span class="dot"></span></div>
+      <section class="profile">
+        <div class="p-head">
+          <div class="p-eyebrow">
+            <span class="fam-id">P037</span>
+            <span class="prayer">Kalyani Nagar Prayer Group</span>
+          </div>
+          <h1 class="p-name">Mr. Thomas Mathew</h1>
+          <div class="gold-rule"></div>
+        </div>
+        <div class="p-top">
+          <div class="photo-frame"><div class="photo">Family Photo</div></div>
+          <div class="info">
+            <div class="info-row"><div class="ir-label">Residence</div><div class="ir-value">Green Meadows, B-Wing, Flat No. 12, Near Kalyani Nagar, Yerawada &mdash; 411006</div></div>
+            <div class="info-row"><div class="ir-label">Home Parish</div><div class="ir-value">St. Peter&#8217;s MTC, Kottayam</div></div>
+            <div class="info-row"><div class="ir-label">Home Town</div><div class="ir-value">Puthenpurayil Veedu, Manganam P.O., Kottayam</div></div>
+          </div>
+        </div>
+        <div class="members-wrap">
+          <table class="members">
+            <thead><tr>
+              <th class="cw-name">Member</th><th class="cw-bday">Birthday</th><th class="cw-anniv">Anniv.</th>
+              <th class="cw-mob">Mobile</th><th class="cw-blood c">Blood</th><th class="cw-qual">Qualification</th>
+              <th class="cw-occ">Occupation</th><th class="cw-email">Email</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="m-name">Mr. Thomas Mathew <span class="rel">(Head)</span></span></td>
+                <td class="m-mono">12 Mar</td>
+                <td class="m-mono">18 Jan</td>
+                <td class="m-mono">+91 98204 45566</td>
+                <td class="c"><span class="blood-pill">O+</span></td>
+                <td>B.Tech</td>
+                <td>Engineer</td>
+                <td><span class="email">thomasmathew@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Sara Thomas <span class="rel">(Spouse)</span></span></td>
+                <td class="m-mono">07 Jun</td>
+                <td class="m-mono">18 Jan</td>
+                <td class="m-mono">+91 97651 12233</td>
+                <td class="c"><span class="blood-pill">O+</span></td>
+                <td>M.Ed.</td>
+                <td>Teacher</td>
+                <td><span class="email">sara.thomas88@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Alan Thomas Mathew <span class="rel">(Son)</span></span></td>
+                <td class="m-mono">29 Nov</td>
+                <td class="m-mono"><span class="dash">&mdash;</span></td>
+                <td class="m-mono">+91 83907 78899</td>
+                <td class="c"><span class="blood-pill">A+</span></td>
+                <td>B.Sc.</td>
+                <td>Student</td>
+                <td><span class="email">alan.thomas21@gmail.com</span></td>
+              </tr>
+<tr>
+                <td><span class="m-name">Ann Mary Thomas <span class="rel">(Daughter)</span></span></td>
+                <td class="m-mono">04 Feb</td>
+                <td class="m-mono"><span class="dash">&mdash;</span></td>
+                <td class="m-mono">+91 86059 90011</td>
+                <td class="c"><span class="blood-pill">B+</span></td>
+                <td>Class X</td>
+                <td>Student</td>
+                <td><span class="email">annmary.thomas@gmail.com</span></td>
+              </tr>
+</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
+    <div class="foot">
+      <span class="church">St. Peter&#8217;s Mar Thoma Church <span>&middot;</span> Pune, India</span>
+      <span class="pg">Page 12</span>
+    </div>
+  </div>
 </body>
 </html>

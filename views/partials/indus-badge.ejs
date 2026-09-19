@@ -1,42 +1,26 @@
 <%
   /*
-   * "Powered & Secured By" — IndusDefender and IndusNetwork.
+   * The IndusNetwork mark, beneath the sign-in card.
    *
-   * The same two marks, the same label and the same order as the sign-in page
-   * at marthoma.online, in this directory's own palette rather than that
-   * site's navy and gold: the plate is `--vellum` over `--rule`, the same
-   * pairing the rest of the application uses for a panel, so it reads as part
-   * of the page instead of a window cut into it.
+   * This was a built plate: the IndusDefender owl and a light chip holding the
+   * network lock-up, side by side under a "Powered & Secured By" label, with
+   * the wordmark and "Protect. Prevent. Prevail." set in text so they could
+   * take this directory's palette. It is now the single supplied banner
+   * instead — one image, no typed matter, and no IndusDefender.
    *
-   * "Protect. Prevent. Prevail." is set in text here. It is baked into the
-   * bottom of the supplied artwork in near-white, which was right on a navy
-   * panel and would be invisible on this one, so the shield is cropped free of
-   * it and the words are typed — which also lets "Prevail." keep its accent,
-   * in the palette's own gilt.
+   * The artwork carries its own navy-to-maroon ground, so it needs no plate
+   * under it: the vellum panel and rule the old badge borrowed from the rest
+   * of the application would only draw a second box around a picture that is
+   * already a box. What it keeps is the corner radius, which is the one thing
+   * that would otherwise mark it as foreign on a page where every other edge
+   * is rounded.
    *
-   * The wordmark is set in Fraunces, which the directory already loads for its
-   * own headings, rather than in a second serif carried for this plate alone.
-   *
-   * The IndusNetwork lock-up is dark on transparent and keeps the light chip
-   * it has on the original, in `--panel` with the application's own border.
+   * The file is 520x235 and sits flush — the logo is centred inside its own
+   * generous margin, so cropping or padding it would only double that space.
    */
 %>
 <div class="indus-badge">
-  <span class="plabel">Powered &amp; Secured By</span>
-
-  <div class="logos">
-    <span class="owlwrap">
-      <span class="owlname">Indus<span class="def">Defender</span></span>
-      <img class="owl" src="<%= base %>/images/indus-defender.png"
-           alt="IndusDefender" width="145" height="176">
-      <span class="owltag">Protect. Prevent. <span class="last">Prevail.</span></span>
-    </span>
-
-    <span class="divider"></span>
-
-    <span class="induschip">
-      <img class="indus" src="<%= base %>/images/indus-network.png"
-           alt="INDUSNETWORK.ORG — Collaboration Creates Success." width="429" height="80">
-    </span>
-  </div>
+  <img class="indus-banner" src="<%= base %>/images/indus-network-banner.jpg"
+       alt="INDUSNETWORK.ORG — Collaboration Creates Success."
+       width="520" height="235" loading="lazy" decoding="async">
 </div>

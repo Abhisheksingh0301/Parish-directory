@@ -1782,108 +1782,42 @@ body.auth:not(.split) .auth-card {
 }
 
 /* ==========================================================================
-   "Powered & Secured By", under the sign-in card
+   The IndusNetwork banner, under the sign-in card
    ========================================================================== */
 
 /*
- * In the directory's own palette, not the navy and gold of the site this came
- * from. `--vellum` over `--rule` is the same panel the rest of the
- * application is built from, so the plate belongs to the page rather than
- * sitting on top of it. The one accent, standing in for the brand's gold, is
- * this stylesheet's own gilt-deep — the brand gold at 1.5:1 on this
- * background could not be read.
+ * The banner is supplied artwork on its own dark ground, so this is sizing
+ * and a corner, not a panel: anything more would be a frame around a picture
+ * that already has one.
+ *
+ * 420px is the width the sign-in card's plate used before it, which keeps the
+ * mark narrower than the card it sits under rather than squaring up to it.
  */
 .indus-badge {
-  --indus-accent: var(--gilt-deep);
-
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 420px;
   margin: 20px auto 0;
-  padding: 18px 20px 20px;
   border-radius: var(--radius-lg);
-  background: var(--vellum);
-  border: 1px solid var(--rule);
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  overflow: hidden;
+  line-height: 0;
 }
+/*
+ * Off the split layout the badge stands alone on the page's own background
+ * and needs to be lifted off it, the way the auth card is.
+ */
 body.auth:not(.split) .indus-badge { box-shadow: 0 24px 60px -24px rgba(20, 27, 46, .3); }
 
-.indus-badge .plabel {
-  font-size: 10px;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  font-weight: 600;
-}
-.indus-badge .logos {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.indus-badge .owlwrap { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-.indus-badge .owlname {
-  font-family: var(--serif);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: .04em;
-  line-height: 1;
-  color: var(--ink);
-}
-.indus-badge .owlname .def { color: var(--indus-accent); }
-.indus-badge .owl {
-  height: 72px;
-  width: auto;
-  filter: drop-shadow(0 3px 10px rgba(20, 27, 46, .22));
-}
-/* Typed rather than part of the artwork — see the partial for why. */
-.indus-badge .owltag {
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-  line-height: 1;
-  /* --ink-soft rather than --ink-faint: at 8px this is the smallest type on
-     the screen, and the fainter ink lands a whisker under AA. */
-  color: var(--ink-soft);
-}
-.indus-badge .owltag .last { color: var(--indus-accent); }
-.indus-badge .divider {
-  width: 1px;
-  height: 66px;
-  background: linear-gradient(180deg, transparent, var(--rule-firm), transparent);
-}
-/* The network mark is dark on transparent, so it keeps a card of its own. */
-.indus-badge .induschip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 16px;
-  border-radius: var(--radius);
-  background: var(--panel);
-  border: 1px solid var(--rule);
-}
-.indus-badge .indus { display: block; height: 30px; width: auto; max-width: 100%; }
-
 /*
- * Narrow screens. The plate is 420px wide and its contents need about 390 of
- * that, so it is a phone rather than a tablet that runs out of room: the rule
- * drops out, the marks come down a size, and the network chip is sized by its
- * width with `height: auto` so it can never be squashed out of proportion.
+ * `height: auto` against the intrinsic 520x235 in the markup: the attributes
+ * reserve the right box before the file lands, and the ratio is held from
+ * there down to the narrowest phone, so the lock-up is never stretched.
  */
-@media (max-width: 460px) {
-  .indus-badge { padding: 16px 14px 18px; }
-  .indus-badge .logos { gap: 16px; }
-  .indus-badge .divider { display: none; }
-  .indus-badge .owl { height: 64px; }
-  .indus-badge .induschip { padding: 9px 12px; max-width: 100%; }
-  .indus-badge .indus { width: 100%; max-width: 190px; height: auto; }
+.indus-badge .indus-banner {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* ==========================================================================
