@@ -27,16 +27,16 @@
 <style>@page { size: 8.5in 11in; margin: 0; }</style>
 </head>
 <%
-  // The parish's saved palette overrides the defaults in directory.css.
-  const palette = [
-    '--band: '      + settings.color_band,
-    '--band-dark: ' + settings.color_band_dark,
-    '--member-a: '  + settings.color_member_a,
-    '--member-b: '  + settings.color_member_b,
-    '--rule: '      + settings.color_rule
-  ].join('; ');
+  /*
+   * No palette is written here.
+   *
+   * Five custom properties used to be set on this element from the church's
+   * settings, overriding directory.css. The book has one approved design now
+   * and its colours are in the stylesheet, so the sheet is drawn the same for
+   * every parish — see the note in db/index.js.
+   */
 %>
-<body class="directory directory-body" style="<%= palette %>">
+<body class="directory directory-body">
 
 <div class="dir-toolbar">
   <strong><%= settings.directory_title %></strong>

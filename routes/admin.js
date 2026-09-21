@@ -35,12 +35,15 @@ router.use(tenancy.requireChurch);
 // Parish settings — the knobs that make this install "this church's" copy
 // ---------------------------------------------------------------------------
 
-const COLOR_KEYS = ['color_band', 'color_band_dark', 'color_member_a', 'color_member_b', 'color_rule'];
+/*
+ * The printed palette is not here, and is not a setting. The book has one
+ * approved design and its colours live in public/stylesheets/directory.css —
+ * see the note where DEFAULT_SETTINGS used to carry them, in db/index.js.
+ */
 
 /** Everything the settings page needs beyond the stored values themselves. */
 function settingsLocals() {
   return {
-    colorKeys: COLOR_KEYS,
     // The field list is a parish setting rather than something fixed in the
     // code, so moving a field from one tier to the other is something the
     // parish does itself.
@@ -103,15 +106,6 @@ router.post('/settings', wrap(async (req, res) => {
     starting_page: String(startingPage),
     per_page: String(perPage)
   };
-
-  for (const key of COLOR_KEYS) {
-    const value = text(req.body[key]);
-    if (!/^#[0-9a-fA-F]{6}$/.test(value)) {
-      errors.push(`${key.replace(/_/g, ' ')} must be a colour like #cec4b3.`);
-    } else {
-      updates[key] = value.toLowerCase();
-    }
-  }
 
   if (errors.length) {
     const current = await settings.load(req.churchId);
@@ -179,14 +173,6 @@ router.get('/audit', wrap(async (req, res) => {
     events: AUDIT_EVENTS,
     action
   });
-}));
-
-router.post('/settings/reset-colors', wrap(async (req, res) => {
-  const defaults = Object.fromEntries(
-    COLOR_KEYS.map((key) => [key, db.DEFAULT_SETTINGS[key]])
-  );
-  await settings.save(req.churchId, defaults);
-  res.redirect('/admin/settings');
 }));
 
 /**

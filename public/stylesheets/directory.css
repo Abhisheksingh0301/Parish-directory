@@ -10,8 +10,12 @@
    and @page gives none; the eight column widths are derived against the 7.3in
    of table that leaves, so they hold only on this paper at this padding.
 
-   The five palette variables are overridden inline by the server from the
-   parish's saved settings — do not hard-code those below.
+   The palette below is the whole palette. Five of these values — --band,
+   --band-dark, --member-a, --member-b and --rule — used to be a church's own,
+   written onto <body> inline from its Settings page and overriding what is
+   here. They are not settings any more: the book has one approved design, so
+   this file is the only place its colours are stated and every parish prints
+   the same sheet.
    ========================================================================== */
 
 /*
@@ -40,10 +44,9 @@
    * brown-greys replace the blue-greys the book used to be set in; the ground
    * is #f7f4ee rather than #FCFAF4, which is the same paper a shade warmer.
    *
-   * Five of these are the parish's own, overridden inline by the server from
-   * the Settings page: --band, --band-dark, --member-a, --member-b and --rule.
-   * The values here are the mockup's, and every church in the installation now
-   * sits on them — do not hard-code those five below.
+   * All of it is fixed. --band, --band-dark, --member-a, --member-b and --rule
+   * were a parish setting until the book was settled on one design; they are
+   * ordinary values now, and every church prints on them.
    */
   --ink:       #23201b;   /* mockup --ink      */
   --ink-soft:  #403a31;   /* mockup --ink-soft */
@@ -58,11 +61,6 @@
   /*
    * The warm accent an entry is marked with: the Family ID, the edition, the
    * eyebrow over the masthead, and the relation beside a name.
-   *
-   * Deliberately NOT one of the five the parish sets. Those five colour the
-   * bands and rules of the table, and they are chosen for the paper a parish
-   * prints on; these four marks have to stay legible whatever is chosen, and
-   * a pill drawn in the parish's own band colour disappears into the band.
    */
   --accent:      #7c3a2e;
   --accent-soft: #f2e8e2;
@@ -550,7 +548,7 @@ mark.dir-hit {
   color: var(--ink-soft);
 }
 .members tbody tr:last-child td { border-bottom: none; }
-/* The parish's own two row colours, from the Settings page. */
+/* The two row colours, alternating down the table. */
 .members tbody tr:nth-child(odd)  { background: var(--member-a); }
 .members tbody tr:nth-child(even) { background: var(--member-b); }
 .members td.c { text-align: center; }

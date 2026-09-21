@@ -196,10 +196,14 @@ supplied artwork in near-white, which was right on a navy panel and invisible
 on this one, so the shield is cropped free of it and the words are set in the
 palette's own colours — which also lets "Prevail." keep its accent.
 
+The network mark is the current banner — the wordmark reversed out of its own
+navy-to-maroon ground, `indus-network-banner.jpg`, not the older
+dark-on-transparent lock-up. Being a tile already, it takes a corner and the
+same lift the shield has rather than the pale chip the old mark needed.
+
 The two logos live in `public/images/` as ordinary cached files rather than
-inline data URIs, at twice their display size — 42 KB and 29 KB, down from the
-409 KB and 95 KB originals, which would otherwise have been re-sent as base64
-on every visit to the sign-in page.
+inline data URIs, at twice their display size — 43 KB and 14 KB — which would
+otherwise have been re-sent as base64 on every visit to the sign-in page.
 
 ### What the top bar shows
 

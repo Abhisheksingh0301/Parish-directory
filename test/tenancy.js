@@ -298,12 +298,7 @@ async function main() {
     default_member_password: 'church-a-members-2026',
     relation_options: 'Head, Spouse',
     starting_page: '1',
-    per_page: '2',
-    color_band: '#111111',
-    color_band_dark: '#222222',
-    color_member_a: '#333333',
-    color_member_b: '#444444',
-    color_rule: '#555555'
+    per_page: '2'
   });
   check('church A can save its own settings', res.status === 200, `status ${res.status}`);
 

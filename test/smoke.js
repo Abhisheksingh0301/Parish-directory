@@ -159,28 +159,29 @@ async function main() {
     res.status === 302 && res.location === '/login',
     `${res.status} -> ${res.location}`);
 
-  console.log('\n--- the IndusNetwork banner, on every door into the application ---');
+  console.log('\n--- the Powered & Secured By badge, on every door into the application ---');
   /*
    * Attribution that appears on one of the two sign-in screens and not the
    * other is worse than none: a member who signs in with a Family ID would
    * see a different application from one who signs in with an email address.
-   * The banner on both doors, and the image actually served.
+   * Both marks on both doors, and both images actually served.
    *
-   * Its intrinsic size is asserted with it. The artwork is the whole mark now
-   * rather than one chip inside a built plate, so a file swapped for one of
-   * another shape would be stretched in silence by the `height: auto` that
-   * holds its ratio — the attributes are what make that visible here.
+   * The banner's intrinsic size is asserted with it. Its ratio is held by
+   * `height: auto` against those attributes, so a file swapped for one of
+   * another shape would be stretched in silence — the attributes are what
+   * make that visible here.
    */
   for (const door of ['/login', '/family-login']) {
     const page = await request('GET', door);
-    check(`${door} carries the banner`,
+    check(`${door} carries both marks`,
       page.status === 200
+      && page.body.includes('/images/indus-defender.png')
       && page.body.includes('/images/indus-network-banner.jpg')
       && page.body.includes('width="520" height="235"'),
       `status ${page.status}`);
   }
 
-  for (const asset of ['/images/indus-network-banner.jpg']) {
+  for (const asset of ['/images/indus-defender.png', '/images/indus-network-banner.jpg']) {
     const file = await request('GET', asset);
     check(`${asset} is served`,
       file.status === 200 && file.body.length > 1000,
@@ -466,7 +467,7 @@ async function main() {
 
   await settingsLib.save(second.id, {
     parish_name: 'Second Church Name',
-    color_band: '#123456'
+    directory_title: 'The Second Book'
   });
 
   const first = await settingsLib.load(1);

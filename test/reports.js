@@ -113,9 +113,9 @@ async function main() {
   const beta = await church('Beta Church', 'beta', trichy.id, null, 'HeadTwo');
   const gamma = await church('Gamma Church', 'gamma', madurai.id, null, 'HeadThree');
 
-  // Give two churches different palettes, to prove the book keeps them apart.
-  await settingsLib.save(alpha.id, { color_band: '#aa1111', parish_name: 'Alpha Parish' });
-  await settingsLib.save(gamma.id, { color_band: '#00cc00', parish_name: 'Gamma Parish' });
+  // Two churches with names of their own, to prove the book keeps them apart.
+  await settingsLib.save(alpha.id, { parish_name: 'Alpha Parish' });
+  await settingsLib.save(gamma.id, { parish_name: 'Gamma Parish' });
 
   await db.User.create({
     username: 'root', password_hash: await auth.hashPassword(PASSWORD),
@@ -184,9 +184,14 @@ async function main() {
     (res.body.match(/class="church-section"/g) || []).length === 3,
     `${(res.body.match(/class="church-section"/g) || []).length} sections`);
 
-  check('each church in its own colours',
-    res.body.includes('--band: #aa1111') && res.body.includes('--band: #00cc00'),
-    'the per-section palettes did not come through');
+  /*
+   * Every church in the same colours, which is the point of the palette no
+   * longer being a setting: a section that writes its own custom properties
+   * is a church printing something other than the approved design.
+   */
+  check('no section carries a palette of its own',
+    !/--band:|--member-a:|--rule:/.test(res.body),
+    'a church-section is still writing inline palette properties');
 
   check('the section titles use each parish name',
     res.body.includes('Alpha Parish') && res.body.includes('Gamma Parish'));

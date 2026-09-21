@@ -53,14 +53,13 @@
 
 <%
   /*
-   * Each church prints in its own colours.
+   * Every church prints in the same colours.
    *
-   * The palette is five CSS custom properties, and custom properties inherit,
-   * so declaring them on the section rather than on <body> gives every entry
-   * inside it that parish's own scheme. A combined book therefore needs no
-   * compromise palette and no change to directory.css beyond the section
-   * wrapper itself — each church's pages look exactly like the book that
-   * church prints for itself.
+   * Each section used to carry its own palette as five inline custom
+   * properties, so a combined book showed each parish in the scheme it had
+   * chosen. The palette is no longer a church's to choose — it is the approved
+   * design, once, in directory.css — so the sections differ by their families
+   * and their title page, and nothing else.
    */
 %>
 <%
@@ -68,16 +67,7 @@
   const edition = new Date().getFullYear() + ' Edition';
 %>
 <% sections.forEach(function (section) { %>
-  <%
-    const palette = [
-      '--band: '      + section.settings.color_band,
-      '--band-dark: ' + section.settings.color_band_dark,
-      '--member-a: '  + section.settings.color_member_a,
-      '--member-b: '  + section.settings.color_member_b,
-      '--rule: '      + section.settings.color_rule
-    ].join('; ');
-  %>
-  <section class="church-section" style="<%= palette %>">
+  <section class="church-section">
     <div class="page">
       <div class="section-title">
         <h2><%= section.settings.parish_name %></h2>

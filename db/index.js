@@ -25,7 +25,18 @@ const DEFAULT_SETTINGS = {
   parish_name: config.seed.parishName,
   directory_title: config.seed.directoryTitle,
   starting_page: '1',
-  per_page: '1',
+  /*
+   * Two households to a Letter sheet, which is the approved 2026 design — the
+   * layout profile-print-page.html is drawn in, and the one directory.css is
+   * measured against.
+   *
+   * It used to be '1', which is a different layout rather than the same one
+   * with more room: `.page-single` gives the photograph the width of the page
+   * and sets the name half again as large. A church may still choose it on the
+   * Settings page, but a church that has chosen nothing gets the book the
+   * parish approved.
+   */
+  per_page: '2',
   relation_options: 'Head, Spouse, Son, Daughter, Father, Mother, Brother, Sister, Grandfather, Grandmother',
   // The password every member login in this church is created with. It was a
   // single environment variable shared by the whole installation, which meant
@@ -45,30 +56,26 @@ const DEFAULT_SETTINGS = {
    * offered, so switching it on is a setting rather than a rebuild.
    */
   approval_tiers: '1',
-  routine_fields: verification.DEFAULT_ROUTINE_FIELDS,
+  routine_fields: verification.DEFAULT_ROUTINE_FIELDS
   /*
-   * The printed book's five colours, as the 2026 design wants them.
+   * The printed book's colours are NOT here, and are not a setting.
    *
-   * They used to be a set of tans that put a solid khaki band behind every
-   * row of every members table. The design the parish approved is a white
-   * card with the banding barely there — the ink and the gilt do the work,
-   * and the table is read rather than looked at.
+   * There were five — color_band, color_band_dark, color_member_a,
+   * color_member_b and color_rule — that a church picked on its Settings page
+   * and that print.ejs then wrote onto <body> as inline custom properties,
+   * overriding directory.css.
    *
-   * These are only the fallback. A church that has chosen its own colours on
-   * the Settings page keeps them, and its book will still print in the old
-   * tans until somebody goes and changes them.
+   * They are gone because the book has one approved design. Five colour
+   * pickers meant any church could quietly print something that was no longer
+   * it, and the palette is not a parish preference: it is drawn against the
+   * ink and the gilt, and a band chosen without them stops the table being
+   * read at a glance. The values now live once, in directory.css, where the
+   * rest of the design is.
    *
-   *   band        the head of the members table
-   *   band_dark   the rules that close a band: under the table head, and
-   *               above the masthead and the foot of the sheet
-   *   member_a/b  the two row colours, alternating down the table
-   *   rule        the hairline between rows, and inside the details card
+   * Rows a church saved before this are left in `church_settings` and simply
+   * never read. Nothing looks them up, so they cost a few bytes and no
+   * behaviour; dropping them would be a migration for no gain.
    */
-  color_band: '#faf8f3',
-  color_band_dark: '#ddd5c6',
-  color_member_a: '#ffffff',
-  color_member_b: '#fbfaf6',
-  color_rule: '#ece6da'
 };
 
 /**

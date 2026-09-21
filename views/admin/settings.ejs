@@ -1,13 +1,13 @@
 <%- include('../partials/header') %>
 
 <%
-  const colorLabels = {
-    color_band:       'Name and ID band',
-    color_band_dark:  'Members table header',
-    color_member_a:   'Member row, odd',
-    color_member_b:   'Member row, even',
-    color_rule:       'Table borders'
-  };
+  /*
+   * There were five colour pickers here — the band, the table head, the two
+   * row colours and the rules — that wrote the printed book's palette. They
+   * are gone: the book has one approved design, and its colours live in
+   * public/stylesheets/directory.css rather than in a church's settings.
+   * See the note in db/index.js for why.
+   */
 %>
 
 <div class="page-head">
@@ -160,34 +160,10 @@
     </div>
   </div>
 
-  <div class="card">
-    <h2>Printed colours</h2>
-    <p class="help" style="margin:-8px 0 16px">
-      The palette of the printed entry. Defaults match the approved template.
-    </p>
-
-    <div class="grid-2">
-      <% colorKeys.forEach(function (key) { %>
-        <div class="field">
-          <label for="<%= key %>"><%= colorLabels[key] %></label>
-          <input type="color" id="<%= key %>" name="<%= key %>" value="<%= values[key] %>">
-          <p class="help"><%= values[key] %></p>
-        </div>
-      <% }); %>
-    </div>
-  </div>
-
   <div class="actions">
     <button type="submit" class="btn">Save settings</button>
     <a href="<%= base %>/directory" class="btn ghost">Preview the directory</a>
   </div>
-</form>
-
-<form method="post" action="<%= base %>/admin/settings/reset-colors" class="card" style="margin-top:24px">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <h2>Reset colours</h2>
-  <p class="help" style="margin:-8px 0 14px">Put the five printed colours back to the template defaults.</p>
-  <button type="submit" class="btn ghost">Reset to template colours</button>
 </form>
 
 <div class="card danger-zone" style="margin-top:24px">
