@@ -128,7 +128,7 @@ and `test:import-photos`.
 |---|---|
 | `npm start` | Run the app |
 | `npm run dev` | Run it, restarting on file changes |
-| `npm test` | All 598 checks |
+| `npm test` | All 602 checks |
 | `npm run superadmin` | Create, reset or list super administrators |
 | `npm run backup` | Snapshot the database and photographs |
 | `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
