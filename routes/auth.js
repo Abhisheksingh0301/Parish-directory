@@ -6,41 +6,11 @@ const Users = require('../models/user');
 const Family = require('../models/family');
 const Churches = require('../models/church');
 const auth = require('../lib/auth');
+const guard = require('../lib/login-guard');
 const idle = require('../lib/idle');
 const wrap = require('../lib/async');
 
 const router = express.Router();
-
-/**
- * A small in-memory throttle on failed sign-ins. A parish install is a single
- * process, so a Map is enough; it is not meant to survive a restart.
- */
-const MAX_ATTEMPTS = 10;
-const LOCKOUT_MS = 15 * 60 * 1000;
-const attempts = new Map();
-
-function attemptKey(req, username) {
-  return `${req.ip}|${String(username || '').toLowerCase()}`;
-}
-
-function isLockedOut(key) {
-  const record = attempts.get(key);
-  if (!record) return false;
-  if (Date.now() - record.first > LOCKOUT_MS) {
-    attempts.delete(key);
-    return false;
-  }
-  return record.count >= MAX_ATTEMPTS;
-}
-
-function recordFailure(key) {
-  const record = attempts.get(key);
-  if (!record || Date.now() - record.first > LOCKOUT_MS) {
-    attempts.set(key, { count: 1, first: Date.now() });
-    return;
-  }
-  record.count += 1;
-}
 
 /** Regenerate the session on sign-in so a pre-login session ID can't be reused. */
 function startSession(req, user) {
@@ -135,27 +105,75 @@ router.get('/login', wrap(async (req, res) => {
   });
 }));
 
+/**
+ * Sign in.
+ *
+ * The order of what follows is the security of it, so it is worth reading as a
+ * sequence rather than as steps. The blocked address is turned away before any
+ * password is verified, because verification is a deliberately slow bcrypt
+ * comparison and running it for a known attacker is doing their work for them.
+ * The wait is then served *before* the answer and whatever the answer turns out
+ * to be — a delay applied only to failures would time the difference between a
+ * username that exists and one that does not, which is the very thing the
+ * single error message below exists to hide.
+ */
 router.post('/login', wrap(async (req, res) => {
   const username = (req.body.username || '').trim();
   const password = req.body.password || '';
-  const key = attemptKey(req, username);
 
   const fail = (error, status = 401) =>
     res.status(status).render('auth/login', { title: 'Sign in', username, error, notice: null });
 
-  if (isLockedOut(key)) {
-    return fail('Too many failed attempts. Please wait 15 minutes and try again.', 429);
+  const until = await guard.blockedUntil(req);
+  if (until) {
+    await guard.record(req, {
+      kind: 'staff', identifier: username, success: false, reason: guard.REASONS.BLOCKED
+    });
+    return fail(
+      'Too many failed sign-ins have come from this connection. Please try again later.',
+      429
+    );
   }
 
+  await guard.sleep(await guard.delayFor('staff', username), req);
+
   const user = await Users.findByUsername(username);
+  const reason = !user
+    ? guard.REASONS.NO_SUCH_USER
+    : !user.is_active
+      ? guard.REASONS.INACTIVE
+      : !(await auth.verifyPassword(password, user.password_hash))
+        ? guard.REASONS.BAD_PASSWORD
+        : guard.REASONS.OK;
 
   // Same message either way, so the form never reveals which usernames exist.
-  if (!user || !user.is_active || !(await auth.verifyPassword(password, user.password_hash))) {
-    recordFailure(key);
+  // The reason above is for the log, which nobody signing in ever sees.
+  if (reason !== guard.REASONS.OK) {
+    await guard.record(req, {
+      kind: 'staff',
+      identifier: username,
+      success: false,
+      reason,
+      userId: user ? user.id : null,
+      churchId: user ? user.church_id : null
+    });
+    await guard.noteRepeatedFailures(req, {
+      kind: 'staff',
+      identifier: username,
+      failures: await guard.failuresSinceSuccess('staff', username),
+      churchId: user ? user.church_id : null
+    });
     return fail('That username and password did not match.');
   }
 
-  attempts.delete(key);
+  await guard.record(req, {
+    kind: 'staff',
+    identifier: username,
+    success: true,
+    reason: guard.REASONS.OK,
+    userId: user.id,
+    churchId: user.church_id
+  });
   await Users.recordLogin(user.id);
 
   const returnTo = req.session.returnTo;
@@ -209,7 +227,11 @@ router.post('/family-login', wrap(async (req, res) => {
   const pin = String(req.body.pin || '');
   const churches = await parishOptions();
 
-  const key = attemptKey(req, `${churchId}:${familyRef}`);
+  // Counted as parish-and-Family-ID together: a family numbered 0147 in one
+  // parish is a different household from 0147 in the next, and the two must
+  // not share a counter.
+  const who = `${churchId}:${familyRef}`;
+
   const fail = (error, status = 401) => renderFamilyLogin(res, status, {
     churches,
     family_ref: familyRef,
@@ -217,31 +239,81 @@ router.post('/family-login', wrap(async (req, res) => {
     error
   });
 
-  if (isLockedOut(key)) {
-    return fail('Too many failed attempts. Please wait 15 minutes and try again.', 429);
+  const until = await guard.blockedUntil(req);
+  if (until) {
+    await guard.record(req, {
+      kind: 'family', identifier: who, success: false, reason: guard.REASONS.BLOCKED
+    });
+    return fail(
+      'Too many failed sign-ins have come from this connection. Please try again later.',
+      429
+    );
   }
+
+  /*
+   * A malformed submission is logged and refused, but without the wait. It is
+   * the form not being filled in rather than a credential being guessed, and
+   * making a household that forgot to choose its parish sit through a growing
+   * delay teaches it nothing.
+   */
   if (!Number.isInteger(churchId) || !familyRef || !pin) {
+    await guard.record(req, {
+      kind: 'family', identifier: who, success: false, reason: guard.REASONS.MALFORMED
+    });
     return fail('Choose your parish, and enter your Family ID and PIN.', 400);
   }
   if (!churches.some((c) => c.id === churchId)) {
+    await guard.record(req, {
+      kind: 'family', identifier: who, success: false, reason: guard.REASONS.MALFORMED
+    });
     return fail('That parish is not open for sign-in.', 400);
   }
+
+  await guard.sleep(await guard.delayFor('family', who), req);
 
   const family = await Family.findByRef(churchId, familyRef);
   const user = family ? await Users.findByFamily(family.id) : null;
 
+  const reason = !user || user.role !== 'family'
+    ? guard.REASONS.NO_SUCH_USER
+    : !user.is_active
+      ? guard.REASONS.INACTIVE
+      : !(await auth.verifyPassword(pin, user.password_hash))
+        ? guard.REASONS.BAD_PASSWORD
+        : guard.REASONS.OK;
+
   /*
    * One message for every kind of failure. A form that said "no such Family
    * ID" would confirm which numbers a parish uses to anybody who asked, and
-   * the Family ID is printed on the front of every entry in the book.
+   * the Family ID is printed on the front of every entry in the book. The
+   * reason above separates them for the log and nowhere else.
    */
-  if (!user || !user.is_active || user.role !== 'family' ||
-      !(await auth.verifyPassword(pin, user.password_hash))) {
-    recordFailure(key);
+  if (reason !== guard.REASONS.OK) {
+    await guard.record(req, {
+      kind: 'family',
+      identifier: who,
+      success: false,
+      reason,
+      userId: user ? user.id : null,
+      churchId
+    });
+    await guard.noteRepeatedFailures(req, {
+      kind: 'family',
+      identifier: who,
+      failures: await guard.failuresSinceSuccess('family', who),
+      churchId
+    });
     return fail('That Family ID and PIN did not match.');
   }
 
-  attempts.delete(key);
+  await guard.record(req, {
+    kind: 'family',
+    identifier: who,
+    success: true,
+    reason: guard.REASONS.OK,
+    userId: user.id,
+    churchId
+  });
   await Users.recordLogin(user.id);
   await startSession(req, user);
 

@@ -152,6 +152,46 @@ module.exports = {
    * never be shown at all.
    */
   session: { idleMs, warnMs, cookieMs },
+  /**
+   * What happens to somebody who keeps getting the sign-in wrong.
+   *
+   * No account is ever locked. A parish administrator's username is printed on
+   * nothing and guessable by anybody, and an account that locks on five wrong
+   * guesses hands any passer-by the power to shut the office out of its own
+   * directory at the moment it needs it. So the answer to a wrong password is
+   * a wait that grows — patience a person spends once and a script cannot
+   * afford across thousands of guesses — and the hard stop is applied to the
+   * address doing the guessing, not to the person being guessed at.
+   *
+   *   delayAfter    failures before the wait starts at all, so the ordinary
+   *                 two-fingered typo costs nothing
+   *   delayStepMs   the first wait, doubling with each further failure
+   *   delayMaxMs    the ceiling, because a delayed request is a held-open
+   *                 connection and an unbounded wait is a way to exhaust them
+   *   repeatedFailureNotice
+   *                 consecutive failures against one identifier before the
+   *                 audit log says so
+   *   ipMaxFailures failures from one address, inside ipWindow, before it is
+   *                 blocked outright
+   *   retentionDays how long the attempt log is kept
+   *
+   * The identifier counter resets on a successful sign-in. The address counter
+   * does not — an attacker holding one valid account would otherwise clear it
+   * whenever they liked.
+   */
+  login: {
+    delayAfter: numberEnv('LOGIN_DELAY_AFTER', 2, 0, 50),
+    delayStepMs: numberEnv('LOGIN_DELAY_STEP_SECONDS', 1, 0.01, 60) * 1000,
+    delayMaxMs: numberEnv('LOGIN_DELAY_MAX_SECONDS', 30, 0.01, 300) * 1000,
+    // Consecutive failures against one identifier before a line is written
+    // to the audit log. The delay itself is silent, so without this a parish
+    // would never learn which of its accounts was being ground on.
+    repeatedFailureNotice: numberEnv('LOGIN_NOTICE_AFTER', 5, 1, 1000),
+    ipMaxFailures: numberEnv('LOGIN_IP_MAX_FAILURES', 15, 1, 10000),
+    ipWindowMs: numberEnv('LOGIN_IP_WINDOW_MINUTES', 60, 0.05, 7 * 24 * 60) * 60 * 1000,
+    ipBlockMs: numberEnv('LOGIN_IP_BLOCK_MINUTES', 60, 0.05, 7 * 24 * 60) * 60 * 1000,
+    retentionDays: numberEnv('LOGIN_LOG_RETENTION_DAYS', 90, 1, 3650)
+  },
   trustProxy: process.env.TRUST_PROXY === '1',
   secureCookies:
     process.env.SECURE_COOKIES === '1' ||

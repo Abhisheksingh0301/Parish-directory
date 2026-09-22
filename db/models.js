@@ -227,6 +227,46 @@ const PendingChange = sequelize.define('PendingChange', {
   applied_at: { type: DataTypes.STRING, allowNull: true }
 }, { tableName: 'pending_changes' });
 
+/**
+ * One sign-in attempt, successful or not.
+ *
+ * The raw material for lib/login-guard.js: the escalating delay counts this
+ * church's failures since the last success, and the IP rule counts an
+ * address's failures inside a window. Both are questions about rows here
+ * rather than about a counter held in memory, so a restart does not hand an
+ * attacker a clean slate.
+ *
+ * `reason` is a code — 'bad_password', 'no_such_user', 'inactive' — and never
+ * the password or PIN that was tried. Nothing in this table may be used to
+ * reconstruct a credential.
+ */
+const LoginAttempt = sequelize.define('LoginAttempt', {
+  id,
+  at: { type: DataTypes.STRING, allowNull: false, defaultValue: now },
+  kind: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'staff' },
+  identifier: text(),
+  ip: text(),
+  user_agent: text(),
+  success: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  reason: text(),
+  user_id: { type: DataTypes.INTEGER, allowNull: true },
+  church_id: { type: DataTypes.INTEGER, allowNull: true }
+}, { tableName: 'login_attempts' });
+
+/**
+ * An address shut out for grinding through sign-ins, and until when.
+ *
+ * Kept rather than derived so that a block can be lifted by hand, and so that
+ * it outlives the pruning of the attempts that caused it.
+ */
+const IpBlock = sequelize.define('IpBlock', {
+  ip: { type: DataTypes.TEXT, primaryKey: true },
+  blocked_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now },
+  blocked_until: { type: DataTypes.STRING, allowNull: false },
+  failures: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  tried: text()
+}, { tableName: 'ip_blocks' });
+
 const Session = sequelize.define('Session', {
   sid: { type: DataTypes.TEXT, primaryKey: true },
   expires: { type: DataTypes.INTEGER, allowNull: false },
@@ -286,5 +326,7 @@ module.exports = {
   AuditLog,
   Submission,
   PendingChange,
+  LoginAttempt,
+  IpBlock,
   Session
 };

@@ -988,6 +988,90 @@ async function clearNonAddressEmails({ sequelize, transaction }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// 15 — every sign-in attempt, and the IP blocks that follow from them
+// ---------------------------------------------------------------------------
+
+/**
+ * A row per sign-in attempt, successful or not.
+ *
+ * Until now the only record of a failed sign-in was a counter in a Map inside
+ * routes/auth.js, which held ten failures per address-and-username pair, knew
+ * nothing about an address grinding through a list of usernames, and was lost
+ * on every restart. A parish asking "was somebody trying to get into our
+ * directory last night, and from where" had nothing to read.
+ *
+ * What a row holds is deliberately bounded: who was asked for, from which
+ * address, on what kind of browser, when, and whether it worked. What it never
+ * holds is the password or the PIN that was tried — `reason` is a code from
+ * lib/login-guard.js, never a value somebody typed. A security log that
+ * records the guesses is a list of passwords to try on the next system.
+ *
+ * `identifier` is the username as typed for a staff sign-in and
+ * "<church>:<Family ID>" for a household one, lowercased in both cases: the
+ * two name spaces are separate, and a family numbered 0147 in one parish must
+ * not share a counter with 0147 in the next.
+ *
+ * `church_id` is filled in where it is known — always for a household sign-in,
+ * and for a staff one only once the account has been found. A failure against
+ * a username that does not exist belongs to no church, which is why the column
+ * is nullable and why the per-parish audit log is not where this lives.
+ */
+async function loginAttemptLog({ qi, transaction }) {
+  const opts = { transaction };
+
+  await qi.createTable('login_attempts', {
+    id: ID,
+    at: TIMESTAMP,
+    // 'staff' or 'family' — the two sign-in forms, counted apart.
+    kind: { type: DataTypes.TEXT, allowNull: false, defaultValue: 'staff' },
+    identifier: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    ip: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    // The User-Agent header, truncated. "Device information" in practice: it
+    // is what the browser volunteers, and nothing is fingerprinted to get it.
+    user_agent: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    success: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    // A code, never a credential. See REASONS in lib/login-guard.js.
+    reason: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    user_id: { type: DataTypes.INTEGER, allowNull: true },
+    church_id: { type: DataTypes.INTEGER, allowNull: true }
+  }, opts);
+
+  /*
+   * Three indexes, one per question the guard asks on every single sign-in:
+   * how many times has this identifier failed since it last succeeded, how
+   * many times has this address failed lately, and what is the most recent
+   * activity. Without them each attempt would scan the whole table, and the
+   * table grows fastest exactly when it is being attacked.
+   */
+  await qi.addIndex('login_attempts', ['identifier', 'at'], {
+    name: 'idx_login_identifier', ...opts
+  });
+  await qi.addIndex('login_attempts', ['ip', 'at'], { name: 'idx_login_ip', ...opts });
+  await qi.addIndex('login_attempts', ['at'], { name: 'idx_login_at', ...opts });
+
+  /**
+   * An address that has been shut out, and until when.
+   *
+   * Derived from the table above, but stored rather than recomputed, for two
+   * reasons. A block has to be liftable — a super administrator clearing a
+   * parish office that locked itself out cannot do that by deleting history —
+   * and `blocked_until` has to survive the pruning of the attempts that caused
+   * it.
+   */
+  await qi.createTable('ip_blocks', {
+    ip: { type: DataTypes.TEXT, primaryKey: true },
+    blocked_at: TIMESTAMP,
+    blocked_until: TIMESTAMP,
+    failures: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    // What was being tried while the count ran up, for the page that lists
+    // blocks. A few identifiers, comma-separated, not the whole list.
+    tried: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }
+  }, opts);
+
+  await qi.addIndex('ip_blocks', ['blocked_until'], { name: 'idx_ip_blocks_until', ...opts });
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -1006,7 +1090,8 @@ const MIGRATIONS = [
   entryFieldsPerParishReview,
   familySortOrder,
   dropFamilyArea,
-  clearNonAddressEmails
+  clearNonAddressEmails,
+  loginAttemptLog
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };

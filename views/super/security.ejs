@@ -1,0 +1,165 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div class="titleblock">
+    <p class="eyebrow">System</p>
+    <h1>Sign-in security</h1>
+    <p class="sub">
+      Every attempt to sign in to this installation, newest first.
+    </p>
+  </div>
+</div>
+
+<%- include('../partials/messages') %>
+
+<div class="card">
+  <p class="help" style="margin-top:0">
+    Who was asked for, from which address, on what kind of browser, and whether
+    it worked. No password or PIN is recorded here or anywhere else &mdash; a
+    failed attempt keeps a reason code and nothing a credential could be
+    rebuilt from. This is the whole installation, which is why it is not
+    offered to a parish: a church reads the events that concern its own
+    accounts on its own Audit log.
+  </p>
+
+  <% if (!trustProxy) { %>
+    <p class="help" style="margin-bottom:0">
+      <strong>TRUST_PROXY is not set.</strong> If this install sits behind nginx
+      or another proxy, every visitor appears to arrive from
+      <code>127.0.0.1</code>, so the addresses below are the proxy&rsquo;s and
+      not the caller&rsquo;s. Blocking stands down in that case rather than
+      shutting out the whole parish at once &mdash; meaning the address rule is
+      doing nothing until <code>TRUST_PROXY=1</code> is set. If the app faces
+      the internet directly, nothing needs doing.
+    </p>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Addresses blocked</h2>
+  <p class="help" style="margin-top:0">
+    An address is refused automatically after <%= limits.ipMaxFailures %> failed
+    sign-ins within <%= Math.round(limits.ipWindowMs / 60000) %> minutes, and
+    released <%= Math.round(limits.ipBlockMs / 60000) %> minutes later. Lifting
+    one by hand is recorded in the activity log.
+  </p>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="nowrap">Address</th>
+          <th class="nowrap">Blocked</th>
+          <th class="nowrap">Until</th>
+          <th class="nowrap">Failures</th>
+          <th>Was trying</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!blocks.length) { %>
+          <tr><td colspan="6" class="empty">No address is blocked.</td></tr>
+        <% } %>
+        <% blocks.forEach(function (block) { %>
+          <tr>
+            <td class="nowrap"><code><%= block.ip %></code></td>
+            <td class="nowrap" style="color:var(--ink-faint);font-size:14px"><%= block.blocked_at %></td>
+            <td class="nowrap" style="font-size:14px"><%= block.blocked_until %></td>
+            <td class="nowrap"><%= block.failures %></td>
+            <td class="help" style="margin:0"><%= block.tried || '—' %></td>
+            <td class="nowrap">
+              <form method="post" action="<%= base %>/super/security/unblock" style="margin:0">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="ip" value="<%= block.ip %>">
+                <button type="submit" class="btn ghost small">Unblock</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Attempts</h2>
+
+  <form method="get" action="<%= base %>/super/security" class="grid-2">
+    <div class="field">
+      <label for="identifier">Username or Family ID</label>
+      <input type="search" id="identifier" name="identifier"
+             value="<%= filters.identifier %>" placeholder="achen, 0147">
+    </div>
+    <div class="field">
+      <label for="ip">Address</label>
+      <input type="search" id="ip" name="ip" value="<%= filters.ip %>"
+             placeholder="203.0.113">
+    </div>
+    <div class="field">
+      <label class="checkline">
+        <input type="checkbox" name="failures" value="1"
+               <%= filters.failuresOnly ? 'checked' : '' %>>
+        Failed attempts only
+      </label>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn ghost small">Filter</button>
+      <% if (filters.identifier || filters.ip || filters.failuresOnly) { %>
+        <a class="btn ghost small" href="<%= base %>/super/security">Clear</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="nowrap">When</th>
+          <th>Asked for</th>
+          <th class="nowrap">From</th>
+          <th>Device</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!attempts.length) { %>
+          <tr><td colspan="5" class="empty">Nothing recorded under this filter.</td></tr>
+        <% } %>
+        <% attempts.forEach(function (attempt) { %>
+          <tr>
+            <td class="nowrap" style="color:var(--ink-faint);font-size:14px"><%= attempt.at %></td>
+            <td><%= attempt.identifier %></td>
+            <td class="nowrap"><code><%= attempt.ip %></code></td>
+            <td class="help" style="margin:0"><%= attempt.user_agent || '—' %></td>
+            <td class="nowrap">
+              <% if (attempt.success) { %>
+                signed in
+              <% } else { %>
+                <span class="tag"><%= attempt.reason %></span>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="help">
+  Showing the most recent <%= attempts.length %>, kept for
+  <%= limits.retentionDays %> days.
+  A wrong password is never answered at once: after <%= limits.delayAfter %>
+  failures the wait starts at <%= Math.round(limits.delayStepMs / 1000) %>
+  second<%= Math.round(limits.delayStepMs / 1000) === 1 ? '' : 's' %> and doubles
+  with each further one, up to <%= Math.round(limits.delayMaxMs / 1000) %>,
+  resetting the moment that account signs in. No account is ever locked &mdash;
+  a lockout would let any passer-by shut a parish out of its own directory by
+  typing its administrator&rsquo;s username a few times. The hard stop is
+  applied to the address instead.
+</p>
+
+<%- include('../partials/footer') %>

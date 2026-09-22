@@ -7,7 +7,9 @@ const Users = require('../models/user');
 const auth = require('../lib/auth');
 const tenancy = require('../lib/tenancy');
 const settings = require('../lib/settings');
+const config = require('../config');
 const audit = require('../lib/audit');
+const guard = require('../lib/login-guard');
 const wrap = require('../lib/async');
 
 const router = express.Router();
@@ -361,5 +363,49 @@ router.post('/stop-acting', (req, res) => {
   tenancy.stopActing(req);
   res.redirect('/super/churches');
 });
+
+// ---------------------------------------------------------------------------
+// Sign-in security
+// ---------------------------------------------------------------------------
+
+/**
+ * Every sign-in attempt on this installation, and the addresses shut out.
+ *
+ * Super administrator only, and deliberately not offered to a parish. The rows
+ * span every church — a failure against a username that does not exist belongs
+ * to no church at all — and they hold the IP addresses of people who were
+ * merely trying to sign in, including a parishioner mistyping a PIN at home.
+ * A parish reads its own security events on /admin/audit instead, which is
+ * scoped to it in the query.
+ *
+ * There is nothing here that edits or deletes an attempt. Lifting a block is
+ * the one action offered, and it is itself recorded.
+ */
+router.get('/security', wrap(async (req, res) => {
+  const filters = {
+    identifier: String(req.query.identifier || '').trim(),
+    ip: String(req.query.ip || '').trim(),
+    failuresOnly: req.query.failures === '1'
+  };
+
+  res.render('super/security', {
+    title: 'Sign-in security',
+    attempts: await guard.list({ ...filters, limit: 400 }),
+    blocks: await guard.blocks(),
+    filters,
+    limits: config.login,
+    trustProxy: config.trustProxy,
+    ...flash(req)
+  });
+}));
+
+router.post('/security/unblock', wrap(async (req, res) => {
+  const ip = String(req.body.ip || '').trim();
+  const lifted = await guard.unblock(req, ip);
+
+  redirectWith(res, '/super/security', lifted
+    ? `${ip} may sign in again.`
+    : `${ip} was not blocked.`);
+}));
 
 module.exports = router;

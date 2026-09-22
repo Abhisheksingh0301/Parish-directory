@@ -159,7 +159,14 @@ const AUDIT_EVENTS = [
   { value: 'family.imported', label: 'Data imported' },
   { value: 'family.photos.imported', label: 'Photographs imported' },
   { value: 'export', label: 'Exports' },
-  { value: 'church', label: 'Parish structure' }
+  { value: 'church', label: 'Parish structure' },
+  /*
+   * Sign-in security. The parish sees the events that concern its own
+   * accounts — an address blocked while guessing, an account being ground
+   * on — but not the attempt-by-attempt log, which spans every church and
+   * holds visitors' IP addresses. That lives on /super/security.
+   */
+  { value: 'security', label: 'Sign-in security' }
 ];
 
 router.get('/audit', wrap(async (req, res) => {

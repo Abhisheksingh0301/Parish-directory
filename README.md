@@ -128,7 +128,7 @@ and `test:import-photos`.
 |---|---|
 | `npm start` | Run the app |
 | `npm run dev` | Run it, restarting on file changes |
-| `npm test` | All 259 checks |
+| `npm test` | All 598 checks |
 | `npm run superadmin` | Create, reset or list super administrators |
 | `npm run backup` | Snapshot the database and photographs |
 | `npm run import-hierarchy -- --file <x.csv>` | Load dioceses, zones and churches from a CSV. Without `-- --file` it only prints its usage |
@@ -387,6 +387,46 @@ moment the approved value reached the parish record. Every export is recorded
 too. The log keeps its own copy of the operator's name, so a record survives the
 account being deleted — and no screen anywhere in this application edits or
 deletes a log line.
+
+### Failed sign-ins, and where to read them
+
+**No account is ever locked.** A parish administrator's username is printed on
+nothing and guessable by anybody, so an account that locked on a few wrong
+guesses would hand any passer-by the power to shut the office out of its own
+directory at the moment it needs it. Instead:
+
+- **The wait grows.** After two consecutive failures against one username or
+  Family ID the next answer takes a second, then two, then four, up to thirty.
+  It resets the moment that account signs in successfully. A person spends that
+  patience once; a script cannot afford it across thousands of guesses.
+- **The address is blocked.** Fifteen failed sign-ins from one address within an
+  hour and that address is refused outright for an hour — which is what catches
+  a script working through a list of usernames, where no single account goes
+  anywhere near its own limit.
+
+Every attempt, successful or not, is written down: who was asked for, from which
+address, on what kind of browser, when, and whether it worked. **No password or
+PIN is recorded**, on a failure or otherwise — a failed attempt keeps a reason
+code and nothing a credential could be rebuilt from.
+
+Three places to read it, depending on who is asking:
+
+| Where | Who | What it shows |
+|---|---|---|
+| **Manage → Audit log**, event *Sign-in security* | Parish administrator | The events that concern this parish: an address blocked, an account being ground on |
+| **System → Security** | Super administrator | Every attempt on the installation, filterable by username or address, plus the blocked addresses with an **Unblock** button each |
+| `login_attempts` in the database | Whoever runs the server | `sqlite3 data/parish.db "SELECT at, identifier, ip, success, reason FROM login_attempts ORDER BY at DESC LIMIT 50;"` |
+
+The per-attempt log is deliberately not offered to a parish: it spans every
+church and holds the addresses of people who were merely trying to sign in,
+including a parishioner mistyping a PIN at home.
+
+> **The address rule needs `TRUST_PROXY=1` behind a proxy.** Without it every
+> visitor appears to arrive from `127.0.0.1`, and blocking on that would shut
+> out the whole parish at once — so the rule stands down instead. Safe, but it
+> means the rule is doing nothing. The Security page says so when that is the
+> case. All the limits are tunable in `.env`; see the *Failed sign-ins* block
+> there.
 
 ### Exporting the queue
 
@@ -807,7 +847,11 @@ had been set on a different pooled connection.
 - A church administrator cannot create a super administrator; the role is not
   offered and the route refuses it.
 - All state-changing forms carry a per-session CSRF token.
-- Sign-in failures are throttled per IP and username.
+- **Failed sign-ins slow down but never lock an account**, and the address doing
+  the guessing is blocked instead. See *Failed sign-ins, and where to read them* above.
+- Every sign-in attempt is logged with the username asked for, the address, the
+  browser, the time and the outcome — and never the password or PIN that was
+  tried.
 - Photo uploads are restricted by MIME type and size, and stored under a random
   filename.
 - `SESSION_SECRET` is required in production; the app refuses to start without

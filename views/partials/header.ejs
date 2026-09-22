@@ -91,6 +91,7 @@
           <a href="<%= base %>/super"           class="<%= path === '/super' ? 'active' : '' %>">System</a>
           <a href="<%= base %>/super/churches"  class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
           <a href="<%= base %>/super/reports"   class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+          <a href="<%= base %>/super/security"  class="<%= path.startsWith('/super/security') ? 'active' : '' %>">Security</a>
         <% } else if (isSuperAdmin) { %>
           <details class="nav-menu">
             <summary class="<%= path.startsWith('/super') ? 'active' : '' %>">System</summary>
@@ -98,6 +99,7 @@
               <a href="<%= base %>/super"          class="<%= path === '/super' ? 'active' : '' %>">Console</a>
               <a href="<%= base %>/super/churches" class="<%= path.startsWith('/super/churches') ? 'active' : '' %>">Churches</a>
               <a href="<%= base %>/super/reports"  class="<%= path.startsWith('/super/reports') ? 'active' : '' %>">Reports</a>
+              <a href="<%= base %>/super/security" class="<%= path.startsWith('/super/security') ? 'active' : '' %>">Security</a>
             </div>
           </details>
         <% } %>
