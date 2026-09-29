@@ -173,7 +173,7 @@ module.exports = {
    *                 audit log says so
    *   ipMaxFailures failures from one address, inside ipWindow, before it is
    *                 blocked outright
-   *   retentionDays how long the attempt log is kept
+   *   retentionDays how long the attempt log, and the audit log, are kept
    *
    * The identifier counter resets on a successful sign-in. The address counter
    * does not — an attacker holding one valid account would otherwise clear it

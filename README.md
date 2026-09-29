@@ -386,7 +386,8 @@ reviewed it and when, the outcome with the reason where one was given, and the
 moment the approved value reached the parish record. Every export is recorded
 too. The log keeps its own copy of the operator's name, so a record survives the
 account being deleted — and no screen anywhere in this application edits or
-deletes a log line.
+deletes a log line. Lines are kept for `LOGIN_LOG_RETENTION_DAYS` (90 by
+default), the same period as the sign-in log, and then removed automatically.
 
 ### Failed sign-ins, and where to read them
 
