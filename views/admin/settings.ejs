@@ -149,6 +149,22 @@
     </div>
 
     <div class="field">
+      <div class="label">Qualification</div>
+      <label class="checkline">
+        <input type="checkbox" name="show_qualification" value="1"
+               <%= String(values.show_qualification) !== '0' ? 'checked' : '' %>>
+        <span>
+          Collect and print each member&rsquo;s Qualification
+        </span>
+      </label>
+      <p class="help" style="margin-top:6px">
+        Untick to remove Qualification from the family editor and from the
+        printed directory. Values already saved are kept, not deleted, so
+        ticking this again brings them straight back.
+      </p>
+    </div>
+
+    <div class="field">
       <label for="relation_options">Relations</label>
       <input type="text" id="relation_options" name="relation_options" value="<%= values.relation_options %>">
       <p class="help">

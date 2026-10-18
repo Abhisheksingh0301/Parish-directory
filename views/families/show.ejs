@@ -196,7 +196,7 @@
           <th>Date of marriage</th>
           <th>Mobile</th>
           <th>Blood group</th>
-          <th>Qualification</th>
+          <% if (String(settings.show_qualification) !== '0') { %><th>Qualification</th><% } %>
           <th>Occupation</th>
           <th>Emails</th>
         </tr>
@@ -214,7 +214,7 @@
                 %><%= n %><% if (j < m.mobiles.length - 1) { %><br><% } %><% }) %>
             </td>
             <td class="nowrap"><%= m.blood_group || '—' %></td>
-            <td><%= m.qualification || '—' %></td>
+            <% if (String(settings.show_qualification) !== '0') { %><td><%= m.qualification || '—' %></td><% } %>
             <td><%= m.occupation || '—' %></td>
             <td>
               <% if (!m.email_list.length) { %>—<% } %>

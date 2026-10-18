@@ -82,13 +82,20 @@
       </select>
     </div>
 
-    <div class="field">
-      <label>Qualification</label>
-      <input type="text" name="members[<%= index %>][qualification]" value="<%= m.qualification %>"
-             maxlength="<%= textLimits.qualification %>" pattern="<%= textPattern('qualification') %>"
-             title="Up to <%= textLimits.qualification %> characters, with at least one letter in it."
-             placeholder="B.Sc. Nursing">
-    </div>
+    <% if (String(settings.show_qualification) !== '0') { %>
+      <div class="field">
+        <label>Qualification</label>
+        <input type="text" name="members[<%= index %>][qualification]" value="<%= m.qualification %>"
+               maxlength="<%= textLimits.qualification %>" pattern="<%= textPattern('qualification') %>"
+               title="Up to <%= textLimits.qualification %> characters, with at least one letter in it."
+               placeholder="B.Sc. Nursing">
+      </div>
+    <% } else { %>
+      <%# Turned off in Settings. Carried through unchanged rather than dropped
+          from the form, so saving an edit elsewhere on this row does not erase
+          a value that was recorded while this was switched on. %>
+      <input type="hidden" name="members[<%= index %>][qualification]" value="<%= m.qualification %>">
+    <% } %>
 
     <div class="field">
       <label>Occupation</label>

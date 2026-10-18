@@ -96,6 +96,9 @@ router.post('/settings', wrap(async (req, res) => {
     .map((key) => String(key).trim().toLowerCase())
     .filter((key) => known.has(key));
 
+  // An unticked checkbox sends nothing at all, so its absence is the "off" value.
+  const showQualification = req.body.show_qualification === '1' ? '1' : '0';
+
   const updates = {
     parish_name: text(req.body.parish_name),
     default_member_password: memberPassword,
@@ -104,14 +107,20 @@ router.post('/settings', wrap(async (req, res) => {
     approval_tiers: req.body.approval_tiers === '2' ? '2' : '1',
     routine_fields: routine.join(', '),
     starting_page: String(startingPage),
-    per_page: String(perPage)
+    per_page: String(perPage),
+    show_qualification: showQualification
   };
 
   if (errors.length) {
     const current = await settings.load(req.churchId);
     return res.status(400).render('admin/settings', {
       title: 'Parish settings',
-      values: { ...current, ...req.body, routine_fields: routine.join(', ') },
+      values: {
+        ...current,
+        ...req.body,
+        routine_fields: routine.join(', '),
+        show_qualification: showQualification
+      },
       ...settingsLocals(),
       errors,
       notice: null

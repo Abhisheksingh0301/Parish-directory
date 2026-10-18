@@ -56,7 +56,11 @@ const DEFAULT_SETTINGS = {
    * offered, so switching it on is a setting rather than a rebuild.
    */
   approval_tiers: '1',
-  routine_fields: verification.DEFAULT_ROUTINE_FIELDS
+  routine_fields: verification.DEFAULT_ROUTINE_FIELDS,
+  // Whether the Qualification field is offered at all. '0' drops it from the
+  // family editor and from the printed directory; values already saved are
+  // left alone, in case a church switches this back on later.
+  show_qualification: '1'
   /*
    * The printed book's colours are NOT here, and are not a setting.
    *

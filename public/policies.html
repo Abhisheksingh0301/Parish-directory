@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Directory Platform – Policies</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page:#f4f0e8; --frame:#e6dfd2; --card:#fff; --ink:#1f1d1a; --muted:#8a8275;
+    --line:#e8e2d6; --accent:#b0874a; --chip:#efe7da; --chip-ink:#5c4a33; --rowalt:#faf8f4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--frame);font-family:'Inter',sans-serif;color:var(--ink);padding:24px 12px}
+  .page{max-width:820px;margin:0 auto 24px;background:var(--page);padding:44px 48px 28px;box-shadow:0 2px 14px rgba(0,0,0,.08)}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:12px;border-bottom:1px solid #d9d1c3}
+  .eyebrow{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#3b3833;margin-bottom:4px}
+  .brand{font-family:'Fraunces',serif;font-weight:500;font-size:20px}
+  .brand span{font-weight:400;color:#6b655c}
+  .edition{background:var(--chip);color:#7a5c33;font-size:9.5px;font-weight:700;letter-spacing:.12em;padding:5px 12px;border-radius:20px;align-self:flex-start;text-transform:uppercase}
+
+  .title-wrap{margin-top:26px}
+  .tags{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .code{background:var(--chip);color:var(--chip-ink);font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:12px}
+  .kicker{font-size:9.5px;font-weight:600;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  h1{font-family:'Fraunces',serif;font-weight:500;font-size:32px;line-height:1.1}
+  .rule{width:44px;height:2px;background:var(--accent);margin:10px 0 14px}
+  .intro{font-size:12.5px;color:#4d483f;line-height:1.65}
+  .meta{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font-size:10px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+  .toc a{background:var(--card);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:16px 18px;text-decoration:none;color:var(--ink);display:block;transition:transform .15s}
+  .toc a:hover{transform:translateY(-2px)}
+  .toc .num{font-family:'Fraunces',serif;font-size:22px;color:var(--accent)}
+  .toc .t{font-family:'Fraunces',serif;font-size:15px;font-weight:500;margin:4px 0}
+  .toc .d{font-size:10.5px;color:#6b655c;line-height:1.45}
+
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .role{background:var(--card);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:14px 16px}
+  .role .label{font-size:8.5px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+  .role .who{font-family:'Fraunces',serif;font-size:14px;font-weight:500;margin-bottom:4px}
+  .role p{font-size:10.5px}
+
+  .card{background:var(--card);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:6px 24px;margin-top:16px}
+  .clause{padding:16px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:34px 1fr;gap:6px}
+  .clause:last-child{border-bottom:none}
+  .cn{font-family:'Fraunces',serif;font-size:14px;color:var(--accent)}
+  h2{font-family:'Fraunces',serif;font-weight:500;font-size:16px;margin-bottom:6px}
+  p,li{font-size:11.5px;line-height:1.65;color:#3f3a33}
+  p+p{margin-top:6px}
+  ul{margin:6px 0 0 16px}
+  li{margin-bottom:3px}
+  li::marker{color:var(--accent)}
+  strong{font-weight:600;color:var(--ink)}
+
+  table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:8px;border:1px solid var(--line)}
+  th{font-size:7.5px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;text-align:left;padding:8px 10px;background:var(--rowalt);border-bottom:1px solid var(--line)}
+  td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+  tr:nth-child(even) td{background:var(--rowalt)}
+  tr:last-child td{border-bottom:none}
+
+  .note{background:var(--chip);border-left:2px solid var(--accent);border-radius:3px;padding:12px 16px;margin-top:16px;font-size:11px;line-height:1.6;color:#4d3f2c}
+  .note b{font-weight:700}
+
+  .dogrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .do,.dont{border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+  .do h3,.dont h3{font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+  .do h3{color:#4a6b3a}.dont h3{color:#8d3b2f}
+  .do ul,.dont ul{margin-left:14px}
+
+  .ph{background:#f5e3bf;padding:0 3px;border-radius:2px}
+
+  .foot{display:flex;justify-content:space-between;margin-top:18px;padding-top:10px;border-top:1px solid #d9d1c3;font-size:8.5px;color:var(--muted)}
+  .foot .l{font-family:'Fraunces',serif;font-weight:600;font-size:9.5px;color:#6b655c}
+  .foot .r{text-transform:uppercase;font-weight:600;letter-spacing:.06em}
+
+  @media print{
+    body{background:none;padding:0}
+    .page{box-shadow:none;max-width:none;margin:0;break-after:page}
+    .ph{background:none}
+    .toc a,.role{box-shadow:none;border:1px solid var(--line)}
+  }
+  @media (max-width:640px){
+    .page{padding:24px 16px}.toc,.dogrid,.roles{grid-template-columns:1fr}
+    .card{padding:4px 14px}.clause{grid-template-columns:26px 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     EDIT THESE DETAILS ONCE — they fill in everywhere on the page.
+     ===================================================================== -->
+<script>
+const POLICY = {
+  product:   "FAMILY PARISH DIRECTORY",
+  company:   "Indus Network LLC",
+  address:   "Fort Myers, FL, USA",
+  email:     "privacy@marthoma.net",
+  support:   "support@marthoma.net",
+  grievance: "Joel JV, CTO",
+  website:   "www.marthoma.online",
+  law:       "the State of Florida, USA",     // governing law
+  courts:    "Lee County, Florida, USA",      // courts with jurisdiction
+  effective: "1 January 2026",
+  version:   "Version 1.0"
+};
+</script>
+
+<!-- ======================= COVER / CONTENTS ======================= -->
+<div class="page">
+  <header class="top">
+    <div><div class="eyebrow">Church Family Directory Platform</div><div class="brand" data-f="product"></div></div>
+    <div class="edition" data-f="version"></div>
+  </header>
+
+  <div class="title-wrap">
+    <div class="tags"><span class="kicker">Legal &amp; Community</span></div>
+    <h1>Policies</h1>
+    <div class="rule"></div>
+    <p class="intro"><b data-f="product"></b> helps churches build and share family directories with their members, online and in print. Each directory holds personal details that families have entrusted to their church. These documents explain how that information is handled, the terms for churches and members using the platform, and the conduct expected of everyone in it.</p>
+    <div class="meta"><span>Effective <b data-f="effective"></b></span><span>Operated by <b data-f="company"></b></span><span>Applies to <b>web, app, PDF &amp; print editions</b></span></div>
+  </div>
+
+  <div class="roles">
+    <div class="role"><div class="label">The Platform</div><div class="who" data-f="company"></div><p>Provides and secures the software. Processes directory data only on each church's instructions.</p></div>
+    <div class="role"><div class="label">Each Church</div><div class="who">Church Administrators</div><p>Decide what is collected, obtain consent from families, and manage who has access to their directory.</p></div>
+    <div class="role"><div class="label">Members</div><div class="who">Families &amp; Individuals</div><p>Provide their details, view their own church's directory, and control their own entries.</p></div>
+  </div>
+
+  <nav class="toc">
+    <a href="#privacy"><div class="num">01</div><div class="t">Privacy Policy</div><div class="d">What data is collected, who controls it, how it is protected, and your rights.</div></a>
+    <a href="#terms"><div class="num">02</div><div class="t">Terms of Service</div><div class="d">The agreement between the platform, subscribing churches and their members.</div></a>
+    <a href="#guidelines"><div class="num">03</div><div class="t">Community Guidelines</div><div class="d">How everyone should use one another's details with care and courtesy.</div></a>
+  </nav>
+
+  <div class="note"><b>In short:</b> each church owns and controls its own directory. Members can only see the directory of the church they belong to. Data is never sold, never used for advertising, and never shared between churches. Any member can ask to see, correct or remove their details.</div>
+
+  <footer class="foot"><span class="l" data-f="product"></span><span class="r">Policies · i</span></footer>
+</div>
+
+<!-- ======================= PRIVACY POLICY ======================= -->
+<div class="page" id="privacy">
+  <header class="top">
+    <div><div class="eyebrow">Church Family Directory Platform</div><div class="brand" data-f="product"></div></div>
+    <div class="edition" data-f="version"></div>
+  </header>
+
+  <div class="title-wrap">
+    <div class="tags"><span class="code">01</span><span class="kicker">Policy</span></div>
+    <h1>Privacy Policy</h1>
+    <div class="rule"></div>
+    <p class="intro"><b data-f="company"></b> (“we”, “us”) operates <b data-f="product"></b> (“the Platform”). This policy explains how personal data in church directories is handled. It is written to meet India's Digital Personal Data Protection Act, 2023 (DPDP Act) and the equivalent laws in other countries where churches use the Platform.</p>
+  </div>
+
+  <div class="card">
+    <div class="clause"><span class="cn">1.1</span><div>
+      <h2>Who is responsible</h2>
+      <p><strong>Each subscribing church</strong> decides why and how its members' data is used and is responsible for it as the <em>data fiduciary</em> (or “controller”). <strong>We act as a data processor</strong>: we store and process directory data only to provide the Platform to that church, under its instructions.</p>
+      <p>For data about church administrators' own accounts, billing and use of our website, we are responsible directly.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.2</span><div>
+      <h2>Information on the Platform</h2>
+      <table>
+        <thead><tr><th style="width:30%">Category</th><th>Examples</th><th style="width:20%">Provided by</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Family details</strong></td><td>Family code, prayer group or area, residence address, home parish, home town, family photograph</td><td>Church / member</td></tr>
+          <tr><td><strong>Member details</strong></td><td>Name, relationship to head of family, birthday (day and month), wedding anniversary</td><td>Church / member</td></tr>
+          <tr><td><strong>Contact</strong></td><td>Mobile number, email address</td><td>Church / member</td></tr>
+          <tr><td><strong>Optional fields</strong></td><td>Blood group, occupation and any other field a church chooses to enable</td><td>Member, by choice</td></tr>
+          <tr><td><strong>Account data</strong></td><td>Login email, password (stored encrypted), role, last sign-in</td><td>User</td></tr>
+          <tr><td><strong>Technical data</strong></td><td>Device and browser type, IP address, error logs, essential cookies</td><td>Automatic</td></tr>
+          <tr><td><strong>Billing</strong></td><td>Church name, billing contact, invoices (card details are held only by our payment provider)</td><td>Church</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:8px">We do not ask for identity-document numbers, financial accounts, caste or offerings, and we advise churches not to collect them.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.3</span><div>
+      <h2>How the data is used</h2>
+      <ul>
+        <li>To build, display, search and export each church's directory (web view, family index, PDF and print).</li>
+        <li>To let members find and contact families in their own church, organise prayer groups, and respond to genuine needs such as blood donation requests.</li>
+        <li>To send account emails such as invitations, password resets and notices about changes to a directory.</li>
+        <li>To keep the Platform secure, fix problems and provide support.</li>
+      </ul>
+      <p><strong>We never sell directory data, use it for advertising, train AI models on it, or combine it across churches.</strong></p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.4</span><div>
+      <h2>Consent</h2>
+      <p>Churches must obtain clear consent from each family before adding them, and tell them what will be shown and to whom. Every adult member can choose to hide their own phone number, email, blood group, occupation or photo, and can withdraw consent at any time.</p>
+      <p><strong>Children:</strong> under-18 members are added only with verifiable consent from a parent or guardian. The Platform does not show contact details for children, does not allow children to hold accounts, and does not track or profile them.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.5</span><div>
+      <h2>Who can see it</h2>
+      <ul>
+        <li><strong>Members</strong> see only the directory of the church they belong to, and only the fields their church makes visible.</li>
+        <li><strong>Church administrators</strong> manage their own church's records.</li>
+        <li><strong>Our staff</strong> access data only when needed for support or security, under confidentiality obligations, and every access is logged.</li>
+        <li><strong>Service providers</strong> that we use to run the Platform (cloud hosting, email delivery, payments). They are bound by contract to protect the data and use it only for us. A current list is available at <span data-f="website"></span>.</li>
+        <li><strong>Authorities</strong>, only where required by law, and we will tell the church unless prohibited.</li>
+      </ul>
+      <p>No member of one church can see another church's directory.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.6</span><div>
+      <h2>Security</h2>
+      <ul>
+        <li>Encryption in transit (HTTPS) and at rest; passwords stored as one-way hashes.</li>
+        <li>Each church's data is logically separated; access is based on role.</li>
+        <li>Exports and shared links can be password-protected and watermarked with the member's name.</li>
+        <li>Regular backups, monitoring and security updates.</li>
+        <li>If a breach affects personal data, we will notify the affected church and the relevant authority without undue delay, as required by law, and help the church inform its members.</li>
+      </ul>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.7</span><div>
+      <h2>Your rights</h2>
+      <p>Members may ask to <strong>access</strong>, <strong>correct</strong>, <strong>update</strong> or <strong>erase</strong> their data, <strong>withdraw consent</strong>, and <strong>nominate</strong> someone to act for them in case of death or incapacity. Most changes can be made from your own profile. Otherwise, contact your church administrator, or us at <span data-f="email"></span>, and we will pass the request to your church and help it respond within 30 days.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.8</span><div>
+      <h2>Retention</h2>
+      <p>Data is kept while the church subscribes and the member remains in its directory. When a member is removed, their entry is deleted from the live directory straight away and from backups within 90 days. When a church closes its account, it can export its data for 30 days, after which all its data is permanently deleted within 90 days, unless the law requires us to keep something longer. Copies already printed or downloaded remain the church's responsibility.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.9</span><div>
+      <h2>Cookies</h2>
+      <p>We use only essential cookies to keep you signed in and secure. We do not use advertising or cross-site tracking cookies.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.10</span><div>
+      <h2>Where data is stored</h2>
+      <p>Data is hosted with reputable cloud providers. Where data is stored or processed outside the country of the church, we do so only as permitted by applicable law and with appropriate safeguards.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">1.11</span><div>
+      <h2>Contact &amp; Grievance Officer</h2>
+      <p><span data-f="grievance"></span>, <span data-f="company"></span>, <span data-f="address"></span> · <span data-f="email"></span>. We acknowledge complaints within 7 days and aim to resolve them within 30 days. If you are not satisfied, you may approach the Data Protection Board of India or the data protection authority in your country.</p>
+      <p>We may update this policy and will notify churches at least 30 days before significant changes take effect.</p>
+    </div></div>
+  </div>
+
+  <footer class="foot"><span class="l" data-f="product"></span><span class="r">Policies · ii</span></footer>
+</div>
+
+<!-- ======================= TERMS OF SERVICE ======================= -->
+<div class="page" id="terms">
+  <header class="top">
+    <div><div class="eyebrow">Church Family Directory Platform</div><div class="brand" data-f="product"></div></div>
+    <div class="edition" data-f="version"></div>
+  </header>
+
+  <div class="title-wrap">
+    <div class="tags"><span class="code">02</span><span class="kicker">Terms</span></div>
+    <h1>Terms of Service</h1>
+    <div class="rule"></div>
+    <p class="intro">These terms form the agreement between <b data-f="company"></b> and each church that subscribes to <b data-f="product"></b>, and set out the conditions for every member who uses it. By creating an account, accepting an invitation or using a directory, you agree to them.</p>
+  </div>
+
+  <div class="card">
+    <div class="clause"><span class="cn">2.1</span><div>
+      <h2>The service</h2>
+      <p>The Platform lets churches collect family details, publish a members-only directory, search it through a family index, and export it as PDF or print. Features may differ by plan and may improve over time.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.2</span><div>
+      <h2>Accounts</h2>
+      <ul>
+        <li>Users must be at least 18. Children may appear in their family's entry but may not hold accounts.</li>
+        <li>Members join only by invitation from their church's administrator.</li>
+        <li>Keep your login private. You are responsible for activity on your account, and must tell your administrator or us promptly if it is compromised.</li>
+      </ul>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.3</span><div>
+      <h2>Responsibilities of churches</h2>
+      <ul>
+        <li>Appoint at least one administrator and keep the list of authorised people up to date.</li>
+        <li>Obtain valid consent from every family, and parental consent for every child, before adding them.</li>
+        <li>Collect only information needed for fellowship and church purposes.</li>
+        <li>Respond to members' requests to access, correct or remove their data.</li>
+        <li>Remove members who leave the church, and control who receives printed or exported copies.</li>
+        <li>Make these terms, the Privacy Policy and the Community Guidelines available to members.</li>
+      </ul>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.4</span><div>
+      <h2>Acceptable use</h2>
+      <p>No one may use the Platform or any directory, online or printed, to:</p>
+      <ul>
+        <li>sell, advertise, market or solicit business of any kind;</li>
+        <li>raise funds or send appeals not approved by the church;</li>
+        <li>send political or election messaging;</li>
+        <li>add people to messaging groups or broadcast lists without their permission;</li>
+        <li>copy, scrape, bulk-download or share the directory with anyone outside the church;</li>
+        <li>harass, stalk, threaten, discriminate against or harm anyone;</li>
+        <li>upload unlawful content or material that is not yours to share;</li>
+        <li>attempt to access another church's data, bypass security, or interfere with the Platform.</li>
+      </ul>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.5</span><div>
+      <h2>Ownership</h2>
+      <p>Each church owns its directory content, and members keep rights to their own photos and details. They give us only the permission needed to store, display and process that content to run the service. We own the Platform, its software, design and templates; churches receive a limited, non-transferable right to use them during their subscription.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.6</span><div>
+      <h2>Fees</h2>
+      <p>Paid plans are billed as shown at sign-up, plus applicable taxes. Unpaid accounts may be suspended after notice. Fees already paid are non-refundable except where the law requires otherwise or we state otherwise in writing.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.7</span><div>
+      <h2>Availability and accuracy</h2>
+      <p>We work to keep the Platform available and secure but cannot promise it will be uninterrupted or error-free. Directory content is supplied by churches and members; we do not verify it and are not responsible for its accuracy.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.8</span><div>
+      <h2>Suspension and termination</h2>
+      <p>A church may close its account at any time. We may suspend or remove an account, a user or content that breaches these terms or puts others at risk, giving notice where reasonable. On closure, the church may export its data for 30 days before it is deleted as described in the Privacy Policy.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.9</span><div>
+      <h2>Limitation of liability</h2>
+      <p>To the extent permitted by law, we are not liable for indirect or consequential loss, or for misuse of printed or downloaded copies outside the Platform. Our total liability to a church is limited to the fees it paid in the 12 months before the claim. Nothing limits liability that cannot be limited by law.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">2.10</span><div>
+      <h2>Changes and governing law</h2>
+      <p>We may update these terms and will give churches at least 30 days' notice of significant changes. Continuing to use the Platform after that means you accept them. These terms are governed by the laws of <span data-f="law"></span>, and the courts of <span data-f="courts"></span> have jurisdiction. Questions: <span data-f="support"></span>.</p>
+    </div></div>
+  </div>
+
+  <footer class="foot"><span class="l" data-f="product"></span><span class="r">Policies · iii</span></footer>
+</div>
+
+<!-- ======================= COMMUNITY GUIDELINES ======================= -->
+<div class="page" id="guidelines">
+  <header class="top">
+    <div><div class="eyebrow">Church Family Directory Platform</div><div class="brand" data-f="product"></div></div>
+    <div class="edition" data-f="version"></div>
+  </header>
+
+  <div class="title-wrap">
+    <div class="tags"><span class="code">03</span><span class="kicker">Guidelines</span></div>
+    <h1>Community Guidelines</h1>
+    <div class="rule"></div>
+    <p class="intro">Every name in a church directory belongs to a family who trusted their church with it. These guidelines apply to every church and every member on <b data-f="product"></b>. They ask us to treat one another's details the way we would want our own treated: with kindness, discretion and respect.</p>
+  </div>
+
+  <div class="card">
+    <div class="clause"><span class="cn">3.1</span><div>
+      <h2>Reach out with care</h2>
+      <div class="dogrid">
+        <div class="do"><h3>Please do</h3><ul>
+          <li>Introduce yourself and your family when contacting someone for the first time.</li>
+          <li>Call or message at reasonable hours unless it is urgent.</li>
+          <li>Ask before visiting someone's home.</li>
+          <li>Use birthdays and anniversaries to send greetings and remember people in prayer.</li>
+        </ul></div>
+        <div class="dont"><h3>Please don't</h3><ul>
+          <li>Keep messaging someone who hasn't replied.</li>
+          <li>Forward chain messages, rumours or unverified news.</li>
+          <li>Pass on someone's number without asking them.</li>
+          <li>Contact children directly; always go through their parents.</li>
+        </ul></div>
+      </div>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.2</span><div>
+      <h2>Blood donation requests</h2>
+      <p>Where a church shows blood groups, use them only for a genuine, current medical need. Share the patient's name, hospital and units needed, accept it graciously if someone can't donate, and let donors know once the need is met.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.3</span><div>
+      <h2>Keep it within the church</h2>
+      <p>Don't screenshot, photograph, download or forward directory pages, and don't post them on social media, even in private groups. What you learn about where someone lives, their family or their work is not for gossip or comment.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.4</span><div>
+      <h2>No selling, no soliciting</h2>
+      <p>A church directory is a place of fellowship, not a customer list. Don't use it to promote a business, product, service or appeal. If you have something to share with the congregation, ask your church leadership to announce it through the proper channels.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.5</span><div>
+      <h2>Prayer groups and committees</h2>
+      <p>Group leaders and conveners may contact the families in their group about meetings and church activities. Keep group conversations focused on fellowship, and share meeting details only within the group.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.6</span><div>
+      <h2>Photos and profile content</h2>
+      <p>Upload only photos of your own family, that everyone pictured is happy to share. Keep profile details accurate, respectful and free of advertising or links.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.7</span><div>
+      <h2>Times of loss or difficulty</h2>
+      <p>When a family is grieving or facing hardship, follow the lead of your clergy and the family before sharing news. Let the family decide what is shared and when.</p>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.8</span><div>
+      <h2>For church administrators</h2>
+      <ul>
+        <li>Add a family only after they have agreed, and honour requests to hide or remove details promptly.</li>
+        <li>Give administrator access only to people the church has authorised, and remove it when their role ends.</li>
+        <li>Share exports and printed copies only with current members.</li>
+      </ul>
+    </div></div>
+
+    <div class="clause"><span class="cn">3.9</span><div>
+      <h2>Reporting a concern</h2>
+      <p>If you receive unwanted contact through a directory, or see one being misused, tell your church administrator or clergy, or use “Report a concern” in the app, or write to <span data-f="support"></span>. Reports are handled discreetly. Breaking these guidelines may lead to a warning, loss of directory access, or removal by the church or by us.</p>
+    </div></div>
+  </div>
+
+  <div class="note"><b>Acknowledgement.</b> By accepting an invitation to a directory, each member confirms they have read and agree to the Privacy Policy, Terms of Service and Community Guidelines.</div>
+
+  <footer class="foot"><span class="l" data-f="product"></span><span class="r">Policies · iv</span></footer>
+</div>
+
+<script>
+document.querySelectorAll("[data-f]").forEach(el => {
+  const v = POLICY[el.dataset.f] || "";
+  el.textContent = v;
+  if (v.startsWith("[")) el.classList.add("ph");
+});
+document.title = POLICY.product + " – Policies";
+</script>
+</body>
+</html>

@@ -90,7 +90,7 @@
           <th class="cw-anniv">Anniv.</th>
           <th class="cw-mob">Mobile</th>
           <th class="cw-blood c">Blood</th>
-          <th class="cw-qual">Qualification</th>
+          <% if (String(settings.show_qualification) !== '0') { %><th class="cw-qual">Qualification</th><% } %>
           <th class="cw-occ">Occupation</th>
           <th class="cw-email">Email</th>
         </tr>
@@ -129,7 +129,9 @@
             <%# The one value on the row read at a glance in an emergency, so it
                 is the one set apart rather than merely printed. %>
             <td class="c"><% if (m.blood_group) { %><span class="blood-pill"><%= m.blood_group %></span><% } else { %><span class="dash">&mdash;</span><% } %></td>
-            <td><% if (m.qualification) { %><%= m.qualification %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <% if (String(settings.show_qualification) !== '0') { %>
+              <td><% if (m.qualification) { %><%= m.qualification %><% } else { %><span class="dash">&mdash;</span><% } %></td>
+            <% } %>
             <td><% if (m.occupation) { %><%= m.occupation %><% } else { %><span class="dash">&mdash;</span><% } %></td>
             <td><% if (!m.email_list.length) { %><span class="dash">&mdash;</span><% } %><%
               %><% m.email_list.forEach(function (a, j) { %><%
