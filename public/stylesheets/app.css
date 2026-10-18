@@ -1363,6 +1363,69 @@ details.invite textarea { min-height: 96px; font-size: 13.5px; }
 .step .txt strong { color: var(--ink); font-weight: 600; }
 
 /* ==========================================================================
+   Family index — the searchable register on the dashboard
+   ========================================================================== */
+
+.family-index { margin-top: 20px; }
+.fi-controls { padding: 0 24px 14px; }
+.fi-controls input[type=search] { width: 100%; }
+.fi-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+.fi-toggle { display: inline-flex; border: 1px solid var(--rule); border-radius: 20px; overflow: hidden; flex: none; }
+.fi-toggle button {
+  border: none;
+  background: var(--panel);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.fi-toggle button.on { background: var(--vellum); color: var(--ink); }
+
+.fi-groups { display: flex; flex-wrap: wrap; gap: 6px; }
+.fi-chip {
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.fi-chip .n { font-weight: 500; color: var(--ink-faint); margin-left: 4px; }
+.fi-chip.on { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+.fi-chip.on .n { color: var(--gilt); }
+
+.fi-az { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 24px 10px; justify-content: center; }
+.fi-az a {
+  font-family: var(--serif);
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--ink);
+  text-decoration: none;
+}
+.fi-az a:hover { background: var(--vellum); }
+.fi-az a.off { color: #CBC3B5; pointer-events: none; }
+
+.fi-sec-head { display: flex; align-items: baseline; gap: 10px; margin: 18px 24px 8px; }
+.fi-sec-head .l { font-family: var(--serif); font-size: 18px; font-weight: 500; }
+.fi-sec-head .s { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--ink-faint); text-transform: uppercase; }
+.fi-sec-head .line { flex: 1; height: 1px; background: var(--rule); }
+.fi-section:first-of-type .fi-sec-head { margin-top: 4px; }
+
+mark.fi-hit { background: #F5E3BF; color: inherit; border-radius: 2px; }
+.family-index .empty { padding: 28px 24px; text-align: center; color: var(--ink-faint); font-size: 13px; }
+
+/* ==========================================================================
    Comma-separated boxes (tag-input.js)
    ========================================================================== */
 

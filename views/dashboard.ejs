@@ -223,6 +223,14 @@
             your browser&rsquo;s print dialog to save a PDF or send it to a printer.
           </div>
         </div>
+        <div class="step">
+          <div class="idx"></div>
+          <div class="txt">
+            Look a family up by name or Prayer Group in the
+            <a href="#family-index">Family index</a> below &mdash; it reads
+            straight off the register, so it is always current.
+          </div>
+        </div>
         <% if (isAdmin) { %>
           <div class="step">
             <div class="idx"></div>
@@ -236,5 +244,146 @@
     </section>
   </div>
 </div>
+
+<section class="card flush family-index" id="family-index">
+  <div class="board-head">
+    <div>
+      <h2>Family Index</h2>
+      <p class="sub">Every family, by name or Prayer Group, with the printed page it falls on</p>
+    </div>
+    <span class="count" id="fiCount"></span>
+  </div>
+
+  <div class="fi-controls">
+    <input type="search" id="fiQ" placeholder="Search head of family, Family ID or Prayer Group…" aria-label="Search families">
+    <div class="fi-row">
+      <div class="fi-toggle" role="group" aria-label="Sort">
+        <button type="button" id="fiViewName" class="on">A&ndash;Z by Name</button>
+        <button type="button" id="fiViewGroup">By Prayer Group</button>
+      </div>
+      <div class="fi-groups" id="fiGroups"></div>
+    </div>
+  </div>
+
+  <nav class="fi-az" id="fiAz"></nav>
+  <div id="fiList"></div>
+</section>
+
+<script>
+(function () {
+  /*
+   * Fed from the database on every page load, in the same order and page
+   * numbers as the printed directory (routes/index.js) — there is no
+   * separate copy of this data to keep in sync when a family is edited or
+   * a CSV is imported.
+   */
+  const DATA = <%- JSON.stringify(indexEntries) %>;
+  const ALL_GROUPS = <%- JSON.stringify(indexGroups) %>;
+  const BASE = <%- JSON.stringify(base) %>;
+
+  const els = {
+    count: document.getElementById('fiCount'),
+    groups: document.getElementById('fiGroups'),
+    az: document.getElementById('fiAz'),
+    list: document.getElementById('fiList'),
+    q: document.getElementById('fiQ'),
+    viewName: document.getElementById('fiViewName'),
+    viewGroup: document.getElementById('fiViewGroup')
+  };
+
+  let state = { q: '', group: 'All', view: 'name' };
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const hl = (text, q) => {
+    text = String(text);
+    if (!q) return esc(text);
+    const i = text.toLowerCase().indexOf(q);
+    if (i < 0) return esc(text);
+    return esc(text.slice(0, i)) + '<mark class="fi-hit">' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+  };
+
+  function renderGroups() {
+    const counts = { All: DATA.length };
+    DATA.forEach((d) => { if (d.group) counts[d.group] = (counts[d.group] || 0) + 1; });
+    els.groups.innerHTML = ['All', ...ALL_GROUPS].map((g) =>
+      `<button type="button" class="fi-chip ${state.group === g ? 'on' : ''}" data-g="${esc(g)}">${esc(g)}<span class="n">${counts[g] || 0}</span></button>`
+    ).join('');
+    els.groups.querySelectorAll('.fi-chip').forEach((b) => {
+      b.onclick = () => { state.group = b.dataset.g; renderGroups(); render(); };
+    });
+  }
+
+  function filtered() {
+    const q = state.q;
+    return DATA.filter((d) =>
+      (state.group === 'All' || d.group === state.group) &&
+      (!q || d.name.toLowerCase().includes(q) || d.code.toLowerCase().includes(q) || d.group.toLowerCase().includes(q))
+    );
+  }
+
+  function table(rows, showGroup) {
+    const q = state.q;
+    return `<div class="table-wrap"><table class="table">
+      <thead><tr><th style="width:90px">Family ID</th><th>Head of Family</th>${showGroup ? '<th>Prayer Group</th>' : ''}<th class="right" style="width:70px">Page</th></tr></thead>
+      <tbody>${rows.map((d) => `<tr>
+        <td><span class="tag">${hl(d.code, q)}</span></td>
+        <td><a href="${BASE}/families/${d.id}">${hl(d.name, q)}</a></td>
+        ${showGroup ? `<td>${d.group ? hl(d.group, q) : ''}</td>` : ''}
+        <td class="right num"><a href="${BASE}/directory#folio-${d.page}">${d.page}</a></td></tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function render() {
+    const rows = filtered();
+    els.count.textContent = `Showing ${rows.length} of ${DATA.length} families` + (state.group !== 'All' ? ` · ${state.group}` : '');
+
+    if (!rows.length) {
+      els.list.innerHTML = DATA.length
+        ? `<p class="empty">No families match &ldquo;${esc(state.q)}&rdquo;.</p>`
+        : `<p class="empty">There are no families in the directory yet.</p>`;
+      els.az.innerHTML = '';
+      return;
+    }
+
+    if (state.view === 'name') {
+      rows.sort((a, b) => a.name.localeCompare(b.name));
+      const byL = {};
+      rows.forEach((d) => (byL[(d.name[0] || '#').toUpperCase()] ||= []).push(d));
+      els.az.style.display = 'flex';
+      els.az.innerHTML = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((L) =>
+        `<a href="#fi-L-${L}" class="${byL[L] ? '' : 'off'}">${L}</a>`).join('');
+      els.list.innerHTML = Object.keys(byL).sort().map((L) => `
+        <div class="fi-section" id="fi-L-${L}">
+          <div class="fi-sec-head"><span class="l">${esc(L)}</span><span class="s">${byL[L].length} ${byL[L].length > 1 ? 'families' : 'family'}</span><span class="line"></span></div>
+          ${table(byL[L], true)}
+        </div>`).join('');
+    } else {
+      els.az.style.display = 'none';
+      const byG = {};
+      rows.forEach((d) => (byG[d.group || 'No Prayer Group'] ||= []).push(d));
+      els.list.innerHTML = Object.keys(byG).sort().map((g) => {
+        byG[g].sort((a, b) => a.name.localeCompare(b.name));
+        return `<div class="fi-section">
+          <div class="fi-sec-head"><span class="l">${esc(g)}</span><span class="s">${byG[g].length} ${byG[g].length > 1 ? 'families' : 'family'}</span><span class="line"></span></div>
+          ${table(byG[g], false)}
+        </div>`;
+      }).join('');
+    }
+  }
+
+  els.q.addEventListener('input', (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+  const setView = (v) => {
+    state.view = v;
+    els.viewName.classList.toggle('on', v === 'name');
+    els.viewGroup.classList.toggle('on', v === 'group');
+    render();
+  };
+  els.viewName.onclick = () => setView('name');
+  els.viewGroup.onclick = () => setView('group');
+
+  renderGroups();
+  render();
+})();
+</script>
 
 <%- include('partials/footer') %>

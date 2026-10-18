@@ -85,7 +85,7 @@
   const edition = new Date().getFullYear() + ' Edition';
 %>
 <% pages.forEach(function (page) { %>
-  <div class="page<%= page.single ? ' page-single' : '' %>">
+  <div id="folio-<%= page.folio %>" class="page<%= page.single ? ' page-single' : '' %>">
 
     <%
       /*

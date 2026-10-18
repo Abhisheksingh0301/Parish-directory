@@ -196,7 +196,7 @@ async function main() {
 
   console.log('\n--- every page an administrator uses ---');
   const pages = [
-    ['/', 'Dashboard', ['Coming up']],
+    ['/', 'Dashboard', ['Coming up', 'Getting started', 'Family Index', '"code":"0001"']],
     ['/families', 'Families', ['Steve Smith', '0001']],
     ['/families/1', 'One family', ['Steve Smith', 'Mrs. Riva Smith']],
     ['/families/1/edit', 'Edit a family', ['Steve Smith']],
