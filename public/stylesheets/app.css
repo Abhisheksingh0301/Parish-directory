@@ -344,6 +344,7 @@ code {
 }
 .app-foot a { color: var(--ink-soft); }
 .app-foot a:hover { color: var(--gilt-deep); }
+.app-foot-copyright { margin: 6px 0 0; }
 
 /*
  * The eyebrow, the title, the actions. The eyebrow is the italic serif line
