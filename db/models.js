@@ -62,7 +62,12 @@ const Church = sequelize.define('Church', {
   slug: { type: DataTypes.TEXT, allowNull: false },
   city: text(),
   is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-  created_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now }
+  created_at: { type: DataTypes.STRING, allowNull: false, defaultValue: now },
+  // Which super administrator created this church. NULL for one created
+  // before this column existed — never backfilled, since the audit log that
+  // might answer that question for an old row is pruned after
+  // config.login.retentionDays. See migration 16.
+  created_by_user_id: { type: DataTypes.INTEGER, allowNull: true }
 }, { tableName: 'churches' });
 
 // ---------------------------------------------------------------------------
@@ -298,6 +303,10 @@ User.belongsTo(Family, { foreignKey: 'family_id', as: 'family' });
 
 Church.hasMany(User, { foreignKey: 'church_id', as: 'users' });
 User.belongsTo(Church, { foreignKey: 'church_id', as: 'church' });
+
+// The super administrator who added this church — distinct from the church's
+// own users above, which is who runs it day to day.
+Church.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'creator' });
 
 Church.hasMany(ChurchSetting, { foreignKey: 'church_id', as: 'settings', onDelete: 'CASCADE' });
 ChurchSetting.belongsTo(Church, { foreignKey: 'church_id', as: 'church' });

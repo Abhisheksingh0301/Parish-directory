@@ -255,10 +255,11 @@ const withParents = [
  * Two hundred of them is too many for one flat list, so name and city are
  * searchable and the diocese and zone are selectable.
  */
-async function listChurches({ search = '', dioceseId = null, zoneId = null } = {}) {
+async function listChurches({ search = '', dioceseId = null, zoneId = null, createdByUserId = null } = {}) {
   const where = {};
   if (dioceseId) where.diocese_id = dioceseId;
   if (zoneId) where.zone_id = zoneId;
+  if (createdByUserId) where.created_by_user_id = createdByUserId;
 
   if (String(search).trim()) {
     const term = `%${String(search).trim().toLowerCase()}%`;
@@ -367,7 +368,7 @@ async function defaultDiocese(transaction = null) {
  * it out and the church lands in `defaultDiocese()` instead, which is how a
  * church gets created without anyone picking one.
  */
-async function createChurch({ name, city = '', dioceseId = null, zoneId = null } = {}, transaction = null) {
+async function createChurch({ name, city = '', dioceseId = null, zoneId = null, createdByUserId = null } = {}, transaction = null) {
   const trimmed = String(name || '').trim();
   if (!trimmed) throw new HierarchyError('A church needs a name.');
 
@@ -387,7 +388,8 @@ async function createChurch({ name, city = '', dioceseId = null, zoneId = null }
     name: trimmed,
     slug,
     city: String(city || '').trim(),
-    created_at: db.now()
+    created_at: db.now(),
+    created_by_user_id: createdByUserId
   }, { transaction });
 
   // A new church inherits every default except the two that are obviously its

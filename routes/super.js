@@ -136,19 +136,22 @@ router.post('/zones/:id(\\d+)/delete', withHierarchyErrors(async (req, res) => {
 
 async function churchesPage(req, res, extra = {}) {
   const dioceseId = req.query.diocese ? Number(req.query.diocese) : null;
+  const mine = req.query.mine === '1';
 
   res.render('super/churches', {
     title: 'Churches',
     churches: await Churches.listChurches({
       search: req.query.q || '',
       dioceseId,
-      zoneId: req.query.zone ? Number(req.query.zone) : null
+      zoneId: req.query.zone ? Number(req.query.zone) : null,
+      createdByUserId: mine ? req.user.id : null
     }),
     dioceses: await Churches.listDioceses(),
     zones: await Churches.listZones(),
     search: req.query.q || '',
     filterDiocese: dioceseId,
     filterZone: req.query.zone ? Number(req.query.zone) : null,
+    filterMine: mine,
     // Set when a super administrator arrived here because a page needed a
     // church and they had not chosen one.
     pick: req.query.pick === '1',
@@ -210,7 +213,8 @@ router.post('/churches', wrap(async (req, res) => {
         name: form.name,
         city: form.city,
         dioceseId: form.diocese_id,
-        zoneId: form.zone_id
+        zoneId: form.zone_id,
+        createdByUserId: req.user.id
       }, transaction);
 
       await db.User.create({

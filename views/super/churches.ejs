@@ -34,9 +34,15 @@
         <% }); %>
       </select>
     </div>
+    <div class="field">
+      <label for="mine">
+        <input type="checkbox" id="mine" name="mine" value="1" <%= filterMine ? 'checked' : '' %>>
+        Added by me
+      </label>
+    </div>
     <div class="actions">
       <button type="submit" class="btn ghost small">Filter</button>
-      <% if (search || filterDiocese || filterZone) { %>
+      <% if (search || filterDiocese || filterZone || filterMine) { %>
         <a class="btn ghost small" href="<%= base %>/super/churches">Clear</a>
       <% } %>
     </div>

@@ -1072,6 +1072,25 @@ async function loginAttemptLog({ qi, transaction }) {
   await qi.addIndex('ip_blocks', ['blocked_until'], { name: 'idx_ip_blocks_until', ...opts });
 }
 
+// ---------------------------------------------------------------------------
+// 16 — who added a church
+// ---------------------------------------------------------------------------
+
+/**
+ * Which super administrator created a church, so the console can be filtered
+ * down to "the ones I added" rather than every church in the installation.
+ *
+ * Nullable, and never backfilled: a church created before this migration has
+ * no answer to that question, and the audit log that might have recorded it
+ * is pruned after config.login.retentionDays — not a reliable source to
+ * reconstruct history from.
+ */
+async function churchCreatedBy({ qi, transaction }) {
+  await qi.addColumn('churches', 'created_by_user_id', {
+    type: DataTypes.INTEGER, allowNull: true
+  }, { transaction });
+}
+
 const MIGRATIONS = [
   async ({ sequelize, transaction }) => {
     for (const sql of SCHEMA_V1) await sequelize.query(sql, { transaction });
@@ -1091,7 +1110,8 @@ const MIGRATIONS = [
   familySortOrder,
   dropFamilyArea,
   clearNonAddressEmails,
-  loginAttemptLog
+  loginAttemptLog,
+  churchCreatedBy
 ];
 
 module.exports = { MIGRATIONS, CHURCH_SETTING_KEYS };
