@@ -6,6 +6,7 @@ const config = require('../config');
 const db = require('../db');
 const Users = require('../models/user');
 const Family = require('../models/family');
+const Churches = require('../models/church');
 const auth = require('../lib/auth');
 const tenancy = require('../lib/tenancy');
 const settings = require('../lib/settings');
@@ -126,6 +127,26 @@ router.post('/settings', wrap(async (req, res) => {
       notice: null
     });
   }
+
+  // The church's own name is a separate record from this setting — used by
+  // the super administrator's console, the home-parish suggestions, and the
+  // header whenever a church is in scope — but a parish should not have to
+  // ask a super administrator just to fix a typo in its own name, so saving
+  // this field here keeps both in step.
+  try {
+    await Churches.updateChurch(req.churchId, { name: updates.parish_name });
+  } catch (err) {
+    if (!(err instanceof Churches.HierarchyError)) throw err;
+    const current = await settings.load(req.churchId);
+    return res.status(400).render('admin/settings', {
+      title: 'Parish settings',
+      values: { ...current, ...req.body },
+      ...settingsLocals(),
+      errors: [err.message],
+      notice: null
+    });
+  }
+  if (res.locals.church) res.locals.church.name = updates.parish_name;
 
   await settings.save(req.churchId, updates);
 
