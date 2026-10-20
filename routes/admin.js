@@ -97,8 +97,14 @@ router.post('/settings', wrap(async (req, res) => {
     .map((key) => String(key).trim().toLowerCase())
     .filter((key) => known.has(key));
 
+  // Only a super administrator may toggle Qualification; a church admin's
+  // save leaves whatever is already stored untouched, since the checkbox
+  // isn't even shown to them.
+  const currentSettings = await settings.load(req.churchId);
   // An unticked checkbox sends nothing at all, so its absence is the "off" value.
-  const showQualification = req.body.show_qualification === '1' ? '1' : '0';
+  const showQualification = auth.isSuperAdmin(req.user)
+    ? (req.body.show_qualification === '1' ? '1' : '0')
+    : currentSettings.show_qualification;
 
   const updates = {
     parish_name: text(req.body.parish_name),
@@ -113,11 +119,10 @@ router.post('/settings', wrap(async (req, res) => {
   };
 
   if (errors.length) {
-    const current = await settings.load(req.churchId);
     return res.status(400).render('admin/settings', {
       title: 'Parish settings',
       values: {
-        ...current,
+        ...currentSettings,
         ...req.body,
         routine_fields: routine.join(', '),
         show_qualification: showQualification
@@ -137,10 +142,9 @@ router.post('/settings', wrap(async (req, res) => {
     await Churches.updateChurch(req.churchId, { name: updates.parish_name });
   } catch (err) {
     if (!(err instanceof Churches.HierarchyError)) throw err;
-    const current = await settings.load(req.churchId);
     return res.status(400).render('admin/settings', {
       title: 'Parish settings',
-      values: { ...current, ...req.body },
+      values: { ...currentSettings, ...req.body },
       ...settingsLocals(),
       errors: [err.message],
       notice: null
